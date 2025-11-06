@@ -22,9 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-	"strconv"
-
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
@@ -39,31 +36,29 @@ var listCmd = &cobra.Command{
 
 func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	var pf string
-	var err error
-	pf, err = strconv.Unquote(fmt.Sprintf(`"%%s%s%%s\n"`, "\t\t"))
-	if err != nil {
-		return err
-	}
-
-	if len(args) == 0 {
-		args = append(args, "@default")
+	targetDB := "@default"
+	if len(args) == 1 {
+		targetDB = args[0]
 	}
 
 	trans := TransactionArgs{
-		key:      args[0],
+		key:      targetDB,
 		readonly: true,
 		sync:     true,
 		transact: func(tx *badger.Txn, k []byte) error {
+			binary, err := cmd.Flags().GetBool("include-binary")
+			if err != nil {
+				return err
+			}
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
 			it := tx.NewIterator(opts)
 			defer it.Close()
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
-				k := item.Key()
+				key := item.Key()
 				if err := item.Value(func(v []byte) error {
-					store.Print(pf, k, v)
+					store.Print("%s\t\t%s\n", binary, key, v)
 					return nil
 				}); err != nil {
 					return err
@@ -77,5 +72,6 @@ func list(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	rootCmd.AddCommand(listCmd)
 }

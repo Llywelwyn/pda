@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,19 +74,25 @@ func (s *Store) Transaction(args TransactionArgs) error {
 	}
 
 	tx := db.NewTransaction(!args.readonly)
+	defer tx.Discard()
+
 	if err := args.transact(tx, k); err != nil {
-		tx.Discard()
 		return err
 	}
+
+	if args.readonly {
+		return nil
+	}
+
 	return tx.Commit()
 }
 
-func (s *Store) Print(pf string, vs ...[]byte) {
+func (s *Store) Print(pf string, includeBinary bool, vs ...[]byte) {
 	nb := "(omitted binary data)"
-	fvs := make([]any, 0)
-	tty := term.IsTerminal(int(os.Stdin.Fd()))
+	fvs := make([]any, 0, len(vs))
+	tty := term.IsTerminal(int(os.Stdout.Fd()))
 	for _, v := range vs {
-		if tty && !utf8.Valid(v) {
+		if tty && !includeBinary && !utf8.Valid(v) {
 			fvs = append(fvs, nb)
 		} else {
 			fvs = append(fvs, string(v))

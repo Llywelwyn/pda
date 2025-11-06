@@ -56,10 +56,16 @@ func get(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	store.Print("%s", v)
+	binary, err := cmd.Flags().GetBool("include-binary")
+	if err != nil {
+		return err
+	}
+
+	store.Print("%s", binary, v)
 	return nil
 }
 
 func init() {
+	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	rootCmd.AddCommand(getCmd)
 }
