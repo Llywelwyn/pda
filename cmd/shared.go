@@ -35,6 +35,40 @@ import (
 
 type Store struct{}
 
+type TransactionArgs struct {
+	key      string
+	readonly bool
+	sync     bool
+	transact func(tx *badger.Txn, key []byte) error
+}
+
+func (s *Store) Transaction(args TransactionArgs) error {
+	k, dbName, err := s.parse(args.key)
+	if err != nil {
+		return err
+	}
+
+	db, err := s.open(dbName)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if args.sync {
+		err = db.Sync()
+		if err != nil {
+			return err
+		}
+	}
+
+	tx := db.NewTransaction(!args.readonly)
+	if err := args.transact(tx, k); err != nil {
+		tx.Discard()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *Store) parse(k string) ([]byte, string, error) {
 	var key, db string
 	ps := strings.Split(k, "@")
@@ -90,36 +124,20 @@ func (s *Store) Print(pf string, vs ...[]byte) {
 	}
 }
 
-type TransactionArgs struct {
-	key      string
-	readonly bool
-	sync     bool
-	transact func(tx *badger.Txn, key []byte) error
-}
-
-func (s *Store) Transaction(args TransactionArgs) error {
-	k, dbName, err := s.parse(args.key)
+func (s *Store) AllStores() ([]string, error) {
+	path, err := s.path()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	db, err := s.open(dbName)
+	dirs, err := os.ReadDir(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer db.Close()
-
-	if args.sync {
-		err = db.Sync()
-		if err != nil {
-			return err
+	var stores []string
+	for _, e := range dirs {
+		if e.IsDir() {
+			stores = append(stores, e.Name())
 		}
 	}
-
-	tx := db.NewTransaction(!args.readonly)
-	if err := args.transact(tx, k); err != nil {
-		tx.Discard()
-		return err
-	}
-	return tx.Commit()
+	return stores, nil
 }
