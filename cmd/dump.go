@@ -15,6 +15,7 @@ type dumpEntry struct {
 	Key      string `json:"key"`
 	Value    string `json:"value"`
 	Encoding string `json:"encoding,omitempty"`
+	Secret   bool   `json:"secret,omitempty"`
 }
 
 var dumpCmd = &cobra.Command{
@@ -53,6 +54,11 @@ func dump(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unsupported encoding %q", mode)
 	}
 
+	includeSecret, err := cmd.Flags().GetBool("secret")
+	if err != nil {
+		return err
+	}
+
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -65,8 +71,16 @@ func dump(cmd *cobra.Command, args []string) error {
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				key := item.KeyCopy(nil)
+				meta := item.UserMeta()
+				isSecret := meta&metaSecret != 0
+				if isSecret && !includeSecret {
+					continue
+				}
 				if err := item.Value(func(v []byte) error {
-					entry := dumpEntry{Key: string(key)}
+					entry := dumpEntry{
+						Key:    string(key),
+						Secret: isSecret,
+					}
 					switch mode {
 					case "base64":
 						encodeBase64(&entry, v)
@@ -101,6 +115,7 @@ func dump(cmd *cobra.Command, args []string) error {
 
 func init() {
 	dumpCmd.Flags().StringP("encoding", "e", "auto", "value encoding: auto, base64, or text")
+	dumpCmd.Flags().Bool("secret", false, "Include entries marked as secret")
 	rootCmd.AddCommand(dumpCmd)
 }
 
