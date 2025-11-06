@@ -22,40 +22,54 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"io"
+	"fmt"
+	"strconv"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
 
-// setCmd represents the set command
-var setCmd = &cobra.Command{
-	Use:   "set KEY[@DB] [VALUE]",
-	Short: "Set a value for a key by passing VALUE or from Stdin. Optionally specify a db.",
-	Args:  cobra.RangeArgs(1, 2),
-	RunE:  set,
+// listCmd represents the set command
+var listCmd = &cobra.Command{
+	Use:   "list [@DB]",
+	Short: "List the contents of a db.",
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  list,
 }
 
-func set(cmd *cobra.Command, args []string) error {
+func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
+	var pf string
+	var err error
+	pf, err = strconv.Unquote(fmt.Sprintf(`"%%s%s%%s\n"`, "\t\t"))
+	if err != nil {
+		return err
+	}
 
-	var value []byte
-	if len(args) == 2 {
-		value = []byte(args[1])
-	} else {
-		bytes, err := io.ReadAll(cmd.InOrStdin())
-		if err != nil {
-			return err
-		}
-		value = bytes
+	if len(args) == 0 {
+		args = append(args, "@default")
 	}
 
 	trans := TransactionArgs{
 		key:      args[0],
-		readonly: false,
-		sync:     false,
+		readonly: true,
+		sync:     true,
 		transact: func(tx *badger.Txn, k []byte) error {
-			return tx.Set(k, value)
+			opts := badger.DefaultIteratorOptions
+			opts.PrefetchSize = 10
+			it := tx.NewIterator(opts)
+			defer it.Close()
+			for it.Rewind(); it.Valid(); it.Next() {
+				item := it.Item()
+				k := item.Key()
+				if err := item.Value(func(v []byte) error {
+					store.Print(pf, k, v)
+					return nil
+				}); err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	}
 
@@ -63,6 +77,5 @@ func set(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(listCmd)
 }
-

@@ -36,17 +36,26 @@ var getCmd = &cobra.Command{
 
 func get(cmd *cobra.Command, args []string) error {
 	store := &Store{}
+
 	var v []byte
-	if err := store.Transaction(args[0], true, func(tx *badger.Txn, k []byte) error {
-		item, err := tx.Get(k)
-		if err != nil {
+	trans := TransactionArgs{
+		key:      args[0],
+		readonly: true,
+		sync:     false,
+		transact: func(tx *badger.Txn, k []byte) error {
+			item, err := tx.Get(k)
+			if err != nil {
+				return err
+			}
+			v, err = item.ValueCopy(nil)
 			return err
-		}
-		v, err = item.ValueCopy(nil)
-		return err
-	}); err != nil {
+		},
+	}
+
+	if err := store.Transaction(trans); err != nil {
 		return err
 	}
+
 	store.Print("%s", v)
 	return nil
 }

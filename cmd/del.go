@@ -36,9 +36,17 @@ var delCmd = &cobra.Command{
 
 func del(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	return store.Transaction(args[0], false, func(tx *badger.Txn, k []byte) error {
-		return tx.Delete(k)
-	})
+
+	trans := TransactionArgs{
+		key:      args[0],
+		readonly: false,
+		sync:     false,
+		transact: func(tx *badger.Txn, k []byte) error {
+			return tx.Delete(k)
+		},
+	}
+
+	return store.Transaction(trans)
 }
 
 func init() {

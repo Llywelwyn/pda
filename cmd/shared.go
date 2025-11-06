@@ -90,18 +90,34 @@ func (s *Store) Print(pf string, vs ...[]byte) {
 	}
 }
 
-func (s *Store) Transaction(key string, readonly bool, fn func(tx *badger.Txn, key []byte) error) error {
-	k, dbName, err := s.parse(key)
+type TransactionArgs struct {
+	key      string
+	readonly bool
+	sync     bool
+	transact func(tx *badger.Txn, key []byte) error
+}
+
+func (s *Store) Transaction(args TransactionArgs) error {
+	k, dbName, err := s.parse(args.key)
 	if err != nil {
 		return err
 	}
+
 	db, err := s.open(dbName)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	tx := db.NewTransaction(!readonly)
-	if err := fn(tx, k); err != nil {
+
+	if args.sync {
+		err = db.Sync()
+		if err != nil {
+			return err
+		}
+	}
+
+	tx := db.NewTransaction(!args.readonly)
+	if err := args.transact(tx, k); err != nil {
 		tx.Discard()
 		return err
 	}
