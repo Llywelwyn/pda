@@ -56,6 +56,14 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
+	delimiter, err := cmd.Flags().GetString("delimiter")
+	if err != nil {
+		return err
+	}
+	if delimiter == "" {
+		delimiter = "\t\t"
+	}
+
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -65,6 +73,7 @@ func list(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
+			format := fmt.Sprintf("%%s%s%%s\n", delimiter)
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
 			it := tx.NewIterator(opts)
@@ -73,7 +82,7 @@ func list(cmd *cobra.Command, args []string) error {
 				item := it.Item()
 				key := item.Key()
 				if err := item.Value(func(v []byte) error {
-					store.Print("%s\t\t%s\n", binary, key, v)
+					store.Print(format, binary, key, v)
 					return nil
 				}); err != nil {
 					return err
@@ -88,5 +97,6 @@ func list(cmd *cobra.Command, args []string) error {
 
 func init() {
 	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
+	listCmd.Flags().StringP("delimiter", "d", "\t\t", "string written between key and value columns")
 	rootCmd.AddCommand(listCmd)
 }
