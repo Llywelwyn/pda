@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
 
@@ -74,7 +75,14 @@ func restore(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("line %d: %w", lineNo, err)
 		}
 
-		if err := wb.Set([]byte(entry.Key), value); err != nil {
+		entryMeta := byte(0x0)
+		if entry.Secret {
+			entryMeta = metaSecret
+		}
+
+		writeEntry := badger.NewEntry([]byte(entry.Key), value).WithMeta(entryMeta)
+
+		if err := wb.SetEntry(writeEntry); err != nil {
 			return fmt.Errorf("line %d: %w", lineNo, err)
 		}
 		restored++
