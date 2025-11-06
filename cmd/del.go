@@ -22,6 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +41,29 @@ var delCmd = &cobra.Command{
 func del(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return err
+	}
+
+	targetKey, err := formatKeyForPrompt(store, args[0])
+	if err != nil {
+		return err
+	}
+
+	if !force {
+		var confirm string
+		message := fmt.Sprintf("Are you sure you want to delete %q? (y/n)", targetKey)
+		fmt.Println(message)
+		if _, err := fmt.Scanln(&confirm); err != nil {
+			return err
+		}
+		if strings.ToLower(confirm) != "y" {
+			fmt.Fprintf(os.Stderr, "Did not delete %q\n", targetKey)
+			return nil
+		}
+	}
+
 	trans := TransactionArgs{
 		key:      args[0],
 		readonly: false,
@@ -50,5 +77,20 @@ func del(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	delCmd.Flags().BoolP("force", "f", false, "Force delete without confirmation")
 	rootCmd.AddCommand(delCmd)
+}
+
+func formatKeyForPrompt(store *Store, arg string) (string, error) {
+	_, db, err := store.parse(arg, true)
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(arg, "@") {
+		return arg, nil
+	}
+	if db == "" {
+		return arg, nil
+	}
+	return fmt.Sprintf("%s@%s", arg, db), nil
 }
