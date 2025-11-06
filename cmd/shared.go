@@ -123,7 +123,7 @@ func (s *Store) AllStores() ([]string, error) {
 }
 
 func (s *Store) FindStore(k string) (string, error) {
-	_, n, err := s.parse(k, false)
+	n, err := s.parseDB(k, false)
 	if err != nil {
 		return "", err
 	}
@@ -174,6 +174,20 @@ func (s *Store) parse(k string, defaults bool) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("bad key format, use KEY@DB")
 	}
 	return []byte(key), db, nil
+}
+
+func (s *Store) parseDB(v string, defaults bool) (string, error) {
+	db := strings.TrimSpace(v)
+	if strings.HasPrefix(db, "@") {
+		db = strings.TrimPrefix(db, "@")
+	}
+	if db == "" {
+		if defaults {
+			return "default", nil
+		}
+		return "", fmt.Errorf("bad db format, use DB or @DB")
+	}
+	return strings.ToLower(db), nil
 }
 
 func (s *Store) open(name string) (*badger.DB, error) {

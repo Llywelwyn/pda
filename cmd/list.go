@@ -28,7 +28,7 @@ import (
 
 // listCmd represents the set command
 var listCmd = &cobra.Command{
-	Use:   "list [@DB]",
+	Use:   "list [DB]",
 	Short: "List the contents of a db.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE:  list,
@@ -38,7 +38,11 @@ func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	targetDB := "@default"
 	if len(args) == 1 {
-		targetDB = args[0]
+		dbName, err := store.parseDB(args[0], false)
+		if err != nil {
+			return err
+		}
+		targetDB = "@" + dbName
 	}
 
 	trans := TransactionArgs{
