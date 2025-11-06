@@ -22,6 +22,8 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
@@ -38,6 +40,7 @@ func get(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
 	var v []byte
+	var meta byte
 	trans := TransactionArgs{
 		key:      args[0],
 		readonly: true,
@@ -47,6 +50,7 @@ func get(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
+			meta = item.UserMeta()
 			v, err = item.ValueCopy(nil)
 			return err
 		},
@@ -54,6 +58,14 @@ func get(cmd *cobra.Command, args []string) error {
 
 	if err := store.Transaction(trans); err != nil {
 		return err
+	}
+
+	includeSecret, err := cmd.Flags().GetBool("secret")
+	if err != nil {
+		return err
+	}
+	if meta&metaSecret != 0 && !includeSecret {
+		return fmt.Errorf("%q is marked secret; re-run with --secret to display it", args[0])
 	}
 
 	binary, err := cmd.Flags().GetBool("include-binary")
@@ -67,5 +79,6 @@ func get(cmd *cobra.Command, args []string) error {
 
 func init() {
 	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
+	getCmd.Flags().Bool("secret", false, "display values marked as secret")
 	rootCmd.AddCommand(getCmd)
 }
