@@ -50,12 +50,21 @@ func set(cmd *cobra.Command, args []string) error {
 		value = bytes
 	}
 
+	secret, err := cmd.Flags().GetBool("secret")
+	if err != nil {
+		return err
+	}
+
 	trans := TransactionArgs{
 		key:      args[0],
 		readonly: false,
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
-			return tx.Set(k, value)
+			entry := badger.NewEntry(k, value)
+			if secret {
+				entry = entry.WithMeta(metaSecret)
+			}
+			return tx.SetEntry(entry)
 		},
 	}
 
@@ -64,4 +73,5 @@ func set(cmd *cobra.Command, args []string) error {
 
 func init() {
 	rootCmd.AddCommand(setCmd)
+	setCmd.Flags().Bool("secret", false, "Mark the stored value as a secret")
 }
