@@ -23,15 +23,28 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/agnivade/levenshtein"
 	"github.com/dgraph-io/badger/v4"
 	gap "github.com/muesli/go-app-paths"
 	"golang.org/x/term"
 )
+
+type errNotFound struct {
+	suggestions []string
+}
+
+func (err errNotFound) Error() string {
+	if len(err.suggestions) == 0 {
+		return "no suggestions found"
+	}
+	return fmt.Sprintf("did you mean %q", strings.Join(err.suggestions, ", "))
+}
 
 type Store struct{}
 
@@ -43,7 +56,7 @@ type TransactionArgs struct {
 }
 
 func (s *Store) Transaction(args TransactionArgs) error {
-	k, dbName, err := s.parse(args.key)
+	k, dbName, err := s.parse(args.key, true)
 	if err != nil {
 		return err
 	}
@@ -67,44 +80,6 @@ func (s *Store) Transaction(args TransactionArgs) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-func (s *Store) parse(k string) ([]byte, string, error) {
-	var key, db string
-	ps := strings.Split(k, "@")
-	switch len(ps) {
-	case 1:
-		key = strings.ToLower(ps[0])
-	case 2:
-		key = strings.ToLower(ps[0])
-		db = strings.ToLower(ps[1])
-	default:
-		return nil, "", fmt.Errorf("bad key format, use KEY@DB")
-	}
-	return []byte(key), db, nil
-}
-
-func (s *Store) open(name string) (*badger.DB, error) {
-	if name == "" {
-		name = "default"
-	}
-	path, err := s.path(name)
-	if err != nil {
-		return nil, err
-	}
-	return badger.Open(badger.DefaultOptions(path).WithLoggingLevel(badger.ERROR))
-}
-
-func (s *Store) path(args ...string) (string, error) {
-	scope := gap.NewVendorScope(gap.User, "pda", "stores")
-	dir, err := scope.DataPath("")
-	if err != nil {
-		return "", err
-	}
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return "", err
-	}
-	return filepath.Join(append([]string{dir}, args...)...), nil
 }
 
 func (s *Store) Print(pf string, vs ...[]byte) {
@@ -140,4 +115,81 @@ func (s *Store) AllStores() ([]string, error) {
 		}
 	}
 	return stores, nil
+}
+
+func (s *Store) FindStore(k string) (string, error) {
+	_, n, err := s.parse(k, false)
+	if err != nil {
+		return "", err
+	}
+	path, err := s.path(n)
+	if err != nil {
+		return "", err
+	}
+	_, err = os.Stat(path)
+	if strings.TrimSpace(n) == "" || os.IsNotExist(err) {
+		stores, err := s.AllStores()
+		if err != nil {
+			return "", err
+		}
+		var suggestions []string
+		minThreshold := 1
+		maxThreshold := 4
+		threshold := len(n) / 3
+		if threshold < minThreshold {
+			threshold = minThreshold
+		}
+		if threshold > maxThreshold {
+			threshold = maxThreshold
+		}
+		for _, store := range stores {
+			distance := levenshtein.ComputeDistance(n, store)
+			if distance <= threshold {
+				suggestions = append(suggestions, store)
+			}
+		}
+		return "", errNotFound{suggestions}
+	}
+	return path, nil
+}
+
+func (s *Store) parse(k string, defaults bool) ([]byte, string, error) {
+	var key, db string
+	ps := strings.Split(k, "@")
+	switch len(ps) {
+	case 1:
+		key = strings.ToLower(ps[0])
+		if defaults {
+			db = "default"
+		}
+	case 2:
+		key = strings.ToLower(ps[0])
+		db = strings.ToLower(ps[1])
+	default:
+		return nil, "", fmt.Errorf("bad key format, use KEY@DB")
+	}
+	return []byte(key), db, nil
+}
+
+func (s *Store) open(name string) (*badger.DB, error) {
+	if name == "" {
+		name = "default"
+	}
+	path, err := s.path(name)
+	if err != nil {
+		return nil, err
+	}
+	return badger.Open(badger.DefaultOptions(path).WithLoggingLevel(badger.ERROR))
+}
+
+func (s *Store) path(args ...string) (string, error) {
+	scope := gap.NewVendorScope(gap.User, "pda", "stores")
+	dir, err := scope.DataPath("")
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return "", err
+	}
+	return filepath.Join(append([]string{dir}, args...)...), nil
 }
