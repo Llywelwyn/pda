@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -42,12 +43,14 @@ func dump(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	encoding, err := cmd.Flags().GetString("encoding")
+	mode, err := cmd.Flags().GetString("encoding")
 	if err != nil {
 		return err
 	}
-	if encoding != "base64" && encoding != "text" {
-		return fmt.Errorf("unsupported encoding %q", encoding)
+	switch mode {
+	case "auto", "base64", "text":
+	default:
+		return fmt.Errorf("unsupported encoding %q", mode)
 	}
 
 	trans := TransactionArgs{
@@ -64,12 +67,20 @@ func dump(cmd *cobra.Command, args []string) error {
 				key := item.KeyCopy(nil)
 				if err := item.Value(func(v []byte) error {
 					entry := dumpEntry{Key: string(key)}
-					switch encoding {
+					switch mode {
 					case "base64":
-						entry.Value = base64.StdEncoding.EncodeToString(v)
-						entry.Encoding = "base64"
+						encodeBase64(&entry, v)
 					case "text":
-						entry.Value = string(v)
+						if err := encodeText(&entry, key, v); err != nil {
+							return err
+						}
+					case "auto":
+						if utf8.Valid(v) {
+							entry.Encoding = "text"
+							entry.Value = string(v)
+						} else {
+							encodeBase64(&entry, v)
+						}
 					}
 					payload, err := json.Marshal(entry)
 					if err != nil {
@@ -89,6 +100,20 @@ func dump(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	dumpCmd.Flags().StringP("encoding", "e", "base64", "value encoding: base64 or text")
+	dumpCmd.Flags().StringP("encoding", "e", "auto", "value encoding: auto, base64, or text")
 	rootCmd.AddCommand(dumpCmd)
+}
+
+func encodeBase64(entry *dumpEntry, v []byte) {
+	entry.Value = base64.StdEncoding.EncodeToString(v)
+	entry.Encoding = "base64"
+}
+
+func encodeText(entry *dumpEntry, key []byte, v []byte) error {
+	if !utf8.Valid(v) {
+		return fmt.Errorf("key %q contains non-UTF8 data; use --encoding=auto or base64", key)
+	}
+	entry.Value = string(v)
+	entry.Encoding = "text"
+	return nil
 }
