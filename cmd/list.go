@@ -22,6 +22,9 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
@@ -38,8 +41,16 @@ func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	targetDB := "@default"
 	if len(args) == 1 {
-		dbName, err := store.parseDB(args[0], false)
+		rawArg := args[0]
+		dbName, err := store.parseDB(rawArg, false)
 		if err != nil {
+			return err
+		}
+		if _, err := store.FindStore(dbName); err != nil {
+			var notFound errNotFound
+			if errors.As(err, &notFound) {
+				return fmt.Errorf("%q does not exist, %s", rawArg, err.Error())
+			}
 			return err
 		}
 		targetDB = "@" + dbName

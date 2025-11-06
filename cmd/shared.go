@@ -131,29 +131,16 @@ func (s *Store) FindStore(k string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = os.Stat(path)
-	if strings.TrimSpace(n) == "" || os.IsNotExist(err) {
-		stores, err := s.AllStores()
+	info, statErr := os.Stat(path)
+	if strings.TrimSpace(n) == "" || os.IsNotExist(statErr) || (statErr == nil && !info.IsDir()) {
+		suggestions, err := s.suggestStores(n)
 		if err != nil {
 			return "", err
 		}
-		var suggestions []string
-		minThreshold := 1
-		maxThreshold := 4
-		threshold := len(n) / 3
-		if threshold < minThreshold {
-			threshold = minThreshold
-		}
-		if threshold > maxThreshold {
-			threshold = maxThreshold
-		}
-		for _, store := range stores {
-			distance := levenshtein.ComputeDistance(n, store)
-			if distance <= threshold {
-				suggestions = append(suggestions, store)
-			}
-		}
 		return "", errNotFound{suggestions}
+	}
+	if statErr != nil {
+		return "", statErr
 	}
 	return path, nil
 }
@@ -211,4 +198,29 @@ func (s *Store) path(args ...string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(append([]string{dir}, args...)...), nil
+}
+
+func (s *Store) suggestStores(target string) ([]string, error) {
+	stores, err := s.AllStores()
+	if err != nil {
+		return nil, err
+	}
+	target = strings.TrimSpace(target)
+	minThreshold := 1
+	maxThreshold := 4
+	threshold := len(target) / 3
+	if threshold < minThreshold {
+		threshold = minThreshold
+	}
+	if threshold > maxThreshold {
+		threshold = maxThreshold
+	}
+	var suggestions []string
+	for _, store := range stores {
+		distance := levenshtein.ComputeDistance(target, store)
+		if distance <= threshold {
+			suggestions = append(suggestions, store)
+		}
+	}
+	return suggestions, nil
 }
