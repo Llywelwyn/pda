@@ -107,7 +107,7 @@ func list(cmd *cobra.Command, args []string) error {
 	writer := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 	defer writer.Flush()
 
-	placeholder := []byte("[secret: pass --include-secret to view]")
+	placeholder := []byte("<secrets hidden>")
 
 	trans := TransactionArgs{
 		key:      targetDB,
