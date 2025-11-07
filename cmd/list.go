@@ -64,7 +64,7 @@ func list(cmd *cobra.Command, args []string) error {
 		delimiter = "\t\t"
 	}
 
-	includeSecret, err := cmd.Flags().GetBool("secret")
+	includeSecret, err := cmd.Flags().GetBool("include-secret")
 	if err != nil {
 		return err
 	}
@@ -109,6 +109,6 @@ func list(cmd *cobra.Command, args []string) error {
 func init() {
 	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	listCmd.Flags().StringP("delimiter", "d", "\t\t", "string written between key and value columns")
-	listCmd.Flags().Bool("secret", false, "include entries marked as secret")
+	listCmd.Flags().Bool("include-secret", false, "include entries marked as secret")
 	rootCmd.AddCommand(listCmd)
 }

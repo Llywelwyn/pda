@@ -60,7 +60,7 @@ func get(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	includeSecret, err := cmd.Flags().GetBool("secret")
+	includeSecret, err := cmd.Flags().GetBool("include-secret")
 	if err != nil {
 		return err
 	}
@@ -79,6 +79,6 @@ func get(cmd *cobra.Command, args []string) error {
 
 func init() {
 	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
-	getCmd.Flags().Bool("secret", false, "display values marked as secret")
+	getCmd.Flags().Bool("include-secret", false, "display values marked as secret")
 	rootCmd.AddCommand(getCmd)
 }
