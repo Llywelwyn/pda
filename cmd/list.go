@@ -35,12 +35,21 @@ import (
 	"golang.org/x/term"
 )
 
-// listCmd represents the set command
 var listCmd = &cobra.Command{
 	Use:   "list [DB]",
 	Short: "List the contents of a db.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE:  list,
+}
+
+type ListArgs struct {
+	header  bool
+	key     bool
+	value   bool
+	ttl     bool
+	binary  bool
+	secrets bool
+	format  string
 }
 
 func list(cmd *cobra.Command, args []string) error {
@@ -62,66 +71,36 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	showSecrets, err := cmd.Flags().GetBool("secret")
+	flags, err := parseFlags(cmd)
 	if err != nil {
 		return err
-	}
-	noKeys, err := cmd.Flags().GetBool("no-keys")
-	if err != nil {
-		return err
-	}
-	noValues, err := cmd.Flags().GetBool("no-values")
-	if err != nil {
-		return err
-	}
-	showTTL, err := cmd.Flags().GetBool("ttl")
-	if err != nil {
-		return err
-	}
-	noHeader, err := cmd.Flags().GetBool("no-header")
-	if err != nil {
-		return err
-	}
-	includeBinary, err := cmd.Flags().GetBool("binary")
-	if err != nil {
-		return err
-	}
-	format, err := cmd.Flags().GetString("format")
-	if err != nil {
-		return err
-	}
-	switch format {
-	case "auto", "table", "tabular", "csv", "html", "markdown", "md":
-	default:
-		return fmt.Errorf("unsupported format %q", format)
 	}
 
-	includeKey := !noKeys
-	includeValue := !noValues
-	if !includeKey && !includeValue && !showTTL {
-		return fmt.Errorf("no columns selected; disable --no-keys/--no-values or pass --ttl")
-	}
-
-	columnKinds := selectColumns(includeKey, includeValue, showTTL)
-	if len(columnKinds) == 0 {
-		return fmt.Errorf("no columns selected; enable key, value, or ttl output")
+	columnKinds, err := requireColumns(flags)
+	if err != nil {
+		return err
 	}
 
 	output := cmd.OutOrStdout()
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
-	configureListTable(tw)
-	if shouldLimitColumns(format) {
-		applyColumnConstraints(tw, columnKinds, output)
+	tw.SetStyle(table.StyleColoredBlackOnGreenWhite)
+
+	limitColumns := shouldLimitColumns(flags.format)
+	var maxContentWidths []int
+	if limitColumns {
+		maxContentWidths = make([]int, len(columnKinds))
 	}
 
-	if !noHeader {
+	if flags.header {
 		header := buildHeaderCells(columnKinds)
+		if limitColumns {
+			updateMaxContentWidths(maxContentWidths, header)
+		}
 		tw.AppendHeader(stringSliceToRow(header))
 	}
 
-	placeholder := "[secret: pass --secret to view]"
-
+	placeholder := "**********"
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -129,7 +108,7 @@ func list(cmd *cobra.Command, args []string) error {
 		transact: func(tx *badger.Txn, k []byte) error {
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
-			opts.PrefetchValues = includeValue
+			opts.PrefetchValues = flags.value
 			it := tx.NewIterator(opts)
 			defer it.Close()
 			var valueBuf []byte
@@ -140,14 +119,14 @@ func list(cmd *cobra.Command, args []string) error {
 				isSecret := meta&metaSecret != 0
 
 				var valueStr string
-				if includeValue && (!isSecret || showSecrets) {
+				if flags.value && (!isSecret || flags.secrets) {
 					if err := item.Value(func(v []byte) error {
 						valueBuf = append(valueBuf[:0], v...)
 						return nil
 					}); err != nil {
 						return err
 					}
-					valueStr = store.FormatBytes(includeBinary, valueBuf)
+					valueStr = store.FormatBytes(flags.binary, valueBuf)
 				}
 
 				columns := make([]string, 0, len(columnKinds))
@@ -156,7 +135,7 @@ func list(cmd *cobra.Command, args []string) error {
 					case columnKey:
 						columns = append(columns, key)
 					case columnValue:
-						if isSecret && !showSecrets {
+						if isSecret && !flags.secrets {
 							columns = append(columns, placeholder)
 						} else {
 							columns = append(columns, valueStr)
@@ -165,7 +144,9 @@ func list(cmd *cobra.Command, args []string) error {
 						columns = append(columns, formatExpiry(item.ExpiresAt()))
 					}
 				}
-
+				if limitColumns {
+					updateMaxContentWidths(maxContentWidths, columns)
+				}
 				tw.AppendRow(stringSliceToRow(columns))
 			}
 			return nil
@@ -176,7 +157,11 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	switch format {
+	if limitColumns {
+		applyColumnConstraints(tw, columnKinds, output, maxContentWidths)
+	}
+
+	switch flags.format {
 	case "auto", "table", "tabular":
 		tw.Render()
 	case "csv":
@@ -200,6 +185,56 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 }
 
+func parseFlags(cmd *cobra.Command) (ListArgs, error) {
+	secrets, err := cmd.Flags().GetBool("secret")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	noKeys, err := cmd.Flags().GetBool("no-keys")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	noValues, err := cmd.Flags().GetBool("no-values")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	ttl, err := cmd.Flags().GetBool("ttl")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	noHeader, err := cmd.Flags().GetBool("no-header")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	binary, err := cmd.Flags().GetBool("binary")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	format, err := cmd.Flags().GetString("format")
+	if err != nil {
+		return ListArgs{}, err
+	}
+	switch format {
+	case "auto", "table", "tabular", "csv", "html", "markdown", "md":
+	default:
+		return ListArgs{}, fmt.Errorf("unsupported format %q", format)
+	}
+
+	if noKeys && noValues && !ttl {
+		return ListArgs{}, fmt.Errorf("no columns selected; disable --no-keys/--no-values or pass --ttl")
+	}
+
+	return ListArgs{
+		header:  !noHeader,
+		key:     !noKeys,
+		value:   !noValues,
+		ttl:     ttl,
+		binary:  binary,
+		format:  format,
+		secrets: secrets,
+	}, nil
+}
+
 type columnKind int
 
 const (
@@ -208,18 +243,21 @@ const (
 	columnTTL
 )
 
-func selectColumns(includeKey, includeValue, showTTL bool) []columnKind {
+func requireColumns(args ListArgs) ([]columnKind, error) {
 	var columns []columnKind
-	if includeKey {
+	if args.key {
 		columns = append(columns, columnKey)
 	}
-	if includeValue {
+	if args.value {
 		columns = append(columns, columnValue)
 	}
-	if showTTL {
+	if args.ttl {
 		columns = append(columns, columnTTL)
 	}
-	return columns
+	if len(columns) == 0 {
+		return nil, fmt.Errorf("no columns selected; enable key, value, or ttl output")
+	}
+	return columns, nil
 }
 
 func buildHeaderCells(columnKinds []columnKind) []string {
@@ -245,8 +283,17 @@ func stringSliceToRow(values []string) table.Row {
 	return row
 }
 
-func configureListTable(tw table.Writer) {
-	tw.SetStyle(table.StyleColoredBlackOnGreenWhite)
+func updateMaxContentWidths(maxWidths []int, values []string) {
+	if len(maxWidths) == 0 {
+		return
+	}
+	limit := min(len(values), len(maxWidths))
+	for i := range limit {
+		width := text.LongestLineLen(values[i])
+		if width > maxWidths[i] {
+			maxWidths[i] = width
+		}
+	}
 }
 
 func shouldLimitColumns(format string) bool {
@@ -258,12 +305,51 @@ func shouldLimitColumns(format string) bool {
 	}
 }
 
-func applyColumnConstraints(tw table.Writer, columns []columnKind, out io.Writer) {
+func applyColumnConstraints(tw table.Writer, columns []columnKind, out io.Writer, maxContentWidths []int) {
 	totalWidth := detectTerminalWidth(out)
 	if totalWidth <= 0 {
 		totalWidth = 100
 	}
-	widths := distributeWidths(totalWidth, columns)
+	contentWidth := contentWidthForStyle(totalWidth, tw, len(columns))
+	widths := distributeWidths(contentWidth, columns)
+
+	used := 0
+	for idx, width := range widths {
+		if width <= 0 {
+			width = 1
+		}
+		if idx < len(maxContentWidths) {
+			if actual := maxContentWidths[idx]; actual > 0 && width > actual {
+				width = actual
+			}
+		}
+		widths[idx] = width
+		used += width
+	}
+
+	remaining := contentWidth - used
+	for remaining > 0 {
+		progressed := false
+		for idx := range widths {
+			actual := 0
+			if idx < len(maxContentWidths) {
+				actual = maxContentWidths[idx]
+			}
+			if actual > 0 && widths[idx] >= actual {
+				continue
+			}
+			widths[idx]++
+			remaining--
+			progressed = true
+			if remaining == 0 {
+				break
+			}
+		}
+		if !progressed {
+			break
+		}
+	}
+
 	configs := make([]table.ColumnConfig, 0, len(columns))
 	for idx, width := range widths {
 		configs = append(configs, table.ColumnConfig{
@@ -274,6 +360,55 @@ func applyColumnConstraints(tw table.Writer, columns []columnKind, out io.Writer
 	}
 	tw.SetColumnConfigs(configs)
 	tw.SetAllowedRowLength(totalWidth)
+}
+
+func contentWidthForStyle(totalWidth int, tw table.Writer, columnCount int) int {
+	if columnCount == 0 {
+		return totalWidth
+	}
+	style := tw.Style()
+	if style != nil {
+		totalWidth -= tableRowOverhead(style, columnCount)
+	}
+	if totalWidth < columnCount {
+		totalWidth = columnCount
+	}
+	return totalWidth
+}
+
+func tableRowOverhead(style *table.Style, columnCount int) int {
+	if style == nil || columnCount == 0 {
+		return 0
+	}
+	paddingWidth := text.StringWidthWithoutEscSequences(style.Box.PaddingLeft + style.Box.PaddingRight)
+	overhead := paddingWidth * columnCount
+	if style.Options.SeparateColumns && columnCount > 1 {
+		overhead += (columnCount - 1) * maxSeparatorWidth(style)
+	}
+	if style.Options.DrawBorder {
+		overhead += text.StringWidthWithoutEscSequences(style.Box.Left + style.Box.Right)
+	}
+	return overhead
+}
+
+func maxSeparatorWidth(style *table.Style) int {
+	widest := 0
+	separators := []string{
+		style.Box.MiddleSeparator,
+		style.Box.EmptySeparator,
+		style.Box.MiddleHorizontal,
+		style.Box.TopSeparator,
+		style.Box.BottomSeparator,
+		style.Box.MiddleVertical,
+		style.Box.LeftSeparator,
+		style.Box.RightSeparator,
+	}
+	for _, sep := range separators {
+		if width := text.StringWidthWithoutEscSequences(sep); width > widest {
+			widest = width
+		}
+	}
+	return widest
 }
 
 type fdWriter interface {
