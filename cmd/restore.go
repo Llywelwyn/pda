@@ -81,6 +81,12 @@ func restore(cmd *cobra.Command, args []string) error {
 		}
 
 		writeEntry := badger.NewEntry([]byte(entry.Key), value).WithMeta(entryMeta)
+		if entry.ExpiresAt != nil {
+			if *entry.ExpiresAt < 0 {
+				return fmt.Errorf("line %d: expires_at must be >= 0", lineNo)
+			}
+			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
+		}
 
 		if err := wb.SetEntry(writeEntry); err != nil {
 			return fmt.Errorf("line %d: %w", lineNo, err)

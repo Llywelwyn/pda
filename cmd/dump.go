@@ -12,10 +12,11 @@ import (
 )
 
 type dumpEntry struct {
-	Key      string `json:"key"`
-	Value    string `json:"value"`
-	Encoding string `json:"encoding,omitempty"`
-	Secret   bool   `json:"secret,omitempty"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	Encoding  string `json:"encoding,omitempty"`
+	Secret    bool   `json:"secret,omitempty"`
+	ExpiresAt *int64 `json:"expires_at,omitempty"`
 }
 
 var dumpCmd = &cobra.Command{
@@ -76,10 +77,15 @@ func dump(cmd *cobra.Command, args []string) error {
 				if isSecret && !includeSecret {
 					continue
 				}
+				expiresAt := item.ExpiresAt()
 				if err := item.Value(func(v []byte) error {
 					entry := dumpEntry{
 						Key:    string(key),
 						Secret: isSecret,
+					}
+					if expiresAt > 0 {
+						ts := int64(expiresAt)
+						entry.ExpiresAt = &ts
 					}
 					switch mode {
 					case "base64":
