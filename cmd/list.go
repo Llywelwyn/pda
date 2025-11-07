@@ -24,10 +24,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"strings"
-	"text/tabwriter"
 
 	"github.com/dgraph-io/badger/v4"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
@@ -58,16 +57,10 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	delimiter, err := cmd.Flags().GetString("delimiter")
-	if err != nil {
-		return err
-	}
-
 	showSecrets, err := cmd.Flags().GetBool("secret")
 	if err != nil {
 		return err
 	}
-
 	noKeys, err := cmd.Flags().GetBool("no-keys")
 	if err != nil {
 		return err
@@ -80,9 +73,22 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	binary, err := cmd.Flags().GetBool("binary")
+	noHeader, err := cmd.Flags().GetBool("no-header")
 	if err != nil {
 		return err
+	}
+	includeBinary, err := cmd.Flags().GetBool("binary")
+	if err != nil {
+		return err
+	}
+	format, err := cmd.Flags().GetString("format")
+	if err != nil {
+		return err
+	}
+	switch format {
+	case "auto", "table", "tabular", "csv", "html", "markdown", "md":
+	default:
+		return fmt.Errorf("unsupported format %q", format)
 	}
 
 	includeKey := !noKeys
@@ -90,26 +96,22 @@ func list(cmd *cobra.Command, args []string) error {
 	if !includeKey && !includeValue && !showTTL {
 		return fmt.Errorf("no columns selected; disable --no-keys/--no-values or pass --ttl")
 	}
-	prefetchVals := includeValue
 
 	columnKinds := selectColumns(includeKey, includeValue, showTTL)
 	if len(columnKinds) == 0 {
 		return fmt.Errorf("no columns selected; enable key, value, or ttl output")
 	}
 
-	delimiterBytes := []byte(delimiter)
-	columnCount := len(columnKinds)
-	if len(delimiterBytes) > 0 && columnCount > 1 {
-		columnCount = columnCount*2 - 1
+	tw := table.NewWriter()
+	tw.SetOutputMirror(cmd.OutOrStdout())
+	configureListTable(tw)
+
+	if !noHeader {
+		header := buildHeaderCells(columnKinds)
+		tw.AppendHeader(stringSliceToRow(header))
 	}
-	format := buildTabbedFormat(columnCount)
 
-	writer := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-	defer writer.Flush()
-
-	placeholder := []byte("**********")
-	header := insertDelimiters(buildHeaderCells(columnKinds), delimiterBytes)
-	store.PrintTo(writer, format, false, header...)
+	placeholder := "[secret: pass --secret to view]"
 
 	trans := TransactionArgs{
 		key:      targetDB,
@@ -118,16 +120,17 @@ func list(cmd *cobra.Command, args []string) error {
 		transact: func(tx *badger.Txn, k []byte) error {
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
-			opts.PrefetchValues = prefetchVals
+			opts.PrefetchValues = includeValue
 			it := tx.NewIterator(opts)
 			defer it.Close()
 			var valueBuf []byte
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
-				key := item.KeyCopy(nil)
+				key := string(item.KeyCopy(nil))
 				meta := item.UserMeta()
 				isSecret := meta&metaSecret != 0
-				valueBuf = valueBuf[:0]
+
+				var valueStr string
 				if includeValue && (!isSecret || showSecrets) {
 					if err := item.Value(func(v []byte) error {
 						valueBuf = append(valueBuf[:0], v...)
@@ -135,8 +138,10 @@ func list(cmd *cobra.Command, args []string) error {
 					}); err != nil {
 						return err
 					}
+					valueStr = store.FormatBytes(includeBinary, valueBuf)
 				}
-				columns := make([][]byte, 0, len(columnKinds))
+
+				columns := make([]string, 0, len(columnKinds))
 				for _, column := range columnKinds {
 					switch column {
 					case columnKey:
@@ -145,29 +150,44 @@ func list(cmd *cobra.Command, args []string) error {
 						if isSecret && !showSecrets {
 							columns = append(columns, placeholder)
 						} else {
-							columns = append(columns, valueBuf)
+							columns = append(columns, valueStr)
 						}
 					case columnTTL:
-						columns = append(columns, []byte(formatExpiry(item.ExpiresAt())))
+						columns = append(columns, formatExpiry(item.ExpiresAt()))
 					}
 				}
-				row := insertDelimiters(columns, delimiterBytes)
-				store.PrintTo(writer, format, binary, row...)
+
+				tw.AppendRow(stringSliceToRow(columns))
 			}
 			return nil
 		},
 	}
 
-	return store.Transaction(trans)
+	if err := store.Transaction(trans); err != nil {
+		return err
+	}
+
+	switch format {
+	case "auto", "table", "tabular":
+		tw.Render()
+	case "csv":
+		tw.RenderCSV()
+	case "html":
+		tw.RenderHTML()
+	case "markdown", "md":
+		tw.RenderMarkdown()
+	}
+	return nil
 }
 
 func init() {
 	listCmd.Flags().BoolP("binary", "b", false, "include binary data in text output")
-	listCmd.Flags().StringP("delimiter", "d", "", "string inserted between columns")
-	listCmd.Flags().Bool("secret", false, "display values marked as secret")
+	listCmd.Flags().BoolP("secret", "S", false, "display values marked as secret")
 	listCmd.Flags().Bool("no-keys", false, "suppress the key column")
 	listCmd.Flags().Bool("no-values", false, "suppress the value column")
-	listCmd.Flags().Bool("ttl", false, "append a TTL column when entries expire")
+	listCmd.Flags().BoolP("ttl", "t", false, "append a TTL column when entries expire")
+	listCmd.Flags().Bool("no-header", false, "omit the header rows")
+	listCmd.Flags().StringP("format", "f", "table", "supports: table, csv, html, markdown")
 	rootCmd.AddCommand(listCmd)
 }
 
@@ -193,46 +213,32 @@ func selectColumns(includeKey, includeValue, showTTL bool) []columnKind {
 	return columns
 }
 
-func buildTabbedFormat(cols int) string {
-	if cols <= 0 {
-		return "\n"
-	}
-	var b strings.Builder
-	for i := 0; i < cols; i++ {
-		if i > 0 {
-			b.WriteByte('\t')
-		}
-		b.WriteString("%s")
-	}
-	b.WriteByte('\n')
-	return b.String()
-}
-
-func insertDelimiters(columns [][]byte, delimiter []byte) [][]byte {
-	if len(delimiter) == 0 || len(columns) <= 1 {
-		return columns
-	}
-	out := make([][]byte, 0, len(columns)*2-1)
-	for i, col := range columns {
-		out = append(out, col)
-		if i < len(columns)-1 {
-			out = append(out, delimiter)
-		}
-	}
-	return out
-}
-
-func buildHeaderCells(columnKinds []columnKind) [][]byte {
-	headers := make([][]byte, 0, len(columnKinds))
+func buildHeaderCells(columnKinds []columnKind) []string {
+	labels := make([]string, 0, len(columnKinds))
 	for _, column := range columnKinds {
 		switch column {
 		case columnKey:
-			headers = append(headers, []byte("Key"))
+			labels = append(labels, "Key")
 		case columnValue:
-			headers = append(headers, []byte("Value"))
+			labels = append(labels, "Value")
 		case columnTTL:
-			headers = append(headers, []byte("TTL"))
+			labels = append(labels, "TTL")
 		}
 	}
-	return headers
+	return labels
+}
+
+func stringSliceToRow(values []string) table.Row {
+	row := make(table.Row, len(values))
+	for i, val := range values {
+		row[i] = val
+	}
+	return row
+}
+
+func configureListTable(tw table.Writer) {
+	tw.SetStyle(table.StyleColoredBright)
+	tw.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 2, WidthMax: 20},
+	})
 }

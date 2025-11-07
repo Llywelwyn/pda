@@ -98,20 +98,27 @@ func (s *Store) Print(pf string, includeBinary bool, vs ...[]byte) {
 }
 
 func (s *Store) PrintTo(w io.Writer, pf string, includeBinary bool, vs ...[]byte) {
-	nb := "(omitted binary data)"
-	fvs := make([]any, 0, len(vs))
 	tty := term.IsTerminal(int(os.Stdout.Fd()))
+	fvs := make([]any, 0, len(vs))
 	for _, v := range vs {
-		if tty && !includeBinary && !utf8.Valid(v) {
-			fvs = append(fvs, nb)
-		} else {
-			fvs = append(fvs, string(v))
-		}
+		fvs = append(fvs, s.formatBytes(includeBinary, v))
 	}
 	fmt.Fprintf(w, pf, fvs...)
 	if w == os.Stdout && tty && !strings.HasSuffix(pf, "\n") {
 		fmt.Fprintln(os.Stdout)
 	}
+}
+
+func (s *Store) FormatBytes(includeBinary bool, v []byte) string {
+	return s.formatBytes(includeBinary, v)
+}
+
+func (s *Store) formatBytes(includeBinary bool, v []byte) string {
+	tty := term.IsTerminal(int(os.Stdout.Fd()))
+	if tty && !includeBinary && !utf8.Valid(v) {
+		return "(omitted binary data)"
+	}
+	return string(v)
 }
 
 func (s *Store) AllStores() ([]string, error) {
