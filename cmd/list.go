@@ -69,6 +69,21 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	keysOnly, err := cmd.Flags().GetBool("only-keys")
+	if err != nil {
+		return err
+	}
+	valuesOnly, err := cmd.Flags().GetBool("only-values")
+	if err != nil {
+		return err
+	}
+	if keysOnly && valuesOnly {
+		return fmt.Errorf("--only-keys and --only-values are mutually exclusive")
+	}
+
+	prefetchVals := !keysOnly
+	placeholder := []byte("[secret: pass --include-secret to view]")
+
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -81,22 +96,40 @@ func list(cmd *cobra.Command, args []string) error {
 			format := fmt.Sprintf("%%s%s%%s\n", delimiter)
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
+			opts.PrefetchValues = prefetchVals
 			it := tx.NewIterator(opts)
 			defer it.Close()
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				key := item.Key()
 				meta := item.UserMeta()
-				if err := item.Value(func(v []byte) error {
-					if meta&metaSecret != 0 && !includeSecret {
-						placeholder := []byte("[secret: pass --secret to view]")
+				if meta&metaSecret != 0 && !includeSecret {
+					switch {
+					case keysOnly:
+						store.Print("%s\n", false, key)
+					case valuesOnly:
+						store.Print("%s\n", false, placeholder)
+					default:
 						store.Print(format, false, key, placeholder)
-						return nil
 					}
-					store.Print(format, binary, key, v)
-					return nil
-				}); err != nil {
-					return err
+					continue
+				}
+				var preparedValue []byte
+				if !keysOnly {
+					if err := item.Value(func(v []byte) error {
+						preparedValue = append([]byte(nil), v...)
+						return nil
+					}); err != nil {
+						return err
+					}
+				}
+				switch {
+				case keysOnly:
+					store.Print("%s\n", false, key)
+				case valuesOnly:
+					store.Print("%s\n", binary, preparedValue)
+				default:
+					store.Print(format, binary, key, preparedValue)
 				}
 			}
 			return nil
@@ -110,5 +143,7 @@ func init() {
 	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	listCmd.Flags().StringP("delimiter", "d", "\t\t", "string written between key and value columns")
 	listCmd.Flags().Bool("include-secret", false, "include entries marked as secret")
+	listCmd.Flags().BoolP("only-keys", "k", false, "only print keys")
+	listCmd.Flags().BoolP("only-values", "v", false, "only print values")
 	rootCmd.AddCommand(listCmd)
 }
