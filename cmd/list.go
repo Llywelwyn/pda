@@ -49,7 +49,65 @@ type ListArgs struct {
 	ttl     bool
 	binary  bool
 	secrets bool
-	format  string
+	format  *listFormat
+}
+
+type listFormat struct {
+	limitColumns bool
+	style        *table.Style
+	render       func(table.Writer)
+}
+
+var (
+	defaultTableStyle = table.StyleDefault
+	plainTableStyle   = table.StyleDefault
+
+	tableStylePresets = map[string]*table.Style{
+		"table":        &defaultTableStyle,
+		"tabular":      &defaultTableStyle,
+		"table-dark":   &table.StyleColoredDark,
+		"table-bright": &table.StyleColoredBright,
+	}
+
+	supportedListFormats = buildSupportedListFormats()
+)
+
+func buildSupportedListFormats() map[string]*listFormat {
+	markdownSpec := &listFormat{
+		style: &plainTableStyle,
+		render: func(tw table.Writer) {
+			tw.RenderMarkdown()
+		},
+	}
+	formats := map[string]*listFormat{
+		"csv": {
+			style: &plainTableStyle,
+			render: func(tw table.Writer) {
+				tw.RenderCSV()
+			},
+		},
+		"html": {
+			style: &plainTableStyle,
+			render: func(tw table.Writer) {
+				tw.RenderHTML()
+			},
+		},
+		"markdown": markdownSpec,
+		"md":       markdownSpec,
+	}
+	for name, style := range tableStylePresets {
+		formats[name] = &listFormat{
+			limitColumns: true,
+			style:        style,
+			render: func(tw table.Writer) {
+				tw.Render()
+			},
+		}
+	}
+	if defaultSpec, ok := formats["table"]; ok {
+		formats["auto"] = defaultSpec
+	}
+	return formats
 }
 
 func list(cmd *cobra.Command, args []string) error {
@@ -84,9 +142,14 @@ func list(cmd *cobra.Command, args []string) error {
 	output := cmd.OutOrStdout()
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
-	tw.SetStyle(table.StyleColoredBlackOnGreenWhite)
 
-	limitColumns := shouldLimitColumns(flags.format)
+	formatSpec := flags.format
+	if formatSpec != nil && formatSpec.style != nil {
+		tw.SetStyle(*formatSpec.style)
+	} else {
+		tw.SetStyle(defaultTableStyle)
+	}
+	limitColumns := formatSpec != nil && formatSpec.limitColumns
 	var maxContentWidths []int
 	if limitColumns {
 		maxContentWidths = make([]int, len(columnKinds))
@@ -161,15 +224,8 @@ func list(cmd *cobra.Command, args []string) error {
 		applyColumnConstraints(tw, columnKinds, output, maxContentWidths)
 	}
 
-	switch flags.format {
-	case "auto", "table", "tabular":
-		tw.Render()
-	case "csv":
-		tw.RenderCSV()
-	case "html":
-		tw.RenderHTML()
-	case "markdown", "md":
-		tw.RenderMarkdown()
+	if formatSpec != nil && formatSpec.render != nil {
+		formatSpec.render(tw)
 	}
 	return nil
 }
@@ -181,7 +237,7 @@ func init() {
 	listCmd.Flags().Bool("no-values", false, "suppress the value column")
 	listCmd.Flags().BoolP("ttl", "t", false, "append a TTL column when entries expire")
 	listCmd.Flags().Bool("no-header", false, "omit the header rows")
-	listCmd.Flags().StringP("format", "f", "table", "supports: table, csv, html, markdown")
+	listCmd.Flags().StringP("format", "f", "table", "supports: table[-dark/-bright], csv, html, markdown")
 	rootCmd.AddCommand(listCmd)
 }
 
@@ -210,14 +266,13 @@ func parseFlags(cmd *cobra.Command) (ListArgs, error) {
 	if err != nil {
 		return ListArgs{}, err
 	}
-	format, err := cmd.Flags().GetString("format")
+	formatName, err := cmd.Flags().GetString("format")
 	if err != nil {
 		return ListArgs{}, err
 	}
-	switch format {
-	case "auto", "table", "tabular", "csv", "html", "markdown", "md":
-	default:
-		return ListArgs{}, fmt.Errorf("unsupported format %q", format)
+	formatSpec, err := resolveListFormat(formatName)
+	if err != nil {
+		return ListArgs{}, err
 	}
 
 	if noKeys && noValues && !ttl {
@@ -230,9 +285,16 @@ func parseFlags(cmd *cobra.Command) (ListArgs, error) {
 		value:   !noValues,
 		ttl:     ttl,
 		binary:  binary,
-		format:  format,
+		format:  formatSpec,
 		secrets: secrets,
 	}, nil
+}
+
+func resolveListFormat(name string) (*listFormat, error) {
+	if spec, ok := supportedListFormats[name]; ok {
+		return spec, nil
+	}
+	return nil, fmt.Errorf("unsupported format %q", name)
 }
 
 type columnKind int
@@ -293,15 +355,6 @@ func updateMaxContentWidths(maxWidths []int, values []string) {
 		if width > maxWidths[i] {
 			maxWidths[i] = width
 		}
-	}
-}
-
-func shouldLimitColumns(format string) bool {
-	switch format {
-	case "auto", "table", "tabular":
-		return true
-	default:
-		return false
 	}
 }
 
