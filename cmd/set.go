@@ -22,10 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"io"
-	"strings"
-	"time"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -57,19 +54,9 @@ func set(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	ttlRaw, err := cmd.Flags().GetString("ttl")
+	ttl, err := cmd.Flags().GetDuration("ttl")
 	if err != nil {
 		return err
-	}
-	var ttl time.Duration
-	if strings.TrimSpace(ttlRaw) != "" {
-		ttl, err = time.ParseDuration(ttlRaw)
-		if err != nil {
-			return fmt.Errorf("invalid ttl %q: %w", ttlRaw, err)
-		}
-		if ttl <= 0 {
-			return fmt.Errorf("ttl must be greater than zero")
-		}
 	}
 
 	trans := TransactionArgs{
@@ -81,7 +68,7 @@ func set(cmd *cobra.Command, args []string) error {
 			if secret {
 				entry = entry.WithMeta(metaSecret)
 			}
-			if ttlRaw != "" {
+			if ttl != 0 {
 				entry = entry.WithTTL(ttl)
 			}
 			return tx.SetEntry(entry)
@@ -94,5 +81,5 @@ func set(cmd *cobra.Command, args []string) error {
 func init() {
 	rootCmd.AddCommand(setCmd)
 	setCmd.Flags().Bool("secret", false, "Mark the stored value as a secret")
-	setCmd.Flags().String("ttl", "", "Expire the key after the provided duration (e.g. 24h, 30m)")
+	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
 }
