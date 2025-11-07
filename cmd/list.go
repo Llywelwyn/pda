@@ -24,6 +24,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -60,9 +62,6 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if delimiter == "" {
-		delimiter = "\t\t"
-	}
 
 	includeSecret, err := cmd.Flags().GetBool("include-secret")
 	if err != nil {
@@ -80,8 +79,34 @@ func list(cmd *cobra.Command, args []string) error {
 	if keysOnly && valuesOnly {
 		return fmt.Errorf("--only-keys and --only-values are mutually exclusive")
 	}
+	showExpiry, err := cmd.Flags().GetBool("show-expiry")
+	if err != nil {
+		return err
+	}
+	binary, err := cmd.Flags().GetBool("include-binary")
+	if err != nil {
+		return err
+	}
 
-	prefetchVals := !keysOnly
+	includeKey := !valuesOnly
+	includeValue := !keysOnly
+	prefetchVals := includeValue
+
+	columnKinds := selectColumns(includeKey, includeValue, showExpiry)
+	if len(columnKinds) == 0 {
+		return fmt.Errorf("no columns selected; enable keys or values")
+	}
+
+	delimiterBytes := []byte(delimiter)
+	columnCount := len(columnKinds)
+	if len(delimiterBytes) > 0 && columnCount > 1 {
+		columnCount = columnCount*2 - 1
+	}
+	format := buildTabbedFormat(columnCount)
+
+	writer := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+	defer writer.Flush()
+
 	placeholder := []byte("[secret: pass --include-secret to view]")
 
 	trans := TransactionArgs{
@@ -89,48 +114,43 @@ func list(cmd *cobra.Command, args []string) error {
 		readonly: true,
 		sync:     true,
 		transact: func(tx *badger.Txn, k []byte) error {
-			binary, err := cmd.Flags().GetBool("include-binary")
-			if err != nil {
-				return err
-			}
-			format := fmt.Sprintf("%%s%s%%s\n", delimiter)
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
 			opts.PrefetchValues = prefetchVals
 			it := tx.NewIterator(opts)
 			defer it.Close()
+			var valueBuf []byte
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
-				key := item.Key()
+				key := item.KeyCopy(nil)
 				meta := item.UserMeta()
-				if meta&metaSecret != 0 && !includeSecret {
-					switch {
-					case keysOnly:
-						store.Print("%s\n", false, key)
-					case valuesOnly:
-						store.Print("%s\n", false, placeholder)
-					default:
-						store.Print(format, false, key, placeholder)
-					}
-					continue
-				}
-				var preparedValue []byte
-				if !keysOnly {
+				isSecret := meta&metaSecret != 0
+				valueBuf = valueBuf[:0]
+				if includeValue && (!isSecret || includeSecret) {
 					if err := item.Value(func(v []byte) error {
-						preparedValue = append([]byte(nil), v...)
+						valueBuf = append(valueBuf[:0], v...)
 						return nil
 					}); err != nil {
 						return err
 					}
 				}
-				switch {
-				case keysOnly:
-					store.Print("%s\n", false, key)
-				case valuesOnly:
-					store.Print("%s\n", binary, preparedValue)
-				default:
-					store.Print(format, binary, key, preparedValue)
+				columns := make([][]byte, 0, len(columnKinds))
+				for _, column := range columnKinds {
+					switch column {
+					case columnKey:
+						columns = append(columns, key)
+					case columnValue:
+						if isSecret && !includeSecret {
+							columns = append(columns, placeholder)
+						} else {
+							columns = append(columns, valueBuf)
+						}
+					case columnExpiry:
+						columns = append(columns, []byte(formatExpiry(item.ExpiresAt())))
+					}
 				}
+				row := insertDelimiters(columns, delimiterBytes)
+				store.PrintTo(writer, format, binary, row...)
 			}
 			return nil
 		},
@@ -141,9 +161,61 @@ func list(cmd *cobra.Command, args []string) error {
 
 func init() {
 	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
-	listCmd.Flags().StringP("delimiter", "d", "\t\t", "string written between key and value columns")
+	listCmd.Flags().StringP("delimiter", "d", "", "string inserted between columns")
 	listCmd.Flags().Bool("include-secret", false, "include entries marked as secret")
 	listCmd.Flags().BoolP("only-keys", "k", false, "only print keys")
 	listCmd.Flags().BoolP("only-values", "v", false, "only print values")
+	listCmd.Flags().Bool("show-expiry", false, "append an expiry column when entries have TTLs")
 	rootCmd.AddCommand(listCmd)
+}
+
+type columnKind int
+
+const (
+	columnKey columnKind = iota
+	columnValue
+	columnExpiry
+)
+
+func selectColumns(includeKey, includeValue, showExpiry bool) []columnKind {
+	var columns []columnKind
+	if includeKey {
+		columns = append(columns, columnKey)
+	}
+	if includeValue {
+		columns = append(columns, columnValue)
+	}
+	if showExpiry {
+		columns = append(columns, columnExpiry)
+	}
+	return columns
+}
+
+func buildTabbedFormat(cols int) string {
+	if cols <= 0 {
+		return "\n"
+	}
+	var b strings.Builder
+	for i := 0; i < cols; i++ {
+		if i > 0 {
+			b.WriteByte('\t')
+		}
+		b.WriteString("%s")
+	}
+	b.WriteByte('\n')
+	return b.String()
+}
+
+func insertDelimiters(columns [][]byte, delimiter []byte) [][]byte {
+	if len(delimiter) == 0 || len(columns) <= 1 {
+		return columns
+	}
+	out := make([][]byte, 0, len(columns)*2-1)
+	for i, col := range columns {
+		out = append(out, col)
+		if i < len(columns)-1 {
+			out = append(out, delimiter)
+		}
+	}
+	return out
 }

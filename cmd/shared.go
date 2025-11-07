@@ -23,9 +23,11 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/agnivade/levenshtein"
@@ -92,6 +94,10 @@ func (s *Store) Transaction(args TransactionArgs) error {
 }
 
 func (s *Store) Print(pf string, includeBinary bool, vs ...[]byte) {
+	s.PrintTo(os.Stdout, pf, includeBinary, vs...)
+}
+
+func (s *Store) PrintTo(w io.Writer, pf string, includeBinary bool, vs ...[]byte) {
 	nb := "(omitted binary data)"
 	fvs := make([]any, 0, len(vs))
 	tty := term.IsTerminal(int(os.Stdout.Fd()))
@@ -102,9 +108,9 @@ func (s *Store) Print(pf string, includeBinary bool, vs ...[]byte) {
 			fvs = append(fvs, string(v))
 		}
 	}
-	fmt.Printf(pf, fvs...)
-	if tty && !strings.HasSuffix(pf, "\n") {
-		fmt.Println()
+	fmt.Fprintf(w, pf, fvs...)
+	if w == os.Stdout && tty && !strings.HasSuffix(pf, "\n") {
+		fmt.Fprintln(os.Stdout)
 	}
 }
 
@@ -227,4 +233,16 @@ func (s *Store) suggestStores(target string) ([]string, error) {
 		}
 	}
 	return suggestions, nil
+}
+
+func formatExpiry(expiresAt uint64) string {
+	if expiresAt == 0 {
+		return "never"
+	}
+	expiry := time.Unix(int64(expiresAt), 0).UTC()
+	remaining := time.Until(expiry)
+	if remaining <= 0 {
+		return fmt.Sprintf("%s (expired)", expiry.Format(time.RFC3339))
+	}
+	return fmt.Sprintf("%s (in %s)", expiry.Format(time.RFC3339), remaining.Round(time.Second))
 }
