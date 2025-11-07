@@ -24,10 +24,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strconv"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // listCmd represents the set command
@@ -102,9 +107,13 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no columns selected; enable key, value, or ttl output")
 	}
 
+	output := cmd.OutOrStdout()
 	tw := table.NewWriter()
-	tw.SetOutputMirror(cmd.OutOrStdout())
+	tw.SetOutputMirror(output)
 	configureListTable(tw)
+	if shouldLimitColumns(format) {
+		applyColumnConstraints(tw, columnKinds, output)
+	}
 
 	if !noHeader {
 		header := buildHeaderCells(columnKinds)
@@ -237,8 +246,109 @@ func stringSliceToRow(values []string) table.Row {
 }
 
 func configureListTable(tw table.Writer) {
-	tw.SetStyle(table.StyleColoredBright)
-	tw.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 2, WidthMax: 20},
-	})
+	tw.SetStyle(table.StyleColoredBlackOnGreenWhite)
+}
+
+func shouldLimitColumns(format string) bool {
+	switch format {
+	case "auto", "table", "tabular":
+		return true
+	default:
+		return false
+	}
+}
+
+func applyColumnConstraints(tw table.Writer, columns []columnKind, out io.Writer) {
+	totalWidth := detectTerminalWidth(out)
+	if totalWidth <= 0 {
+		totalWidth = 100
+	}
+	widths := distributeWidths(totalWidth, columns)
+	configs := make([]table.ColumnConfig, 0, len(columns))
+	for idx, width := range widths {
+		configs = append(configs, table.ColumnConfig{
+			Number:           idx + 1,
+			WidthMax:         width,
+			WidthMaxEnforcer: text.WrapText,
+		})
+	}
+	tw.SetColumnConfigs(configs)
+	tw.SetAllowedRowLength(totalWidth)
+}
+
+type fdWriter interface {
+	Fd() uintptr
+}
+
+func detectTerminalWidth(out io.Writer) int {
+	if f, ok := out.(fdWriter); ok {
+		if w, _, err := term.GetSize(int(f.Fd())); err == nil && w > 0 {
+			return w
+		}
+	}
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
+		return w
+	}
+	if cols := os.Getenv("COLUMNS"); cols != "" {
+		if parsed, err := strconv.Atoi(cols); err == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	return 0
+}
+
+func distributeWidths(total int, columns []columnKind) []int {
+	if total <= 0 {
+		total = 100
+	}
+	hasTTL := false
+	for _, c := range columns {
+		if c == columnTTL {
+			hasTTL = true
+			break
+		}
+	}
+	base := make([]float64, len(columns))
+	sum := 0.0
+	for i, c := range columns {
+		pct := basePercentageForColumn(c, hasTTL)
+		base[i] = pct
+		sum += pct
+	}
+	if sum == 0 {
+		sum = 1
+	}
+	widths := make([]int, len(columns))
+	remaining := total
+	const minColWidth = 10
+	for i := range columns {
+		width := int((base[i] / sum) * float64(total))
+		if width < minColWidth {
+			width = minColWidth
+		}
+		widths[i] = width
+		remaining -= width
+	}
+	for i := 0; remaining > 0 && len(columns) > 0; i++ {
+		idx := i % len(columns)
+		widths[idx]++
+		remaining--
+	}
+	return widths
+}
+
+func basePercentageForColumn(c columnKind, hasTTL bool) float64 {
+	switch c {
+	case columnKey:
+		return 0.25
+	case columnValue:
+		if hasTTL {
+			return 0.5
+		}
+		return 0.75
+	case columnTTL:
+		return 0.25
+	default:
+		return 0.25
+	}
 }
