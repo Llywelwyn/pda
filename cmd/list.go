@@ -64,6 +64,11 @@ func list(cmd *cobra.Command, args []string) error {
 		delimiter = "\t\t"
 	}
 
+	includeSecret, err := cmd.Flags().GetBool("secret")
+	if err != nil {
+		return err
+	}
+
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -81,7 +86,13 @@ func list(cmd *cobra.Command, args []string) error {
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				key := item.Key()
+				meta := item.UserMeta()
 				if err := item.Value(func(v []byte) error {
+					if meta&metaSecret != 0 && !includeSecret {
+						placeholder := []byte("[secret: pass --secret to view]")
+						store.Print(format, false, key, placeholder)
+						return nil
+					}
 					store.Print(format, binary, key, v)
 					return nil
 				}); err != nil {
@@ -98,5 +109,6 @@ func list(cmd *cobra.Command, args []string) error {
 func init() {
 	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	listCmd.Flags().StringP("delimiter", "d", "\t\t", "string written between key and value columns")
+	listCmd.Flags().Bool("secret", false, "include entries marked as secret")
 	rootCmd.AddCommand(listCmd)
 }
