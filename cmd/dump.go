@@ -55,7 +55,7 @@ func dump(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unsupported encoding %q", mode)
 	}
 
-	includeSecret, err := cmd.Flags().GetBool("include-secret")
+	includeSecret, err := cmd.Flags().GetBool("secret")
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func dump(cmd *cobra.Command, args []string) error {
 
 func init() {
 	dumpCmd.Flags().StringP("encoding", "e", "auto", "value encoding: auto, base64, or text")
-	dumpCmd.Flags().Bool("include-secret", false, "Include entries marked as secret")
+	dumpCmd.Flags().Bool("secret", false, "Include entries marked as secret")
 	rootCmd.AddCommand(dumpCmd)
 }
 

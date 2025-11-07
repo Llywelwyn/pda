@@ -63,38 +63,38 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	includeSecret, err := cmd.Flags().GetBool("include-secret")
+	showSecrets, err := cmd.Flags().GetBool("secret")
 	if err != nil {
 		return err
 	}
 
-	keysOnly, err := cmd.Flags().GetBool("only-keys")
+	noKeys, err := cmd.Flags().GetBool("no-keys")
 	if err != nil {
 		return err
 	}
-	valuesOnly, err := cmd.Flags().GetBool("only-values")
+	noValues, err := cmd.Flags().GetBool("no-values")
 	if err != nil {
 		return err
 	}
-	if keysOnly && valuesOnly {
-		return fmt.Errorf("--only-keys and --only-values are mutually exclusive")
-	}
-	showExpiry, err := cmd.Flags().GetBool("show-expiry")
+	showTTL, err := cmd.Flags().GetBool("ttl")
 	if err != nil {
 		return err
 	}
-	binary, err := cmd.Flags().GetBool("include-binary")
+	binary, err := cmd.Flags().GetBool("binary")
 	if err != nil {
 		return err
 	}
 
-	includeKey := !valuesOnly
-	includeValue := !keysOnly
+	includeKey := !noKeys
+	includeValue := !noValues
+	if !includeKey && !includeValue && !showTTL {
+		return fmt.Errorf("no columns selected; disable --no-keys/--no-values or pass --ttl")
+	}
 	prefetchVals := includeValue
 
-	columnKinds := selectColumns(includeKey, includeValue, showExpiry)
+	columnKinds := selectColumns(includeKey, includeValue, showTTL)
 	if len(columnKinds) == 0 {
-		return fmt.Errorf("no columns selected; enable keys or values")
+		return fmt.Errorf("no columns selected; enable key, value, or ttl output")
 	}
 
 	delimiterBytes := []byte(delimiter)
@@ -107,7 +107,9 @@ func list(cmd *cobra.Command, args []string) error {
 	writer := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 	defer writer.Flush()
 
-	placeholder := []byte("<secrets hidden>")
+	placeholder := []byte("**********")
+	header := insertDelimiters(buildHeaderCells(columnKinds), delimiterBytes)
+	store.PrintTo(writer, format, false, header...)
 
 	trans := TransactionArgs{
 		key:      targetDB,
@@ -126,7 +128,7 @@ func list(cmd *cobra.Command, args []string) error {
 				meta := item.UserMeta()
 				isSecret := meta&metaSecret != 0
 				valueBuf = valueBuf[:0]
-				if includeValue && (!isSecret || includeSecret) {
+				if includeValue && (!isSecret || showSecrets) {
 					if err := item.Value(func(v []byte) error {
 						valueBuf = append(valueBuf[:0], v...)
 						return nil
@@ -140,12 +142,12 @@ func list(cmd *cobra.Command, args []string) error {
 					case columnKey:
 						columns = append(columns, key)
 					case columnValue:
-						if isSecret && !includeSecret {
+						if isSecret && !showSecrets {
 							columns = append(columns, placeholder)
 						} else {
 							columns = append(columns, valueBuf)
 						}
-					case columnExpiry:
+					case columnTTL:
 						columns = append(columns, []byte(formatExpiry(item.ExpiresAt())))
 					}
 				}
@@ -160,12 +162,12 @@ func list(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	listCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
+	listCmd.Flags().BoolP("binary", "b", false, "include binary data in text output")
 	listCmd.Flags().StringP("delimiter", "d", "", "string inserted between columns")
-	listCmd.Flags().Bool("include-secret", false, "include entries marked as secret")
-	listCmd.Flags().BoolP("only-keys", "k", false, "only print keys")
-	listCmd.Flags().BoolP("only-values", "v", false, "only print values")
-	listCmd.Flags().Bool("show-expiry", false, "append an expiry column when entries have TTLs")
+	listCmd.Flags().Bool("secret", false, "display values marked as secret")
+	listCmd.Flags().Bool("no-keys", false, "suppress the key column")
+	listCmd.Flags().Bool("no-values", false, "suppress the value column")
+	listCmd.Flags().Bool("ttl", false, "append a TTL column when entries expire")
 	rootCmd.AddCommand(listCmd)
 }
 
@@ -174,10 +176,10 @@ type columnKind int
 const (
 	columnKey columnKind = iota
 	columnValue
-	columnExpiry
+	columnTTL
 )
 
-func selectColumns(includeKey, includeValue, showExpiry bool) []columnKind {
+func selectColumns(includeKey, includeValue, showTTL bool) []columnKind {
 	var columns []columnKind
 	if includeKey {
 		columns = append(columns, columnKey)
@@ -185,8 +187,8 @@ func selectColumns(includeKey, includeValue, showExpiry bool) []columnKind {
 	if includeValue {
 		columns = append(columns, columnValue)
 	}
-	if showExpiry {
-		columns = append(columns, columnExpiry)
+	if showTTL {
+		columns = append(columns, columnTTL)
 	}
 	return columns
 }
@@ -218,4 +220,19 @@ func insertDelimiters(columns [][]byte, delimiter []byte) [][]byte {
 		}
 	}
 	return out
+}
+
+func buildHeaderCells(columnKinds []columnKind) [][]byte {
+	headers := make([][]byte, 0, len(columnKinds))
+	for _, column := range columnKinds {
+		switch column {
+		case columnKey:
+			headers = append(headers, []byte("Key"))
+		case columnValue:
+			headers = append(headers, []byte("Value"))
+		case columnTTL:
+			headers = append(headers, []byte("TTL"))
+		}
+	}
+	return headers
 }
