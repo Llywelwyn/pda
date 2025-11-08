@@ -42,22 +42,6 @@ var listCmd = &cobra.Command{
 	RunE:  list,
 }
 
-type ListArgs struct {
-	header  bool
-	key     bool
-	value   bool
-	ttl     bool
-	binary  bool
-	secrets bool
-	render  func(table.Writer)
-}
-
-type listFormat struct {
-	limitColumns bool
-	style        *table.Style
-	render       func(table.Writer)
-}
-
 func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	targetDB := "@default"
@@ -162,37 +146,6 @@ func list(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// formatEnum implements pflag.Value
-type formatEnum string
-
-func (e *formatEnum) String() string {
-	return string(*e)
-}
-
-func (e *formatEnum) Set(v string) error {
-	switch v {
-	case "table", "csv", "html", "markdown":
-		*e = formatEnum(v)
-		return nil
-	default:
-		return errors.New(`must be one of "table", "csv", "html", or "markdown"`)
-	}
-}
-
-func (e *formatEnum) Type() string {
-	return "format"
-}
-
-var (
-	binary   bool       = false
-	secret   bool       = false
-	noKeys   bool       = false
-	noValues bool       = false
-	ttl      bool       = false
-	noHeader bool       = false
-	format   formatEnum = "table"
-)
-
 func init() {
 	listCmd.Flags().BoolVarP(&binary, "binary", "b", false, "include binary data in text output")
 	listCmd.Flags().BoolVarP(&secret, "secret", "S", false, "display values marked as secret")
@@ -202,34 +155,6 @@ func init() {
 	listCmd.Flags().BoolVar(&noHeader, "no-header", false, "omit the header rows")
 	listCmd.Flags().VarP(&format, "format", "o", "render output format (table|csv|markdown|html)")
 	rootCmd.AddCommand(listCmd)
-}
-
-func parseFlags(cmd *cobra.Command) (ListArgs, error) {
-	var renderFunc func(tw table.Writer)
-	switch format.String() {
-	case "csv":
-		renderFunc = func(tw table.Writer) { tw.RenderCSV() }
-	case "html":
-		renderFunc = func(tw table.Writer) { tw.RenderHTML() }
-	case "markdown":
-		renderFunc = func(tw table.Writer) { tw.RenderMarkdown() }
-	default:
-		renderFunc = func(tw table.Writer) { tw.Render() }
-
-	}
-	if noKeys && noValues && !ttl {
-		return ListArgs{}, fmt.Errorf("no columns selected; disable --no-keys/--no-values or pass --ttl")
-	}
-
-	return ListArgs{
-		header:  !noHeader,
-		key:     !noKeys,
-		value:   !noValues,
-		ttl:     ttl,
-		binary:  binary,
-		render:  renderFunc,
-		secrets: secret,
-	}, nil
 }
 
 type columnKind int
