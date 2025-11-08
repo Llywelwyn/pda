@@ -49,65 +49,13 @@ type ListArgs struct {
 	ttl     bool
 	binary  bool
 	secrets bool
-	format  *listFormat
+	render  func(table.Writer)
 }
 
 type listFormat struct {
 	limitColumns bool
 	style        *table.Style
 	render       func(table.Writer)
-}
-
-var (
-	defaultTableStyle = table.StyleDefault
-	plainTableStyle   = table.StyleDefault
-
-	tableStylePresets = map[string]*table.Style{
-		"table":        &defaultTableStyle,
-		"tabular":      &defaultTableStyle,
-		"table-dark":   &table.StyleColoredDark,
-		"table-bright": &table.StyleColoredBright,
-	}
-
-	supportedListFormats = buildSupportedListFormats()
-)
-
-func buildSupportedListFormats() map[string]*listFormat {
-	markdownSpec := &listFormat{
-		style: &plainTableStyle,
-		render: func(tw table.Writer) {
-			tw.RenderMarkdown()
-		},
-	}
-	formats := map[string]*listFormat{
-		"csv": {
-			style: &plainTableStyle,
-			render: func(tw table.Writer) {
-				tw.RenderCSV()
-			},
-		},
-		"html": {
-			style: &plainTableStyle,
-			render: func(tw table.Writer) {
-				tw.RenderHTML()
-			},
-		},
-		"markdown": markdownSpec,
-		"md":       markdownSpec,
-	}
-	for name, style := range tableStylePresets {
-		formats[name] = &listFormat{
-			limitColumns: true,
-			style:        style,
-			render: func(tw table.Writer) {
-				tw.Render()
-			},
-		}
-	}
-	if defaultSpec, ok := formats["table"]; ok {
-		formats["auto"] = defaultSpec
-	}
-	return formats
 }
 
 func list(cmd *cobra.Command, args []string) error {
@@ -142,24 +90,14 @@ func list(cmd *cobra.Command, args []string) error {
 	output := cmd.OutOrStdout()
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
+	tw.SetStyle(table.StyleLight)
 
-	formatSpec := flags.format
-	if formatSpec != nil && formatSpec.style != nil {
-		tw.SetStyle(*formatSpec.style)
-	} else {
-		tw.SetStyle(defaultTableStyle)
-	}
-	limitColumns := formatSpec != nil && formatSpec.limitColumns
 	var maxContentWidths []int
-	if limitColumns {
-		maxContentWidths = make([]int, len(columnKinds))
-	}
+	maxContentWidths = make([]int, len(columnKinds))
 
 	if flags.header {
 		header := buildHeaderCells(columnKinds)
-		if limitColumns {
-			updateMaxContentWidths(maxContentWidths, header)
-		}
+		updateMaxContentWidths(maxContentWidths, header)
 		tw.AppendHeader(stringSliceToRow(header))
 	}
 
@@ -207,9 +145,7 @@ func list(cmd *cobra.Command, args []string) error {
 						columns = append(columns, formatExpiry(item.ExpiresAt()))
 					}
 				}
-				if limitColumns {
-					updateMaxContentWidths(maxContentWidths, columns)
-				}
+				updateMaxContentWidths(maxContentWidths, columns)
 				tw.AppendRow(stringSliceToRow(columns))
 			}
 			return nil
@@ -220,61 +156,67 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if limitColumns {
-		applyColumnConstraints(tw, columnKinds, output, maxContentWidths)
-	}
+	applyColumnConstraints(tw, columnKinds, output, maxContentWidths)
 
-	if formatSpec != nil && formatSpec.render != nil {
-		formatSpec.render(tw)
-	}
+	flags.render(tw)
 	return nil
 }
 
+// formatEnum implements pflag.Value
+type formatEnum string
+
+func (e *formatEnum) String() string {
+	return string(*e)
+}
+
+func (e *formatEnum) Set(v string) error {
+	switch v {
+	case "table", "csv", "html", "markdown":
+		*e = formatEnum(v)
+		return nil
+	default:
+		return errors.New(`must be one of "table", "csv", "html", or "markdown"`)
+	}
+}
+
+func (e *formatEnum) Type() string {
+	return "format"
+}
+
+var (
+	binary   bool       = false
+	secret   bool       = false
+	noKeys   bool       = false
+	noValues bool       = false
+	ttl      bool       = false
+	noHeader bool       = false
+	format   formatEnum = "table"
+)
+
 func init() {
-	listCmd.Flags().BoolP("binary", "b", false, "include binary data in text output")
-	listCmd.Flags().BoolP("secret", "S", false, "display values marked as secret")
-	listCmd.Flags().Bool("no-keys", false, "suppress the key column")
-	listCmd.Flags().Bool("no-values", false, "suppress the value column")
-	listCmd.Flags().BoolP("ttl", "t", false, "append a TTL column when entries expire")
-	listCmd.Flags().Bool("no-header", false, "omit the header rows")
-	listCmd.Flags().StringP("format", "f", "table", "supports: table[-dark/-bright], csv, html, markdown")
+	listCmd.Flags().BoolVarP(&binary, "binary", "b", false, "include binary data in text output")
+	listCmd.Flags().BoolVarP(&secret, "secret", "S", false, "display values marked as secret")
+	listCmd.Flags().BoolVar(&noKeys, "no-keys", false, "suppress the key column")
+	listCmd.Flags().BoolVar(&noValues, "no-values", false, "suppress the value column")
+	listCmd.Flags().BoolVarP(&ttl, "ttl", "t", false, "append a TTL column when entries expire")
+	listCmd.Flags().BoolVar(&noHeader, "no-header", false, "omit the header rows")
+	listCmd.Flags().VarP(&format, "format", "o", "render output format (table|csv|markdown|html)")
 	rootCmd.AddCommand(listCmd)
 }
 
 func parseFlags(cmd *cobra.Command) (ListArgs, error) {
-	secrets, err := cmd.Flags().GetBool("secret")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	noKeys, err := cmd.Flags().GetBool("no-keys")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	noValues, err := cmd.Flags().GetBool("no-values")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	ttl, err := cmd.Flags().GetBool("ttl")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	noHeader, err := cmd.Flags().GetBool("no-header")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	binary, err := cmd.Flags().GetBool("binary")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	formatName, err := cmd.Flags().GetString("format")
-	if err != nil {
-		return ListArgs{}, err
-	}
-	formatSpec, err := resolveListFormat(formatName)
-	if err != nil {
-		return ListArgs{}, err
-	}
+	var renderFunc func(tw table.Writer)
+	switch format.String() {
+	case "csv":
+		renderFunc = func(tw table.Writer) { tw.RenderCSV() }
+	case "html":
+		renderFunc = func(tw table.Writer) { tw.RenderHTML() }
+	case "markdown":
+		renderFunc = func(tw table.Writer) { tw.RenderMarkdown() }
+	default:
+		renderFunc = func(tw table.Writer) { tw.Render() }
 
+	}
 	if noKeys && noValues && !ttl {
 		return ListArgs{}, fmt.Errorf("no columns selected; disable --no-keys/--no-values or pass --ttl")
 	}
@@ -285,16 +227,9 @@ func parseFlags(cmd *cobra.Command) (ListArgs, error) {
 		value:   !noValues,
 		ttl:     ttl,
 		binary:  binary,
-		format:  formatSpec,
-		secrets: secrets,
+		render:  renderFunc,
+		secrets: secret,
 	}, nil
-}
-
-func resolveListFormat(name string) (*listFormat, error) {
-	if spec, ok := supportedListFormats[name]; ok {
-		return spec, nil
-	}
-	return nil, fmt.Errorf("unsupported format %q", name)
 }
 
 type columnKind int
