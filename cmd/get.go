@@ -100,12 +100,15 @@ func runCmd(command string) error {
 	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
-		// Manually relay the error returned from the sub-command.
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		// ExitError indicates running the command was successful, but the command itself failed.
+		// We only ever want to report on errors caused by the CLI tool itself.
+		// An ExitError means this tool was successful in running the command, so return nil.
+		// A non-ExitError means this tool failed, so return err.
+		if _, ok := err.(*exec.ExitError); !ok {
+			return err
+		}
 	}
-	// Never bubble this error up to PDA itself,
-	// because if it ran at all then PDA did not error.
-	// Arbitrary user commands should handle their own errors.
+
 	return nil
 }
 
