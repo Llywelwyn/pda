@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/spf13/cobra"
 )
 
 // ListArgs tracks the resolved flag configuration for the list command.
@@ -49,7 +48,7 @@ var (
 	format   formatEnum = "table"
 )
 
-func parseFlags(cmd *cobra.Command) (ListArgs, error) {
+func enrichFlags() (ListArgs, error) {
 	var renderFunc func(tw table.Writer)
 	switch format.String() {
 	case "csv":

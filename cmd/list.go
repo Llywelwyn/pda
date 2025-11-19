@@ -56,7 +56,7 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	flags, err := parseFlags(cmd)
+	flags, err := enrichFlags()
 	if err != nil {
 		return err
 	}
