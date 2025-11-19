@@ -69,7 +69,13 @@ func list(cmd *cobra.Command, args []string) error {
 	output := cmd.OutOrStdout()
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
-	tw.SetStyle(table.StyleLight)
+	tw.SetStyle(table.StyleDefault)
+	// Should these be settable flags?
+	tw.Style().Options.SeparateHeader = false
+	tw.Style().Options.SeparateFooter = false
+	tw.Style().Options.DrawBorder = false
+	tw.Style().Options.SeparateRows = false
+	tw.Style().Options.SeparateColumns = false
 
 	var maxContentWidths []int
 	maxContentWidths = make([]int, len(columnKinds))
@@ -147,7 +153,7 @@ func init() {
 	listCmd.Flags().BoolVar(&noKeys, "no-keys", false, "suppress the key column")
 	listCmd.Flags().BoolVar(&noValues, "no-values", false, "suppress the value column")
 	listCmd.Flags().BoolVarP(&ttl, "ttl", "t", false, "append a TTL column when entries expire")
-	listCmd.Flags().BoolVar(&noHeader, "no-header", false, "omit the header rows")
-	listCmd.Flags().VarP(&format, "format", "o", "render output format (table|csv|markdown|html)")
+	listCmd.Flags().BoolVar(&header, "header", false, "include header row")
+	listCmd.Flags().VarP(&format, "format", "o", "output format (table|tsv|csv|markdown|html)")
 	rootCmd.AddCommand(listCmd)
 }

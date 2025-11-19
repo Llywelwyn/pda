@@ -26,11 +26,11 @@ func (e *formatEnum) String() string {
 
 func (e *formatEnum) Set(v string) error {
 	switch v {
-	case "table", "csv", "html", "markdown":
+	case "table", "tsv", "csv", "html", "markdown":
 		*e = formatEnum(v)
 		return nil
 	default:
-		return fmt.Errorf("must be one of \"table\", \"csv\", \"html\", or \"markdown\"")
+		return fmt.Errorf("must be one of \"table\", \"tsv\", \"csv\", \"html\", or \"markdown\"")
 	}
 }
 
@@ -44,20 +44,22 @@ var (
 	noKeys   bool       = false
 	noValues bool       = false
 	ttl      bool       = false
-	noHeader bool       = false
+	header   bool       = false
 	format   formatEnum = "table"
 )
 
 func enrichFlags() (ListArgs, error) {
 	var renderFunc func(tw table.Writer)
 	switch format.String() {
+	case "tsv":
+		renderFunc = func(tw table.Writer) { tw.RenderTSV() }
 	case "csv":
 		renderFunc = func(tw table.Writer) { tw.RenderCSV() }
 	case "html":
 		renderFunc = func(tw table.Writer) { tw.RenderHTML() }
 	case "markdown":
 		renderFunc = func(tw table.Writer) { tw.RenderMarkdown() }
-	default:
+	case "table":
 		renderFunc = func(tw table.Writer) { tw.Render() }
 	}
 
@@ -66,7 +68,7 @@ func enrichFlags() (ListArgs, error) {
 	}
 
 	return ListArgs{
-		header:  !noHeader,
+		header:  header,
 		key:     !noKeys,
 		value:   !noValues,
 		ttl:     ttl,
