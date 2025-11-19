@@ -22,9 +22,12 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
+	"text/template"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -35,7 +38,7 @@ var getCmd = &cobra.Command{
 	Use:     "get KEY[@DB]",
 	Short:   "Get a value for a key. Optionally specify a db.",
 	Aliases: []string{"g"},
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MinimumNArgs(1),
 	RunE:    get,
 }
 
@@ -80,12 +83,67 @@ func get(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	noTemplate, err := cmd.Flags().GetBool("no-template")
+	if err != nil {
+		return err
+	}
+
+	if !noTemplate {
+		var substitutions []string
+		if len(args) > 1 {
+			substitutions = args[1:]
+		}
+		v, err = applyTemplate(v, substitutions)
+		if err != nil {
+			return err
+		}
+	}
+
 	if run {
 		return runCmd(string(v))
 	}
 
 	store.Print("%s", binary, v)
 	return nil
+}
+
+func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
+	vars := make(map[string]string, len(substitutions))
+	for _, s := range substitutions {
+		parts := strings.SplitN(s, "=", 2)
+		if len(parts) != 2 || parts[0] == "" {
+			fmt.Fprintf(os.Stderr, "invalid substitutions %q (expected KEY=VALUE)\n", s)
+			continue
+		}
+		key := parts[0]
+		val := parts[1]
+		vars[key] = val
+	}
+	funcMap := template.FuncMap{
+		"default": func(def string, v any) string {
+			s := fmt.Sprint(v)
+			if s == "" {
+				return def
+			}
+			return s
+		},
+		"env": os.Getenv,
+	}
+	tpl, err := template.New("cmd").
+		Delims("[[", "]]").
+		// Render missing map keys as zero values so the default helper can decide on fallbacks.
+		Option("missingkey=zero").
+		Funcs(funcMap).
+		Parse(string(tplBytes))
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, vars); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func runCmd(command string) error {
@@ -116,5 +174,6 @@ func init() {
 	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	getCmd.Flags().Bool("secret", false, "display values marked as secret")
 	getCmd.Flags().BoolP("run", "c", false, "execute the result as a shell command")
+	getCmd.Flags().Bool("no-template", false, "directly output template syntax")
 	rootCmd.AddCommand(getCmd)
 }
