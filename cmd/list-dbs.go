@@ -28,10 +28,11 @@ import (
 
 // delCmd represents the set command
 var listDbsCmd = &cobra.Command{
-	Use:   "list-dbs",
-	Short: "List all dbs.",
-	Args:  cobra.NoArgs,
-	RunE:  listDbs,
+	Use:     "list-dbs",
+	Short:   "List all dbs.",
+	Aliases: []string{"ls-dbs", "lsd"},
+	Args:    cobra.NoArgs,
+	RunE:    listDbs,
 }
 
 func listDbs(cmd *cobra.Command, args []string) error {
