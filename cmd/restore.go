@@ -14,10 +14,11 @@ import (
 )
 
 var restoreCmd = &cobra.Command{
-	Use:   "restore [DB]",
-	Short: "Restore key/value pairs from an NDJSON dump",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  restore,
+	Use:     "restore [DB]",
+	Short:   "Restore key/value pairs from an NDJSON dump",
+	Aliases: []string{"import"},
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    restore,
 }
 
 func restore(cmd *cobra.Command, args []string) error {

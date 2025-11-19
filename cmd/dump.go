@@ -20,10 +20,11 @@ type dumpEntry struct {
 }
 
 var dumpCmd = &cobra.Command{
-	Use:   "dump [DB]",
-	Short: "Dump all key/value pairs as NDJSON",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  dump,
+	Use:     "dump [DB]",
+	Short:   "Dump all key/value pairs as NDJSON",
+	Aliases: []string{"export"},
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    dump,
 }
 
 func dump(cmd *cobra.Command, args []string) error {

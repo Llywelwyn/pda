@@ -32,10 +32,11 @@ import (
 
 // delCmd represents the set command
 var delCmd = &cobra.Command{
-	Use:   "del KEY[@DB]",
-	Short: "Delete a key. Optionally specify a db.",
-	Args:  cobra.ExactArgs(1),
-	RunE:  del,
+	Use:     "del KEY[@DB]",
+	Short:   "Delete a key. Optionally specify a db.",
+	Aliases: []string{"delete", "rm", "remove"},
+	Args:    cobra.ExactArgs(1),
+	RunE:    del,
 }
 
 func del(cmd *cobra.Command, args []string) error {
