@@ -30,10 +30,11 @@ import (
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
-	Use:   "get KEY[@DB]",
-	Short: "Get a value for a key. Optionally specify a db.",
-	Args:  cobra.ExactArgs(1),
-	RunE:  get,
+	Use:     "get KEY[@DB]",
+	Short:   "Get a value for a key. Optionally specify a db.",
+	Aliases: []string{"g"},
+	Args:    cobra.ExactArgs(1),
+	RunE:    get,
 }
 
 func get(cmd *cobra.Command, args []string) error {

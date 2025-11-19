@@ -30,10 +30,11 @@ import (
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
-	Use:   "set KEY[@DB] [VALUE]",
-	Short: "Set a value for a key by passing VALUE or from Stdin. Optionally specify a db.",
-	Args:  cobra.RangeArgs(1, 2),
-	RunE:  set,
+	Use:     "set KEY[@DB] [VALUE]",
+	Short:   "Set a value for a key by passing VALUE or from Stdin. Optionally specify a db.",
+	Aliases: []string{"s"},
+	Args:    cobra.RangeArgs(1, 2),
+	RunE:    set,
 }
 
 func set(cmd *cobra.Command, args []string) error {
