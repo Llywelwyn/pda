@@ -121,6 +121,13 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 		vars[key] = val
 	}
 	funcMap := template.FuncMap{
+		"require": func(v any) (string, error) {
+			s := fmt.Sprint(v)
+			if s == "" {
+				return "", fmt.Errorf("required value is missing or empty")
+			}
+			return s, nil
+		},
 		"default": func(def string, v any) string {
 			s := fmt.Sprint(v)
 			if s == "" {
