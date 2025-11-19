@@ -23,6 +23,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -74,12 +76,42 @@ func get(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	run, err := cmd.Flags().GetBool("run")
+	if err != nil {
+		return err
+	}
+	if run {
+		return runCmd(string(v))
+	}
+
 	store.Print("%s", binary, v)
+	return nil
+}
+
+func runCmd(command string) error {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+
+	cmd := exec.Command(shell, "-c", command)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		// Manually relay the error returned from the sub-command.
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
+	// Never bubble this error up to PDA itself,
+	// because if it ran at all then PDA did not error.
+	// Arbitrary user commands should handle their own errors.
 	return nil
 }
 
 func init() {
 	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	getCmd.Flags().Bool("secret", false, "display values marked as secret")
+	getCmd.Flags().BoolP("run", "c", false, "execute the result as a shell command")
 	rootCmd.AddCommand(getCmd)
 }
