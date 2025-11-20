@@ -33,9 +33,9 @@ import (
 
 // delDbCmd represents the set command
 var delDbCmd = &cobra.Command{
-	Use:     "delete-db DB",
+	Use:     "del-db DB",
 	Short:   "Delete a database.",
-	Aliases: []string{"del-db", "rm-db", "remove-db"},
+	Aliases: []string{"delete-db", "rm-db", "remove-db"},
 	Args:    cobra.ExactArgs(1),
 	RunE:    delDb,
 }
