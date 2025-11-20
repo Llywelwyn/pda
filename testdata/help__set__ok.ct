@@ -1,0 +1,44 @@
+$ pda help set
+$ pda set --help
+Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
+	
+PDA supports parsing Go templates. Actions are delimited with {{ }}.
+
+For example:
+  'Hello, {{ .NAME }}'                 can be substituted with NAME="John Doe".
+  'Hello, {{ env "USER" }}'            will fetch the USER env variable.
+  'Hello, {{ default "World" .NAME }}' will default to World if NAME is blank.
+  'Hello, {{ require .NAME }}'         will error if NAME is blank.
+  '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.
+
+Usage:
+  pda set KEY[@DB] [VALUE] [flags]
+
+Aliases:
+  set, s
+
+Flags:
+  -h, --help           help for set
+      --secret         Mark the stored value as a secret
+  -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
+Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
+	
+PDA supports parsing Go templates. Actions are delimited with {{ }}.
+
+For example:
+  'Hello, {{ .NAME }}'                 can be substituted with NAME="John Doe".
+  'Hello, {{ env "USER" }}'            will fetch the USER env variable.
+  'Hello, {{ default "World" .NAME }}' will default to World if NAME is blank.
+  'Hello, {{ require .NAME }}'         will error if NAME is blank.
+  '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.
+
+Usage:
+  pda set KEY[@DB] [VALUE] [flags]
+
+Aliases:
+  set, s
+
+Flags:
+  -h, --help           help for set
+      --secret         Mark the stored value as a secret
+  -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)

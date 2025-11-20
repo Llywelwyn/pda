@@ -1,0 +1,24 @@
+$ pda help restore
+$ pda restore --help
+Restore key/value pairs from an NDJSON dump
+
+Usage:
+  pda restore [DB] [flags]
+
+Aliases:
+  restore, import
+
+Flags:
+  -f, --file string   Path to an NDJSON dump (defaults to stdin)
+  -h, --help          help for restore
+Restore key/value pairs from an NDJSON dump
+
+Usage:
+  pda restore [DB] [flags]
+
+Aliases:
+  restore, import
+
+Flags:
+  -f, --file string   Path to an NDJSON dump (defaults to stdin)
+  -h, --help          help for restore

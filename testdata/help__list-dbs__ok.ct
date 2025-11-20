@@ -1,0 +1,22 @@
+$ pda help list-dbs
+$ pda list-dbs --help
+List all dbs.
+
+Usage:
+  pda list-dbs [flags]
+
+Aliases:
+  list-dbs, ls-dbs, lsd
+
+Flags:
+  -h, --help   help for list-dbs
+List all dbs.
+
+Usage:
+  pda list-dbs [flags]
+
+Aliases:
+  list-dbs, ls-dbs, lsd
+
+Flags:
+  -h, --help   help for list-dbs

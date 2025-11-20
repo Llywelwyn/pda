@@ -1,0 +1,58 @@
+$ pda help
+$ pda --help
+                 ▄▄           
+                 ██           
+ ██▄███▄    ▄███▄██   ▄█████▄
+ ██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
+ ██    ██  ██    ██  ▄██▀▀▀██
+ ███▄▄██▀  ▀██▄▄███  ██▄▄▄███
+ ██ ▀▀▀      ▀▀▀ ▀▀   ▀▀▀▀ ▀▀
+ ██      (c) 2025 Lewis Wynne
+
+Usage:
+  pda [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  del         Delete a key. Optionally specify a db.
+  del-db      Delete a database.
+  dump        Dump all key/value pairs as NDJSON
+  get         Get a value for a key. Optionally specify a db.
+  help        Help about any command
+  list        List the contents of a db.
+  list-dbs    List all dbs.
+  restore     Restore key/value pairs from an NDJSON dump
+  set         Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
+
+Flags:
+  -h, --help   help for pda
+
+Use "pda [command] --help" for more information about a command.
+                 ▄▄           
+                 ██           
+ ██▄███▄    ▄███▄██   ▄█████▄
+ ██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
+ ██    ██  ██    ██  ▄██▀▀▀██
+ ███▄▄██▀  ▀██▄▄███  ██▄▄▄███
+ ██ ▀▀▀      ▀▀▀ ▀▀   ▀▀▀▀ ▀▀
+ ██      (c) 2025 Lewis Wynne
+
+Usage:
+  pda [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  del         Delete a key. Optionally specify a db.
+  del-db      Delete a database.
+  dump        Dump all key/value pairs as NDJSON
+  get         Get a value for a key. Optionally specify a db.
+  help        Help about any command
+  list        List the contents of a db.
+  list-dbs    List all dbs.
+  restore     Restore key/value pairs from an NDJSON dump
+  set         Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
+
+Flags:
+  -h, --help   help for pda
+
+Use "pda [command] --help" for more information about a command.

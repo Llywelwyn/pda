@@ -1,0 +1,26 @@
+$ pda help dump
+$ pda dump --help
+Dump all key/value pairs as NDJSON
+
+Usage:
+  pda dump [DB] [flags]
+
+Aliases:
+  dump, export
+
+Flags:
+  -e, --encoding string   value encoding: auto, base64, or text (default "auto")
+  -h, --help              help for dump
+      --secret            Include entries marked as secret
+Dump all key/value pairs as NDJSON
+
+Usage:
+  pda dump [DB] [flags]
+
+Aliases:
+  dump, export
+
+Flags:
+  -e, --encoding string   value encoding: auto, base64, or text (default "auto")
+  -h, --help              help for dump
+      --secret            Include entries marked as secret

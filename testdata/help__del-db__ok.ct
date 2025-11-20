@@ -1,0 +1,24 @@
+$ pda help del-db
+$ pda del-db --help
+Delete a database.
+
+Usage:
+  pda del-db DB [flags]
+
+Aliases:
+  del-db, delete-db, rm-db, remove-db
+
+Flags:
+  -f, --force   Force delete without confirmation
+  -h, --help    help for del-db
+Delete a database.
+
+Usage:
+  pda del-db DB [flags]
+
+Aliases:
+  del-db, delete-db, rm-db, remove-db
+
+Flags:
+  -f, --force   Force delete without confirmation
+  -h, --help    help for del-db

@@ -1,0 +1,36 @@
+$ pda help list
+$ pda list --help
+List the contents of a db.
+
+Usage:
+  pda list [DB] [flags]
+
+Aliases:
+  list, ls
+
+Flags:
+  -b, --binary          include binary data in text output
+  -o, --format format   output format (table|tsv|csv|markdown|html) (default table)
+      --header          include header row
+  -h, --help            help for list
+      --no-keys         suppress the key column
+      --no-values       suppress the value column
+  -S, --secret          display values marked as secret
+  -t, --ttl             append a TTL column when entries expire
+List the contents of a db.
+
+Usage:
+  pda list [DB] [flags]
+
+Aliases:
+  list, ls
+
+Flags:
+  -b, --binary          include binary data in text output
+  -o, --format format   output format (table|tsv|csv|markdown|html) (default table)
+      --header          include header row
+  -h, --help            help for list
+      --no-keys         suppress the key column
+      --no-values       suppress the value column
+  -S, --secret          display values marked as secret
+  -t, --ttl             append a TTL column when entries expire
