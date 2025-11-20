@@ -30,8 +30,27 @@ import (
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
-	Use:     "set KEY[@DB] [VALUE]",
-	Short:   "Set a value for a key by passing VALUE or from Stdin. Optionally specify a db.",
+	Use:   "set KEY[@DB] [VALUE]",
+	Short: "Set a value for a key by passing VALUE or Stdin. Optionally specify a db.",
+	Long: `Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
+	
+PDA supports parsing Go templates. Actions are delimited with {{ }}.
+
+For example:
+  'Hello, {{ .NAME }}'                 can be substituted with NAME="John Doe".
+  'Hello, {{ env "USER" }}'            will fetch the USER env variable.
+  'Hello, {{ default "World" .NAME }}' will default to World if NAME is blank.
+  'Hello, {{ require .NAME }}'         will error if NAME is blank.
+  '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.
+
+[[ .TEMPLATES ]] can be filled by passing TEMPLATE=VALUE as an
+additional argument after the initial KEY being fetched.
+
+For example:
+	pda set greeting 'Hello, {{ .NAME }}!'
+	pda get greeting NAME=World
+
+Further reading: Go's text/template documentation.`,
 	Aliases: []string{"s"},
 	Args:    cobra.RangeArgs(1, 2),
 	RunE:    set,

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -35,8 +36,18 @@ import (
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
-	Use:     "get KEY[@DB]",
-	Short:   "Get a value for a key. Optionally specify a db.",
+	Use:   "get KEY[@DB]",
+	Short: "Get a value for a key. Optionally specify a db.",
+	Long: `Get a value for a key. Optionally specify a db.
+
+[[ .TEMPLATES ]] can be filled by passing TEMPLATE=VALUE as an
+additional argument after the initial KEY being fetched.
+
+For example:
+	pda set greeting 'Hello, {{ .NAME }}!'
+	pda get greeting NAME=World
+
+Further reading: Go's text/template documentation.`,
 	Aliases: []string{"g"},
 	Args:    cobra.MinimumNArgs(1),
 	RunE:    get,
@@ -136,9 +147,19 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 			return s
 		},
 		"env": os.Getenv,
+		"enum": func(v any, allowed ...string) (string, error) {
+			s := fmt.Sprint(v)
+			if s == "" {
+				return "", fmt.Errorf("enum value is missing or empty")
+			}
+			if slices.Contains(allowed, s) {
+				return s, nil
+			}
+			return "", fmt.Errorf("invalid value %q (allowed: %v)", s, allowed)
+		},
 	}
 	tpl, err := template.New("cmd").
-		Delims("[[", "]]").
+		Delims("{{", "}}").
 		// Render missing map keys as zero values so the default helper can decide on fallbacks.
 		Option("missingkey=zero").
 		Funcs(funcMap).
