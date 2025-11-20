@@ -1,4 +1,4 @@
-$ fecho cmd sh -c echo hello
+$ fecho cmd echo hello
 $ pda set foo < cmd
 $ pda get foo --include-binary --run
 hello
