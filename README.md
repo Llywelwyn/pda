@@ -18,17 +18,32 @@
 
 <p align="center"></p><!-- spacer -->
 
+```bash
+# Get the latest release from the AUR
+pacman -S pda
+
+# Or use pda-git for the latest commit
+pacman -S pda-git
+
+# Or manually install with Go
+git clone https://github.com/llywelwyn/pda
+cd pda
+go install
+```
+
+<p align="center"></p><!-- spacer -->
+
   ```bash
 Available Commands:
-    get         Get a value.
-    set         Set a value.
-    del         Delete a value.
-    del-db      Delete a whole database.
-    list-dbs    List all databases.
-    dump        Export a database as NDJSON.
-    restore     Imports NDJSON into a database.
-    completion  Generate autocompletions for a specified shell.
-    help        Additional help for any command.
+    get         # Get a value.
+    set         # Set a value.
+    del         # Delete a value.
+    del-db      # Delete a whole database.
+    list-dbs    # List all databases.
+    dump        # Export a database as NDJSON.
+    restore     # Imports NDJSON into a database.
+    completion  # Generate autocompletions for a specified shell.
+    help        # Additional help for any command.
 ```
 
 <p align="center"></p><!-- spacer -->
