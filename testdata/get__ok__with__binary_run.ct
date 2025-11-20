@@ -1,6 +1,4 @@
-$ pda set foo bar
+$ fecho cmd sh -c bar
+$ pda set foo < cmd
 $ pda get foo --include-binary --run
-fish: Unknown command: bar
-fish: 
-bar
-^~^
+sh: line 1: bar: command not found
