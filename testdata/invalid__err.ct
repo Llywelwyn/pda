@@ -1,0 +1,3 @@
+$ pda invalidcmd --> FAIL
+Error: unknown command "invalidcmd" for "pda"
+Run 'pda --help' for usage.
