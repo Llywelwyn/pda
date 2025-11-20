@@ -16,12 +16,19 @@
   </a>
 </div>
 
-<div align="center">&nbsp;</div><!-- spacer -->
-<br/>
+<p align="center"></p><!-- spacer -->
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/llywelwyn/pda/master/docs/cmds.png"
-       alt="commands" />
-</div>
+  ```bash
+Available Commands:
+    get         Get a value.
+    set         Set a value.
+    del         Delete a value.
+    del-db      Delete a whole database.
+    list-dbs    List all databases.
+    dump        Export a database as NDJSON.
+    restore     Imports NDJSON into a database.
+    completion  Generate autocompletions for a specified shell.
+    help        Additional help for any command.
+```
 
 <p align="center"></p><!-- spacer -->
