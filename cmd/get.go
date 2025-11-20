@@ -166,6 +166,17 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 			}
 			return i, nil
 		},
+		"list": func(v any) []string {
+			s := fmt.Sprint(v)
+			if s == "" {
+				return nil
+			}
+			parts := strings.Split(s, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			return parts
+		},
 	}
 	tpl, err := template.New("cmd").
 		Delims("{{", "}}").
