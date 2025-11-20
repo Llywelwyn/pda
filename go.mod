@@ -11,6 +11,9 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/google/go-cmdtest v0.4.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/renameio v0.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.7.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
