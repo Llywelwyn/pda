@@ -1,0 +1,104 @@
+$ pda get foobar --> FAIL
+$ pda get foobar --include-binary --> FAIL
+$ pda get foobar --include-binary --run --> FAIL
+$ pda get foobar --include-binary --run --secret --> FAIL
+$ pda get foobar --run --> FAIL
+$ pda get foobar --run --secret --> FAIL
+$ pda get foobar --secret --> FAIL
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
+
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
+
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
+
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
+
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
+
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
+
+Error: Key not found
+Usage:
+  pda get KEY[@DB] [flags]
+
+Aliases:
+  get, g
+
+Flags:
+  -h, --help             help for get
+  -b, --include-binary   include binary data in text output
+      --no-template      directly output template syntax
+  -c, --run              execute the result as a shell command
+      --secret           display values marked as secret
