@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -156,6 +157,14 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 				return s, nil
 			}
 			return "", fmt.Errorf("invalid value %q (allowed: %v)", s, allowed)
+		},
+		"int": func(v any) (int, error) {
+			s := fmt.Sprint(v)
+			i, err := strconv.Atoi(s)
+			if err != nil {
+				return 0, fmt.Errorf("failed to convert to int: %w", err)
+			}
+			return i, nil
 		},
 	}
 	tpl, err := template.New("cmd").
