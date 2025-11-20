@@ -41,14 +41,12 @@ var getCmd = &cobra.Command{
 	Short: "Get a value for a key. Optionally specify a db.",
 	Long: `Get a value for a key. Optionally specify a db.
 
-[[ .TEMPLATES ]] can be filled by passing TEMPLATE=VALUE as an
+{{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
 additional argument after the initial KEY being fetched.
 
 For example:
 	pda set greeting 'Hello, {{ .NAME }}!'
-	pda get greeting NAME=World
-
-Further reading: Go's text/template documentation.`,
+	pda get greeting NAME=World`,
 	Aliases: []string{"g"},
 	Args:    cobra.MinimumNArgs(1),
 	RunE:    get,

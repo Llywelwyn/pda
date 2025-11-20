@@ -41,16 +41,7 @@ For example:
   'Hello, {{ env "USER" }}'            will fetch the USER env variable.
   'Hello, {{ default "World" .NAME }}' will default to World if NAME is blank.
   'Hello, {{ require .NAME }}'         will error if NAME is blank.
-  '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.
-
-[[ .TEMPLATES ]] can be filled by passing TEMPLATE=VALUE as an
-additional argument after the initial KEY being fetched.
-
-For example:
-	pda set greeting 'Hello, {{ .NAME }}!'
-	pda get greeting NAME=World
-
-Further reading: Go's text/template documentation.`,
+  '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.`,
 	Aliases: []string{"s"},
 	Args:    cobra.RangeArgs(1, 2),
 	RunE:    set,
