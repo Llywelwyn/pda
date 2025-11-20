@@ -41,10 +41,10 @@ Available Commands:
 
 ```bash
 # Get the latest release from the AUR
-pacman -S pda
+yay -S pda
 
 # Or use pda-git for the latest commit
-pacman -S pda-git
+yay -S pda-git
 
 # Or manually install with Go
 git clone https://github.com/llywelwyn/pda
