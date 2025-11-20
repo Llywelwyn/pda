@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/llywelwyn/pda/master/docs/pda.png"
        alt="pda"
-       width="200"
+       width="200" />
 </div>
 
 <p align="center"></p><!-- spacer -->
@@ -19,4 +19,9 @@
 <div align="center">&nbsp;</div><!-- spacer -->
 <br/>
 
-`pda`! a key-value store
+<div align="center">
+  <img src="https://raw.githubusercontent.com/llywelwyn/pda/master/docs/cmds.png"
+       alt="commands" />
+</div>
+
+<p align="center"></p><!-- spacer -->
