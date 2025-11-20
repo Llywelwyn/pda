@@ -23,8 +23,8 @@ package main
 
 import (
 	"flag"
-	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	cmdtest "github.com/google/go-cmdtest"
@@ -38,10 +38,10 @@ func TestMain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read testdata: %v", err)
 	}
-	if err := exec.Command("go", "build", ".").Run(); err != nil {
+	bin := filepath.Join(t.TempDir(), "pda")
+	if err := exec.Command("go", "build", "-o", bin, ".").Run(); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove("pda")
-	ts.Commands["pda"] = cmdtest.Program("pda")
+	ts.Commands["pda"] = cmdtest.Program(bin)
 	ts.Run(t, *update)
 }
