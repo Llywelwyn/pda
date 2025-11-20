@@ -182,8 +182,8 @@ func (s *Store) parse(k string, defaults bool) ([]byte, string, error) {
 
 func (s *Store) parseDB(v string, defaults bool) (string, error) {
 	db := strings.TrimSpace(v)
-	if strings.HasPrefix(db, "@") {
-		db = strings.TrimPrefix(db, "@")
+	if after, ok := strings.CutPrefix(db, "@"); ok {
+		db = after
 	}
 	if db == "" {
 		if defaults {
@@ -206,6 +206,12 @@ func (s *Store) open(name string) (*badger.DB, error) {
 }
 
 func (s *Store) path(args ...string) (string, error) {
+	if override := os.Getenv("PDA_DATA_DIR"); override != "" {
+		if err := os.MkdirAll(override, 0o750); err != nil {
+			return "", err
+		}
+		return filepath.Join(append([]string{override}, args...)...), nil
+	}
 	scope := gap.NewVendorScope(gap.User, "pda", "stores")
 	dir, err := scope.DataPath("")
 	if err != nil {
@@ -225,13 +231,7 @@ func (s *Store) suggestStores(target string) ([]string, error) {
 	target = strings.TrimSpace(target)
 	minThreshold := 1
 	maxThreshold := 4
-	threshold := len(target) / 3
-	if threshold < minThreshold {
-		threshold = minThreshold
-	}
-	if threshold > maxThreshold {
-		threshold = maxThreshold
-	}
+	threshold := min(max(len(target)/3, minThreshold), maxThreshold)
 	var suggestions []string
 	for _, store := range stores {
 		distance := levenshtein.ComputeDistance(target, store)
