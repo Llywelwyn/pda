@@ -18,6 +18,16 @@
 
 <p align="center"></p><!-- spacer -->
 
+<div align="center">
+  <a href="https://github.com/llywelwyn/pda/actions" rel="nofollow">
+    <img src="https://github.com/Llywelwyn/pda/blob/main/vhs/intro.gif"
+         alt="build status"
+         style="max-width:50%;">
+  </a>
+</div>
+
+<p align="center"></p><!-- spacer -->
+
 ### Contents
 
 - [Overview](https://github.com/Llywelwyn/pda#overview)
