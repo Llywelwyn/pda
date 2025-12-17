@@ -123,14 +123,21 @@ pda mv name name2 --copy
 
 <p align="center"></p><!-- spacer -->
 
-`pda del` to delete a key.
+`pda del` to delete one or more keys.
 ```bash
 pda del kitty
-# Are you sure you want to delete kitty? [y/N]
+# remove  "kitty": are you sure? [y/n]
+# y
+
+pda del kitty dog@animals
+# remove "kitty", "dog@animals": are you sure? [y/n]
 # y
 
 # Or skip the prompt.
 pda del kitty --force
+
+# Delete many in one go.
+pda del kitty dogs cats --force
 ```
 
 <p align="center"></p><!-- spacer -->

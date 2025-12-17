@@ -14,7 +14,7 @@ Usage:
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
   cp          Make a copy of a key.
-  del         Delete a key. Optionally specify a db.
+  del         Delete one or more keys. Optionally specify a db.
   del-db      Delete a database.
   dump        Dump all key/value pairs as NDJSON
   get         Get a value for a key. Optionally specify a db.

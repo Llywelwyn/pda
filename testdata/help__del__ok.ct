@@ -1,9 +1,9 @@
 $ pda help del
 $ pda del --help
-Delete a key. Optionally specify a db.
+Delete one or more keys. Optionally specify a db.
 
 Usage:
-  pda del KEY[@DB] [flags]
+  pda del KEY[@DB] [KEY[@DB] ...] [flags]
 
 Aliases:
   del, delete, rm, remove
@@ -11,10 +11,10 @@ Aliases:
 Flags:
   -f, --force   Force delete without confirmation
   -h, --help    help for del
-Delete a key. Optionally specify a db.
+Delete one or more keys. Optionally specify a db.
 
 Usage:
-  pda del KEY[@DB] [flags]
+  pda del KEY[@DB] [KEY[@DB] ...] [flags]
 
 Aliases:
   del, delete, rm, remove

@@ -32,10 +32,10 @@ import (
 
 // delCmd represents the set command
 var delCmd = &cobra.Command{
-	Use:          "del KEY[@DB]",
-	Short:        "Delete a key. Optionally specify a db.",
+	Use:          "del KEY[@DB] [KEY[@DB] ...]",
+	Short:        "Delete one or more keys. Optionally specify a db.",
 	Aliases:      []string{"delete", "rm", "remove"},
-	Args:         cobra.ExactArgs(1),
+	Args:         cobra.MinimumNArgs(1),
 	RunE:         del,
 	SilenceUsage: true,
 }
@@ -48,22 +48,29 @@ func del(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	exists, err := keyExists(store, args[0])
-	if err != nil {
-		return fmt.Errorf("cannot remove '%s': %v", args[0], err)
-	}
-	if !exists {
-		return fmt.Errorf("cannot remove '%s': No such key", args[0])
-	}
-
-	targetKey, err := formatKeyForPrompt(store, args[0])
-	if err != nil {
-		return err
+	targetKeys := make([]string, 0, len(args))
+	for _, arg := range args {
+		exists, err := keyExists(store, arg)
+		if err != nil {
+			return fmt.Errorf("cannot remove '%s': %v", arg, err)
+		}
+		if !exists {
+			return fmt.Errorf("cannot remove '%s': No such key", arg)
+		}
+		targetKey, err := formatKeyForPrompt(store, arg)
+		if err != nil {
+			return err
+		}
+		targetKeys = append(targetKeys, targetKey)
 	}
 
 	if !force {
 		var confirm string
-		message := fmt.Sprintf("remove %q: are you sure? (y/n)", targetKey)
+		quotedTargets := make([]string, 0, len(targetKeys))
+		for _, t := range targetKeys {
+			quotedTargets = append(quotedTargets, fmt.Sprintf("%q", t))
+		}
+		message := fmt.Sprintf("remove %s: are you sure? (y/n)", strings.Join(quotedTargets, ", "))
 		fmt.Println(message)
 		if _, err := fmt.Scanln(&confirm); err != nil {
 			return fmt.Errorf("cannot remove '%s': %v", args[0], err)
@@ -73,22 +80,29 @@ func del(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	trans := TransactionArgs{
-		key:      args[0],
-		readonly: false,
-		sync:     false,
-		transact: func(tx *badger.Txn, k []byte) error {
-			if err := tx.Delete(k); errors.Is(err, badger.ErrKeyNotFound) {
-				return fmt.Errorf("cannot remove '%s': No such key", args[0])
-			}
-			if err != nil {
-				return fmt.Errorf("cannot remove '%s': %v", args[0], err)
-			}
-			return nil
-		},
+	for _, arg := range args {
+		arg := arg
+		trans := TransactionArgs{
+			key:      arg,
+			readonly: false,
+			sync:     false,
+			transact: func(tx *badger.Txn, k []byte) error {
+				if err := tx.Delete(k); errors.Is(err, badger.ErrKeyNotFound) {
+					return fmt.Errorf("cannot remove '%s': No such key", arg)
+				}
+				if err != nil {
+					return fmt.Errorf("cannot remove '%s': %v", arg, err)
+				}
+				return nil
+			},
+		}
+
+		if err := store.Transaction(trans); err != nil {
+			return err
+		}
 	}
 
-	return store.Transaction(trans)
+	return nil
 }
 
 func init() {
