@@ -33,11 +33,12 @@ import (
 
 // delDbCmd represents the set command
 var delDbCmd = &cobra.Command{
-	Use:     "del-db DB",
-	Short:   "Delete a database.",
-	Aliases: []string{"delete-db", "rm-db", "remove-db"},
-	Args:    cobra.ExactArgs(1),
-	RunE:    delDb,
+	Use:          "del-db DB",
+	Short:        "Delete a database.",
+	Aliases:      []string{"delete-db", "rm-db", "remove-db"},
+	Args:         cobra.ExactArgs(1),
+	RunE:         delDb,
+	SilenceUsage: true,
 }
 
 func delDb(cmd *cobra.Command, args []string) error {

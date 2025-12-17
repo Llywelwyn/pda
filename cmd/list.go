@@ -31,11 +31,12 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use:     "list [DB]",
-	Short:   "List the contents of a db.",
-	Aliases: []string{"ls"},
-	Args:    cobra.MaximumNArgs(1),
-	RunE:    list,
+	Use:          "list [DB]",
+	Short:        "List the contents of a db.",
+	Aliases:      []string{"ls"},
+	Args:         cobra.MaximumNArgs(1),
+	RunE:         list,
+	SilenceUsage: true,
 }
 
 func list(cmd *cobra.Command, args []string) error {
