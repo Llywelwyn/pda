@@ -56,6 +56,7 @@ Available Commands:
     restore     # Imports NDJSON into a database.
     completion  # Generate autocompletions for a specified shell.
     help        # Additional help for any command.
+    version     # Current version.
 ```
 
 <p align="center"></p><!-- spacer -->
