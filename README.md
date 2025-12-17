@@ -280,7 +280,7 @@ pda get names NAMES=Bob,Alice
 
 pass `no-template` to output literally without templating.
 ```bash
-pda set hello "{{ if .MORNING }}Good morning.{{ end }}
+pda set hello "{{ if .MORNING }}Good morning.{{ end }}"
 pda get hello MORNING=1
 # Good morning.
 pda get hello --no-template
