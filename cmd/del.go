@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/dgraph-io/badger/v4"
+	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
 
@@ -47,21 +48,14 @@ func del(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	useGlob, err := cmd.Flags().GetBool("glob")
+	if err != nil {
+		return err
+	}
 
-	targetKeys := make([]string, 0, len(args))
-	for _, arg := range args {
-		exists, err := keyExists(store, arg)
-		if err != nil {
-			return fmt.Errorf("cannot remove '%s': %v", arg, err)
-		}
-		if !exists {
-			return fmt.Errorf("cannot remove '%s': No such key", arg)
-		}
-		targetKey, err := formatKeyForPrompt(store, arg)
-		if err != nil {
-			return err
-		}
-		targetKeys = append(targetKeys, targetKey)
+	targetKeys, deleteTargets, err := resolveDeleteTargets(store, args, useGlob)
+	if err != nil {
+		return err
 	}
 
 	if !force {
@@ -80,18 +74,17 @@ func del(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	for _, arg := range args {
-		arg := arg
+	for _, target := range deleteTargets {
 		trans := TransactionArgs{
-			key:      arg,
+			key:      target,
 			readonly: false,
 			sync:     false,
 			transact: func(tx *badger.Txn, k []byte) error {
 				if err := tx.Delete(k); errors.Is(err, badger.ErrKeyNotFound) {
-					return fmt.Errorf("cannot remove '%s': No such key", arg)
+					return fmt.Errorf("cannot remove '%s': No such key", target)
 				}
 				if err != nil {
-					return fmt.Errorf("cannot remove '%s': %v", arg, err)
+					return fmt.Errorf("cannot remove '%s': %v", target, err)
 				}
 				return nil
 			},
@@ -107,6 +100,7 @@ func del(cmd *cobra.Command, args []string) error {
 
 func init() {
 	delCmd.Flags().BoolP("force", "f", false, "Force delete without confirmation")
+	delCmd.Flags().BoolP("glob", "g", false, "Treat KEY arguments as glob patterns")
 	rootCmd.AddCommand(delCmd)
 }
 
@@ -143,4 +137,98 @@ func formatKeyForPrompt(store *Store, arg string) (string, error) {
 		return arg, nil
 	}
 	return fmt.Sprintf("%s@%s", arg, db), nil
+}
+
+func resolveDeleteTargets(store *Store, args []string, useGlob bool) ([]string, []string, error) {
+	if !useGlob {
+		targetKeys := make([]string, 0, len(args))
+		for _, arg := range args {
+			exists, err := keyExists(store, arg)
+			if err != nil {
+				return nil, nil, fmt.Errorf("cannot remove '%s': %v", arg, err)
+			}
+			if !exists {
+				return nil, nil, fmt.Errorf("cannot remove '%s': No such key", arg)
+			}
+			targetKey, err := formatKeyForPrompt(store, arg)
+			if err != nil {
+				return nil, nil, err
+			}
+			targetKeys = append(targetKeys, targetKey)
+		}
+		return targetKeys, args, nil
+	}
+
+	type compiledPattern struct {
+		rawArg  string
+		db      string
+		matcher glob.Glob
+		pattern string
+	}
+
+	var compiled []compiledPattern
+	for _, arg := range args {
+		kb, db, err := store.parse(arg, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		pattern := string(kb)
+		m, err := glob.Compile(pattern)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot remove '%s': %v", arg, err)
+		}
+		compiled = append(compiled, compiledPattern{
+			rawArg:  arg,
+			db:      db,
+			matcher: m,
+			pattern: pattern,
+		})
+	}
+
+	keysByDB := make(map[string][]string)
+	getKeys := func(db string) ([]string, error) {
+		if keys, ok := keysByDB[db]; ok {
+			return keys, nil
+		}
+		keys, err := store.Keys(db)
+		if err != nil {
+			return nil, err
+		}
+		keysByDB[db] = keys
+		return keys, nil
+	}
+
+	targetSet := make(map[string]struct{})
+	var targetKeys []string
+	var deleteTargets []string
+
+	for _, p := range compiled {
+		keys, err := getKeys(p.db)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot remove '%s': %v", p.rawArg, err)
+		}
+		var matched []string
+		for _, k := range keys {
+			if p.matcher.Match(k) {
+				matched = append(matched, fmt.Sprintf("%s@%s", k, p.db))
+			}
+		}
+		if len(matched) == 0 {
+			return nil, nil, fmt.Errorf("cannot remove '%s': No matches for pattern", p.rawArg)
+		}
+		for _, full := range matched {
+			if _, seen := targetSet[full]; seen {
+				continue
+			}
+			targetSet[full] = struct{}{}
+			display, err := formatKeyForPrompt(store, full)
+			if err != nil {
+				return nil, nil, err
+			}
+			targetKeys = append(targetKeys, display)
+			deleteTargets = append(deleteTargets, full)
+		}
+	}
+
+	return targetKeys, deleteTargets, nil
 }

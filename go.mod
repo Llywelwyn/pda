@@ -5,6 +5,7 @@ go 1.25.3
 require (
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/dgraph-io/badger/v4 v4.8.0
+	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmdtest v0.4.0
 	github.com/jedib0t/go-pretty/v6 v6.7.0
 	github.com/muesli/go-app-paths v0.2.2

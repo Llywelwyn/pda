@@ -253,3 +253,26 @@ func formatExpiry(expiresAt uint64) string {
 	}
 	return fmt.Sprintf("%s (in %s)", expiry.Format(time.RFC3339), remaining.Round(time.Second))
 }
+
+// Keys returns all keys for the provided database name (or default if empty).
+// Keys are returned in lowercase to mirror stored key format.
+func (s *Store) Keys(dbName string) ([]string, error) {
+	db, err := s.open(dbName)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	tx := db.NewTransaction(false)
+	defer tx.Discard()
+
+	it := tx.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+
+	var keys []string
+	for it.Rewind(); it.Valid(); it.Next() {
+		item := it.Item()
+		keys = append(keys, string(item.Key()))
+	}
+	return keys, nil
+}

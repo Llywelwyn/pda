@@ -10,6 +10,7 @@ Aliases:
 
 Flags:
   -f, --force   Force delete without confirmation
+  -g, --glob    Treat KEY arguments as glob patterns
   -h, --help    help for del
 Delete one or more keys. Optionally specify a db.
 
@@ -21,4 +22,5 @@ Aliases:
 
 Flags:
   -f, --force   Force delete without confirmation
+  -g, --glob    Treat KEY arguments as glob patterns
   -h, --help    help for del
