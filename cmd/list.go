@@ -24,10 +24,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/dgraph-io/badger/v4"
-	"github.com/gobwas/glob"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
@@ -73,25 +71,9 @@ func list(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
-	var matchers []glob.Glob
-	for _, pattern := range globPatterns {
-		m, err := glob.Compile(strings.ToLower(pattern), separators...)
-		if err != nil {
-			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
-		}
-		matchers = append(matchers, m)
-	}
-
-	matchesKey := func(k string) bool {
-		if len(matchers) == 0 {
-			return true
-		}
-		for _, m := range matchers {
-			if m.Match(k) {
-				return true
-			}
-		}
-		return false
+	matchers, err := compileGlobMatchers(globPatterns, separators)
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
 	columnKinds, err := requireColumns(flags)
@@ -135,7 +117,7 @@ func list(cmd *cobra.Command, args []string) error {
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				key := string(item.KeyCopy(nil))
-				if !matchesKey(key) {
+				if !globMatch(matchers, key) {
 					continue
 				}
 				matchedCount++

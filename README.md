@@ -145,7 +145,7 @@ pda set kitty "cat"
 pda del kitty --glob ?og
 # remove "kitty", "cog", "dog": are you sure? [y/n]
 # y
-# Default glob separators: "/-_.@:". Override with --glob-sep.
+# Default glob separators: "/-_.@: " (space included). Override with --glob-sep.
 ```
 
 <p align="center"></p><!-- spacer -->

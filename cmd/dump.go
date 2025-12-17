@@ -31,6 +31,7 @@ var dumpCmd = &cobra.Command{
 func dump(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	targetDB := "@default"
+	displayTarget := targetDB
 	if len(args) == 1 {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)
@@ -45,23 +46,37 @@ func dump(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		targetDB = "@" + dbName
+		displayTarget = targetDB
 	}
 
 	mode, err := cmd.Flags().GetString("encoding")
 	if err != nil {
-		return fmt.Errorf("cannot dump '%s': %v", args[0], err)
+		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
 	}
 	switch mode {
 	case "auto", "base64", "text":
 	default:
-		return fmt.Errorf("cannot dump '%s': unsupported encoding '%s'", args[0], mode)
+		return fmt.Errorf("cannot dump '%s': unsupported encoding '%s'", displayTarget, mode)
 	}
 
 	includeSecret, err := cmd.Flags().GetBool("secret")
 	if err != nil {
 		return err
 	}
+	globPatterns, err := cmd.Flags().GetStringSlice("glob")
+	if err != nil {
+		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+	}
+	separators, err := parseGlobSeparators(cmd)
+	if err != nil {
+		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+	}
+	matchers, err := compileGlobMatchers(globPatterns, separators)
+	if err != nil {
+		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+	}
 
+	var matched bool
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -74,6 +89,9 @@ func dump(cmd *cobra.Command, args []string) error {
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				key := item.KeyCopy(nil)
+				if !globMatch(matchers, string(key)) {
+					continue
+				}
 				meta := item.UserMeta()
 				isSecret := meta&metaSecret != 0
 				if isSecret && !includeSecret {
@@ -94,7 +112,7 @@ func dump(cmd *cobra.Command, args []string) error {
 						encodeBase64(&entry, v)
 					case "text":
 						if err := encodeText(&entry, key, v); err != nil {
-							return fmt.Errorf("cannot dump '%s': %v", args[0], err)
+							return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
 						}
 					case "auto":
 						if utf8.Valid(v) {
@@ -106,24 +124,34 @@ func dump(cmd *cobra.Command, args []string) error {
 					}
 					payload, err := json.Marshal(entry)
 					if err != nil {
-						return fmt.Errorf("cannot dump '%s': %v", args[0], err)
+						return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
 					}
 					fmt.Fprintln(cmd.OutOrStdout(), string(payload))
+					matched = true
 					return nil
 				}); err != nil {
-					return fmt.Errorf("cannot dump '%s': %v", args[0], err)
+					return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
 				}
 			}
 			return nil
 		},
 	}
 
-	return store.Transaction(trans)
+	if err := store.Transaction(trans); err != nil {
+		return err
+	}
+
+	if len(matchers) > 0 && !matched {
+		return fmt.Errorf("cannot dump '%s': No matches for pattern", displayTarget)
+	}
+	return nil
 }
 
 func init() {
 	dumpCmd.Flags().StringP("encoding", "e", "auto", "value encoding: auto, base64, or text")
 	dumpCmd.Flags().Bool("secret", false, "Include entries marked as secret")
+	dumpCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
+	dumpCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(dumpCmd)
 }
 

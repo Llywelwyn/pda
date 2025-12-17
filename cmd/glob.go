@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 
+	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
 
@@ -25,4 +26,29 @@ func parseGlobSeparators(cmd *cobra.Command) ([]rune, error) {
 		return defaultGlobSeparators, nil
 	}
 	return []rune(sepStr), nil
+}
+
+func compileGlobMatchers(patterns []string, separators []rune) ([]glob.Glob, error) {
+	var matchers []glob.Glob
+	for _, pattern := range patterns {
+		m, err := glob.Compile(strings.ToLower(pattern), separators...)
+		if err != nil {
+			return nil, err
+		}
+		matchers = append(matchers, m)
+	}
+	return matchers, nil
+}
+
+func globMatch(matchers []glob.Glob, key string) bool {
+	if len(matchers) == 0 {
+		return true
+	}
+	lowered := strings.ToLower(key)
+	for _, m := range matchers {
+		if m.Match(lowered) {
+			return true
+		}
+	}
+	return false
 }
