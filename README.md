@@ -34,6 +34,7 @@
 - [Installation](https://github.com/Llywelwyn/pda#installation)
 - [Get Started](https://github.com/Llywelwyn/pda#get-started)
 - [Templates](https://github.com/Llywelwyn/pda#templates)
+- [Globs](https://github.com/Llywelwyn/pda#globs)
 - [Secrets](https://github.com/Llywelwyn/pda#secrets)
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
@@ -129,15 +130,22 @@ pda del kitty
 # remove  "kitty": are you sure? [y/n]
 # y
 
+# Or skip the prompt.
+pda del kitty --force
+
+# Remove multiple keys, within the same or different stores.
 pda del kitty dog@animals
 # remove "kitty", "dog@animals": are you sure? [y/n]
 # y
 
-# Or skip the prompt.
-pda del kitty --force
-
-# Delete many in one go.
-pda del kitty dogs cats --force
+# Mix exact keys with globs.
+pda set cog "cogs"
+pda set dog "doggy"
+pda set kitty "cat"
+pda del kitty --glob ?og
+# remove "kitty", "cog", "dog": are you sure? [y/n]
+# y
+# Default glob separators: "/-_.@:". Override with --glob-sep.
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -296,6 +304,134 @@ pda get hello MORNING=1
 # Good morning.
 pda get hello --no-template
 # {{ if .MORNING }}Good morning.{{ end }}
+```
+
+<p align="center"></p><!-- spacer -->
+
+### Globs
+
+Globs can be used in a few commands where their use makes sense. `gobwas/glob` is used for matching.
+
+Searching for globs is inherently slower than looking for direct matches, so globs are opt-in via a repeatable `--glob/-g` flag by default rather than having every string treated as a glob by default. Realistically the performance impact will be negligible unless you have many thousands of entries in the same database.
+
+<p align="center"></p><!-- spacer -->
+
+`*` wildcards a word or series of characters.
+```bash
+pda ls --no-values
+# cat
+# dog
+# cog
+# mouse hotdog
+# mouse house
+# foo.bar.baz
+
+pda ls --glob "*"
+# cat
+# dog
+# cog
+
+pda ls --glob "* *"
+# mouse hotdog
+# mouse house
+
+pda ls --glob "foo.*.baz"
+# foo.bar.baz
+```
+
+<p align="center"></p><!-- spacer -->
+
+`**` super-wildcards ignore word boundaries.
+```bash
+pda ls --glob "foo**"
+# foo.bar.baz
+
+pda ls --glob "**g"
+# dog
+# cog
+# mouse hotdog
+```
+
+<p align="center"></p><!-- spacer -->
+
+`?` wildcards a single letter.
+```bash
+pda ls --glob ?og
+# dog
+# cog
+# frog --> fail
+# dogs --> fail
+```
+
+<p align="center"></p><!-- spacer -->
+
+`[abc]` must match one of the characters in the brackets.
+```bash
+pda ls --glob [dc]og
+# dog
+# cog
+# bog --> fail
+
+# Can be negated with '!'
+pda ls --glob [!dc]og
+# dog --> fail
+# cog --> fail
+# bog
+```
+
+<p align="center"></p><!-- spacer -->
+
+`[a-c]` must fall within the range given in the brackets
+```bash
+pda ls --glob [a-g]ag
+# bag
+# gag
+# wag --> fail
+
+# Can be negated with '!'
+pda ls --glob [!a-g]ag
+# bag --> fail
+# gag --> fail
+# wag
+
+pda ls --glob 19[90-99]
+# 1991
+# 1992
+# 2001 --> fail
+# 1988 --> fail
+```
+
+<p align="center"></p><!-- spacer -->
+
+Globs can be arbitrarily complex, and can be combined with strict matches.
+```bash
+pda ls --no-keys
+# cat
+# mouse trap
+# dog house
+# cat flap
+# cogwheel
+
+pda rm cat --glob "{mouse,[cd]og}**"
+# remove: 'cat', 'mouse trap', 'dog house', 'cogwheel': are you sure? [y/n]
+```
+
+<p align="center"></p><!-- spacer -->
+
+`--glob-sep` can be used to change the default list of separators used to determine word boundaries. Separators default to a somewhat reasonable list of common alphanumeric characters so should be usable in most usual situations.
+```bash
+pda ls --no-keys
+# foo%baz
+
+pda ls --glob "*"
+# foo%baz
+
+pda ls --glob "*" --glob-sep "%"
+# foo%baz --> fail
+# % is considered a word boundary, so "*" no longer matches.
+
+pda ls --glob "*%*" --glob-sep "%"
+# foo%baz
 ```
 
 <p align="center"></p><!-- spacer -->

@@ -1,0 +1,10 @@
+$ pda set a1@lg 1
+$ pda set a2@lg 2
+$ pda set b1@lg 3
+$ pda ls lg --glob a* --format tsv
+a1	1
+a2	2
+$ pda ls lg --glob b* --format tsv
+b1	3
+$ pda ls lg --glob c* --> FAIL
+Error: cannot ls '@lg': No matches for pattern

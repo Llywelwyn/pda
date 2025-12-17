@@ -36,7 +36,7 @@ var delCmd = &cobra.Command{
 	Use:          "del KEY[@DB] [KEY[@DB] ...]",
 	Short:        "Delete one or more keys. Optionally specify a db.",
 	Aliases:      []string{"delete", "rm", "remove"},
-	Args:         cobra.MinimumNArgs(1),
+	Args:         cobra.ArbitraryArgs,
 	RunE:         del,
 	SilenceUsage: true,
 }
@@ -48,12 +48,20 @@ func del(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	useGlob, err := cmd.Flags().GetBool("glob")
+	globPatterns, err := cmd.Flags().GetStringSlice("glob")
+	if err != nil {
+		return err
+	}
+	separators, err := parseGlobSeparators(cmd)
 	if err != nil {
 		return err
 	}
 
-	targetKeys, deleteTargets, err := resolveDeleteTargets(store, args, useGlob)
+	if len(args) == 0 && len(globPatterns) == 0 {
+		return fmt.Errorf("cannot remove: no keys provided")
+	}
+
+	targetKeys, deleteTargets, err := resolveDeleteTargets(store, args, globPatterns, separators)
 	if err != nil {
 		return err
 	}
@@ -100,7 +108,8 @@ func del(cmd *cobra.Command, args []string) error {
 
 func init() {
 	delCmd.Flags().BoolP("force", "f", false, "Force delete without confirmation")
-	delCmd.Flags().BoolP("glob", "g", false, "Treat KEY arguments as glob patterns")
+	delCmd.Flags().StringSliceP("glob", "g", nil, "Delete keys matching glob pattern (repeatable)")
+	delCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(delCmd)
 }
 
@@ -139,49 +148,55 @@ func formatKeyForPrompt(store *Store, arg string) (string, error) {
 	return fmt.Sprintf("%s@%s", arg, db), nil
 }
 
-func resolveDeleteTargets(store *Store, args []string, useGlob bool) ([]string, []string, error) {
-	if !useGlob {
-		targetKeys := make([]string, 0, len(args))
-		for _, arg := range args {
-			exists, err := keyExists(store, arg)
-			if err != nil {
-				return nil, nil, fmt.Errorf("cannot remove '%s': %v", arg, err)
-			}
-			if !exists {
-				return nil, nil, fmt.Errorf("cannot remove '%s': No such key", arg)
-			}
-			targetKey, err := formatKeyForPrompt(store, arg)
-			if err != nil {
-				return nil, nil, err
-			}
-			targetKeys = append(targetKeys, targetKey)
+func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string, separators []rune) ([]string, []string, error) {
+	targetSet := make(map[string]struct{})
+	var targetKeys []string
+	var deleteTargets []string
+
+	for _, arg := range exactArgs {
+		exists, err := keyExists(store, arg)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot remove '%s': %v", arg, err)
 		}
-		return targetKeys, args, nil
+		if !exists {
+			return nil, nil, fmt.Errorf("cannot remove '%s': No such key", arg)
+		}
+		formatted, err := formatKeyForPrompt(store, arg)
+		if err != nil {
+			return nil, nil, err
+		}
+		if _, seen := targetSet[arg]; !seen {
+			targetSet[arg] = struct{}{}
+			targetKeys = append(targetKeys, formatted)
+			deleteTargets = append(deleteTargets, arg)
+		}
+	}
+
+	if len(globPatterns) == 0 {
+		return targetKeys, deleteTargets, nil
 	}
 
 	type compiledPattern struct {
 		rawArg  string
 		db      string
 		matcher glob.Glob
-		pattern string
 	}
 
 	var compiled []compiledPattern
-	for _, arg := range args {
-		kb, db, err := store.parse(arg, true)
+	for _, raw := range globPatterns {
+		kb, db, err := store.parse(raw, true)
 		if err != nil {
 			return nil, nil, err
 		}
 		pattern := string(kb)
-		m, err := glob.Compile(pattern)
+		m, err := glob.Compile(pattern, separators...)
 		if err != nil {
-			return nil, nil, fmt.Errorf("cannot remove '%s': %v", arg, err)
+			return nil, nil, fmt.Errorf("cannot remove '%s': %v", raw, err)
 		}
 		compiled = append(compiled, compiledPattern{
-			rawArg:  arg,
+			rawArg:  raw,
 			db:      db,
 			matcher: m,
-			pattern: pattern,
 		})
 	}
 
@@ -198,35 +213,30 @@ func resolveDeleteTargets(store *Store, args []string, useGlob bool) ([]string, 
 		return keys, nil
 	}
 
-	targetSet := make(map[string]struct{})
-	var targetKeys []string
-	var deleteTargets []string
-
 	for _, p := range compiled {
 		keys, err := getKeys(p.db)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot remove '%s': %v", p.rawArg, err)
 		}
-		var matched []string
+		var matched bool
 		for _, k := range keys {
 			if p.matcher.Match(k) {
-				matched = append(matched, fmt.Sprintf("%s@%s", k, p.db))
+				matched = true
+				full := fmt.Sprintf("%s@%s", k, p.db)
+				if _, seen := targetSet[full]; seen {
+					continue
+				}
+				targetSet[full] = struct{}{}
+				display, err := formatKeyForPrompt(store, full)
+				if err != nil {
+					return nil, nil, err
+				}
+				targetKeys = append(targetKeys, display)
+				deleteTargets = append(deleteTargets, full)
 			}
 		}
-		if len(matched) == 0 {
+		if !matched {
 			return nil, nil, fmt.Errorf("cannot remove '%s': No matches for pattern", p.rawArg)
-		}
-		for _, full := range matched {
-			if _, seen := targetSet[full]; seen {
-				continue
-			}
-			targetSet[full] = struct{}{}
-			display, err := formatKeyForPrompt(store, full)
-			if err != nil {
-				return nil, nil, err
-			}
-			targetKeys = append(targetKeys, display)
-			deleteTargets = append(deleteTargets, full)
 		}
 	}
 

@@ -24,8 +24,10 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dgraph-io/badger/v4"
+	"github.com/gobwas/glob"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
@@ -63,6 +65,35 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
+	globPatterns, err := cmd.Flags().GetStringSlice("glob")
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	}
+	separators, err := parseGlobSeparators(cmd)
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	}
+	var matchers []glob.Glob
+	for _, pattern := range globPatterns {
+		m, err := glob.Compile(strings.ToLower(pattern), separators...)
+		if err != nil {
+			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+		}
+		matchers = append(matchers, m)
+	}
+
+	matchesKey := func(k string) bool {
+		if len(matchers) == 0 {
+			return true
+		}
+		for _, m := range matchers {
+			if m.Match(k) {
+				return true
+			}
+		}
+		return false
+	}
+
 	columnKinds, err := requireColumns(flags)
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
@@ -89,6 +120,7 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	placeholder := "**********"
+	var matchedCount int
 	trans := TransactionArgs{
 		key:      targetDB,
 		readonly: true,
@@ -103,6 +135,10 @@ func list(cmd *cobra.Command, args []string) error {
 			for it.Rewind(); it.Valid(); it.Next() {
 				item := it.Item()
 				key := string(item.KeyCopy(nil))
+				if !matchesKey(key) {
+					continue
+				}
+				matchedCount++
 				meta := item.UserMeta()
 				isSecret := meta&metaSecret != 0
 
@@ -143,6 +179,10 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if len(matchers) > 0 && matchedCount == 0 {
+		return fmt.Errorf("cannot ls '%s': No matches for pattern", targetDB)
+	}
+
 	applyColumnConstraints(tw, columnKinds, output, maxContentWidths)
 
 	flags.render(tw)
@@ -157,5 +197,7 @@ func init() {
 	listCmd.Flags().BoolVarP(&ttl, "ttl", "t", false, "append a TTL column when entries expire")
 	listCmd.Flags().BoolVar(&header, "header", false, "include header row")
 	listCmd.Flags().VarP(&format, "format", "o", "output format (table|tsv|csv|markdown|html)")
+	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
+	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(listCmd)
 }

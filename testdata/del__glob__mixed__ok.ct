@@ -1,0 +1,10 @@
+$ pda set foo 1
+$ pda set bar1 2
+$ pda set bar2 3
+$ pda del foo --glob bar* --force
+$ pda get foo --> FAIL
+Error: cannot get 'foo': Key not found
+$ pda get bar1 --> FAIL
+Error: cannot get 'bar1': Key not found
+$ pda get bar2 --> FAIL
+Error: cannot get 'bar2': Key not found
