@@ -15,10 +15,11 @@ var cpCmd = &cobra.Command{
 }
 
 var mvCmd = &cobra.Command{
-	Use:   "mv FROM[@DB] TO[@DB]",
-	Short: "Move a key between (or within) databases.",
-	Args:  cobra.ExactArgs(2),
-	RunE:  mv,
+	Use:          "mv FROM[@DB] TO[@DB]",
+	Short:        "Move a key between (or within) databases.",
+	Args:         cobra.ExactArgs(2),
+	RunE:         mv,
+	SilenceUsage: true,
 }
 
 func cp(cmd *cobra.Command, args []string) error {
@@ -47,7 +48,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		transact: func(tx *badger.Txn, k []byte) error {
 			item, err := tx.Get(k)
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot move '%s': %v", fromKey, err)
 			}
 			srcMeta = item.UserMeta()
 			srcExpires = item.ExpiresAt()
@@ -68,7 +69,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		transact: func(tx *badger.Txn, k []byte) error {
 			if !force {
 				if _, err := tx.Get(k); err == nil {
-					return fmt.Errorf("%q already exists; run again with --force to overwrite it", args[1])
+					return fmt.Errorf("cannot move '%s': '%s' already exists > run with --force to overwrite", fromKey, toKey)
 				} else if err != badger.ErrKeyNotFound {
 					return err
 				}
