@@ -153,6 +153,7 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 	var targetKeys []string
 	var deleteTargets []string
 
+	var matched bool
 	for _, arg := range exactArgs {
 		exists, err := keyExists(store, arg)
 		if err != nil {
@@ -169,6 +170,7 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 			targetSet[arg] = struct{}{}
 			targetKeys = append(targetKeys, formatted)
 			deleteTargets = append(deleteTargets, arg)
+			matched = true
 		}
 	}
 
@@ -218,10 +220,8 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot remove '%s': %v", p.rawArg, err)
 		}
-		var matched bool
 		for _, k := range keys {
 			if p.matcher.Match(k) {
-				matched = true
 				full := fmt.Sprintf("%s@%s", k, p.db)
 				if _, seen := targetSet[full]; seen {
 					continue
@@ -233,11 +233,13 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 				}
 				targetKeys = append(targetKeys, display)
 				deleteTargets = append(deleteTargets, full)
+				matched = true
 			}
 		}
-		if !matched {
-			return nil, nil, fmt.Errorf("cannot remove '%s': No matches for pattern", p.rawArg)
-		}
+	}
+
+	if len(globPatterns) > 0 && !matched {
+		return nil, nil, fmt.Errorf("cannot remove '%s': No matches for pattern", globPatterns[0])
 	}
 
 	return targetKeys, deleteTargets, nil
