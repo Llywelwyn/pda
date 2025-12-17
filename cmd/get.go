@@ -47,9 +47,10 @@ additional argument after the initial KEY being fetched.
 For example:
 	pda set greeting 'Hello, {{ .NAME }}!'
 	pda get greeting NAME=World`,
-	Aliases: []string{"g"},
-	Args:    cobra.MinimumNArgs(1),
-	RunE:    get,
+	Aliases:      []string{"g"},
+	Args:         cobra.MinimumNArgs(1),
+	RunE:         get,
+	SilenceUsage: true,
 }
 
 func get(cmd *cobra.Command, args []string) error {
@@ -73,30 +74,30 @@ func get(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := store.Transaction(trans); err != nil {
-		return err
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 
 	includeSecret, err := cmd.Flags().GetBool("secret")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 	if meta&metaSecret != 0 && !includeSecret {
-		return fmt.Errorf("%q is marked secret; re-run with --secret to display it", args[0])
+		return fmt.Errorf("cannot get '%s': marked as secret, run with --secret", args[0])
 	}
 
 	binary, err := cmd.Flags().GetBool("include-binary")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 
 	run, err := cmd.Flags().GetBool("run")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 
 	noTemplate, err := cmd.Flags().GetBool("no-template")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 
 	if !noTemplate {
@@ -106,7 +107,7 @@ func get(cmd *cobra.Command, args []string) error {
 		}
 		v, err = applyTemplate(v, substitutions)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get '%s': %v", args[0], err)
 		}
 	}
 

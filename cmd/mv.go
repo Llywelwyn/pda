@@ -71,7 +71,7 @@ func mv(cmd *cobra.Command, args []string) error {
 				if _, err := tx.Get(k); err == nil {
 					return fmt.Errorf("cannot move '%s': '%s' already exists > run with --force to overwrite", fromKey, toKey)
 				} else if err != badger.ErrKeyNotFound {
-					return err
+					return fmt.Errorf("cannot move '%s': %v", fromKey, err)
 				}
 			}
 			entry := badger.NewEntry(k, srcVal).WithMeta(srcMeta)

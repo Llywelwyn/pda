@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/dgraph-io/badger/v4"
@@ -42,9 +43,10 @@ For example:
   'Hello, {{ default "World" .NAME }}' will default to World if NAME is blank.
   'Hello, {{ require .NAME }}'         will error if NAME is blank.
   '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.`,
-	Aliases: []string{"s"},
-	Args:    cobra.RangeArgs(1, 2),
-	RunE:    set,
+	Aliases:      []string{"s"},
+	Args:         cobra.RangeArgs(1, 2),
+	RunE:         set,
+	SilenceUsage: true,
 }
 
 func set(cmd *cobra.Command, args []string) error {
@@ -56,18 +58,18 @@ func set(cmd *cobra.Command, args []string) error {
 	} else {
 		bytes, err := io.ReadAll(cmd.InOrStdin())
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot set '%s': %v", args[0], err)
 		}
 		value = bytes
 	}
 
 	secret, err := cmd.Flags().GetBool("secret")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 	ttl, err := cmd.Flags().GetDuration("ttl")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
 	trans := TransactionArgs{
