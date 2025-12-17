@@ -70,7 +70,10 @@ yay -S pda
 # Or use pda-git for the latest commit
 yay -S pda-git
 
-# Or manually install with Go
+# Go install
+go install github.com/llywelwyn/pda@latest
+
+# Or
 git clone https://github.com/llywelwyn/pda
 cd pda
 go install
