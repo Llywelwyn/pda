@@ -47,6 +47,8 @@
 Available Commands:
     get         # Get a value.
     set         # Set a value.
+    cp          # Copy a value.
+    mv          # Move a value.
     del         # Delete a value.
     del-db      # Delete a whole database.
     list-dbs    # List all databases.
@@ -97,6 +99,22 @@ pda get name
 
 # Or run it directly.
 pda get name --run
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda mv` to move it.
+```bash
+pda mv name name2
+# renamed name to name2
+```
+
+`pda cp` to make a copy.
+```bash
+pda cp name name2
+
+# 'mv --copy' and 'cp' are aliases. Either one works.
+pda mv name name2 --copy
 ```
 
 <p align="center"></p><!-- spacer -->
