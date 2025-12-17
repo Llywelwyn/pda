@@ -46,9 +46,9 @@ const (
 
 func (err errNotFound) Error() string {
 	if len(err.suggestions) == 0 {
-		return "no suggestions found"
+		return "No such key"
 	}
-	return fmt.Sprintf("did you mean %q", strings.Join(err.suggestions, ", "))
+	return fmt.Sprintf("No such key. Did you mean '%s'?", strings.Join(err.suggestions, ", "))
 }
 
 type Store struct{}
@@ -189,7 +189,7 @@ func (s *Store) parseDB(v string, defaults bool) (string, error) {
 		if defaults {
 			return "default", nil
 		}
-		return "", fmt.Errorf("bad db format, use DB or @DB")
+		return "", fmt.Errorf("cannot parse db: bad db format, use DB or @DB")
 	}
 	return strings.ToLower(db), nil
 }

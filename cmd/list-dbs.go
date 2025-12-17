@@ -40,7 +40,7 @@ func listDbs(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	dbs, err := store.AllStores()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot list-dbs: %v", err)
 	}
 	for _, db := range dbs {
 		fmt.Println("@" + db)

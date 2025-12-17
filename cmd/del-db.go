@@ -24,7 +24,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -46,47 +45,38 @@ func delDb(cmd *cobra.Command, args []string) error {
 	var notFound errNotFound
 	path, err := store.FindStore(args[0])
 	if errors.As(err, &notFound) {
-		fmt.Fprintf(os.Stderr, "%q does not exist, %s\n", args[0], err.Error())
-		os.Exit(1)
+		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unexpected error: %s", err.Error())
-		os.Exit(1)
-	}
-
-	var confirm string
-	home, err := os.UserHomeDir()
-	nicepath := path
-	if err == nil && strings.HasPrefix(path, home) {
-		nicepath = filepath.Join("~", strings.TrimPrefix(nicepath, home))
+		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
 	}
 
 	force, err := cmd.Flags().GetBool("force")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
 	}
 
 	if force {
-		return executeDeletion(path, nicepath)
+		return executeDeletion(path)
 	}
 
-	message := fmt.Sprintf("Are you sure you want to delete '%s'? (y/n)", nicepath)
+	message := fmt.Sprintf("delete-db '%s': are you sure? (y/n)", args[0])
 	fmt.Println(message)
+
+	var confirm string
 	if _, err := fmt.Scanln(&confirm); err != nil {
-		return err
+		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
 	}
 	if strings.ToLower(confirm) == "y" {
-		return executeDeletion(path, nicepath)
+		return executeDeletion(path)
 	}
-	fmt.Fprintf(os.Stderr, "Did not delete %q\n", nicepath)
 	return nil
 }
 
-func executeDeletion(path, nicepath string) error {
+func executeDeletion(path string) error {
 	if err := os.RemoveAll(path); err != nil {
-		return err
+		return fmt.Errorf("cannot delete-db '%s': %v", path, err)
 	}
-	fmt.Fprintf(os.Stderr, "Deleted %q\n", nicepath)
 	return nil
 }
 

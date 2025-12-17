@@ -35,12 +35,12 @@ func dump(cmd *cobra.Command, args []string) error {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot dump '%s': %v", rawArg, err)
 		}
 		if _, err := store.FindStore(dbName); err != nil {
 			var notFound errNotFound
 			if errors.As(err, &notFound) {
-				return fmt.Errorf("%q does not exist, %s", rawArg, err.Error())
+				return fmt.Errorf("cannot dump '%s': %v", rawArg, err)
 			}
 			return err
 		}
@@ -49,12 +49,12 @@ func dump(cmd *cobra.Command, args []string) error {
 
 	mode, err := cmd.Flags().GetString("encoding")
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot dump '%s': %v", args[0], err)
 	}
 	switch mode {
 	case "auto", "base64", "text":
 	default:
-		return fmt.Errorf("unsupported encoding %q", mode)
+		return fmt.Errorf("cannot dump '%s': unsupported encoding '%s'", args[0], mode)
 	}
 
 	includeSecret, err := cmd.Flags().GetBool("secret")
@@ -94,7 +94,7 @@ func dump(cmd *cobra.Command, args []string) error {
 						encodeBase64(&entry, v)
 					case "text":
 						if err := encodeText(&entry, key, v); err != nil {
-							return err
+							return fmt.Errorf("cannot dump '%s': %v", args[0], err)
 						}
 					case "auto":
 						if utf8.Valid(v) {
@@ -106,12 +106,12 @@ func dump(cmd *cobra.Command, args []string) error {
 					}
 					payload, err := json.Marshal(entry)
 					if err != nil {
-						return err
+						return fmt.Errorf("cannot dump '%s': %v", args[0], err)
 					}
 					fmt.Fprintln(cmd.OutOrStdout(), string(payload))
 					return nil
 				}); err != nil {
-					return err
+					return fmt.Errorf("cannot dump '%s': %v", args[0], err)
 				}
 			}
 			return nil

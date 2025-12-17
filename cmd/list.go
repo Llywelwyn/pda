@@ -46,26 +46,26 @@ func list(cmd *cobra.Command, args []string) error {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot ls '%s': %v", args[0], err)
 		}
 		if _, err := store.FindStore(dbName); err != nil {
 			var notFound errNotFound
 			if errors.As(err, &notFound) {
-				return fmt.Errorf("%q does not exist, %s", rawArg, err.Error())
+				return fmt.Errorf("cannot ls '%s': No such DB", args[0])
 			}
-			return err
+			return fmt.Errorf("cannot ls '%s': %v", args[0], err)
 		}
 		targetDB = "@" + dbName
 	}
 
 	flags, err := enrichFlags()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
 	columnKinds, err := requireColumns(flags)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
 	output := cmd.OutOrStdout()
@@ -112,7 +112,7 @@ func list(cmd *cobra.Command, args []string) error {
 						valueBuf = append(valueBuf[:0], v...)
 						return nil
 					}); err != nil {
-						return err
+						return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 					}
 					valueStr = store.FormatBytes(flags.binary, valueBuf)
 				}

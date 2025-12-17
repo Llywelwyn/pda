@@ -28,14 +28,14 @@ func restore(cmd *cobra.Command, args []string) error {
 	if len(args) == 1 {
 		parsed, err := store.parseDB(args[0], false)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot restore '%s': %v", args[0], err)
 		}
 		dbName = parsed
 	}
 
 	reader, closer, err := restoreInput(cmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot restore '%s': %v", dbName, err)
 	}
 	if closer != nil {
 		defer closer.Close()
@@ -43,7 +43,7 @@ func restore(cmd *cobra.Command, args []string) error {
 
 	db, err := store.open(dbName)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot restore '%s': %v", dbName, err)
 	}
 	defer db.Close()
 
@@ -66,15 +66,15 @@ func restore(cmd *cobra.Command, args []string) error {
 
 		var entry dumpEntry
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			return fmt.Errorf("line %d: %w", lineNo, err)
+			return fmt.Errorf("cannot restore '%s': line %d: %w", dbName, lineNo, err)
 		}
 		if entry.Key == "" {
-			return fmt.Errorf("line %d: missing key", lineNo)
+			return fmt.Errorf("cannot restore '%s': line %d: missing key", dbName, lineNo)
 		}
 
 		value, err := decodeEntryValue(entry)
 		if err != nil {
-			return fmt.Errorf("line %d: %w", lineNo, err)
+			return fmt.Errorf("cannot restore '%s': line %d: %w", dbName, lineNo, err)
 		}
 
 		entryMeta := byte(0x0)
@@ -85,13 +85,13 @@ func restore(cmd *cobra.Command, args []string) error {
 		writeEntry := badger.NewEntry([]byte(entry.Key), value).WithMeta(entryMeta)
 		if entry.ExpiresAt != nil {
 			if *entry.ExpiresAt < 0 {
-				return fmt.Errorf("line %d: expires_at must be >= 0", lineNo)
+				return fmt.Errorf("cannot restore '%s': line %d: expires_at must be >= 0", dbName, lineNo)
 			}
 			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
 		}
 
 		if err := wb.SetEntry(writeEntry); err != nil {
-			return fmt.Errorf("line %d: %w", lineNo, err)
+			return fmt.Errorf("cannot restore '%s': line %d: %w", dbName, lineNo, err)
 		}
 		restored++
 	}
@@ -101,7 +101,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := wb.Flush(); err != nil {
-		return err
+		return fmt.Errorf("cannot restore '%s': %v", dbName, err)
 	}
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "Restored %d entries into @%s\n", restored, dbName)
