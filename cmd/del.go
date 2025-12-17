@@ -81,7 +81,10 @@ func del(cmd *cobra.Command, args []string) error {
 			if err := tx.Delete(k); errors.Is(err, badger.ErrKeyNotFound) {
 				return fmt.Errorf("cannot remove '%s': No such key", args[0])
 			}
-			return fmt.Errorf("cannot remove '%s': %v", args[0], err)
+			if err != nil {
+				return fmt.Errorf("cannot remove '%s': %v", args[0], err)
+			}
+			return nil
 		},
 	}
 
