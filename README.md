@@ -186,7 +186,7 @@ pda ls @birthdays
 pda dump birthdays > friends_birthdays
 
 # Restore it.
-pda restore birthays < friends_birthdays
+pda restore birthdays < friends_birthdays
 
 # Delete it.
 pda del-db birthdays --force
