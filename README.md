@@ -169,6 +169,9 @@ pda ls --format csv
 `pda dump` to export everything as NDJSON.
 ```bash
 pda dump > my_backup
+
+# Dump only matching keys.
+pda dump --glob a*
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -182,6 +185,9 @@ pda restore -f my_backup
 # Or from stdin.
 pda restore < my_backup
 # Restored 2 entries into @default.
+
+# Restore only matching keys.
+pda restore --glob a* -f my_backup
 ```
 
 <p align="center"></p><!-- spacer -->
