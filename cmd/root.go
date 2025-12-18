@@ -32,15 +32,8 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "pda",
 	Short: "A key-value store.",
-	Long: `                 ▄▄           
-                 ██           
- ██▄███▄    ▄███▄██   ▄█████▄
- ██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
- ██    ██  ██    ██  ▄██▀▀▀██
- ███▄▄██▀  ▀██▄▄███  ██▄▄▄███
- ██ ▀▀▀      ▀▀▀ ▀▀   ▀▀▀▀ ▀▀
- ██      (c) 2025 Lewis Wynne
-`}
+	Long:  asciiArt,
+}
 
 func Execute() {
 	if configErr != nil {

@@ -28,15 +28,18 @@ import (
 )
 
 var (
-	version = "2025.51"
+	version = "pda! 2025.51 release"
 )
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show the version of your CLI tool",
+	Short: "Display pda! version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("pda! %s\n", version)
+		if config.DisplayArt {
+			fmt.Print(asciiArt + "\n ")
+		}
+		fmt.Printf("%s\n", version)
 	},
 }
 

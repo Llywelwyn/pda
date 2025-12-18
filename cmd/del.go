@@ -70,7 +70,7 @@ func del(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot remove: No such key")
 	}
 
-	if !force {
+	if !force && config.WarnOnDelete {
 		var confirm string
 		quotedTargets := make([]string, 0, len(targetKeys))
 		for _, t := range targetKeys {

@@ -10,11 +10,23 @@ import (
 )
 
 type Config struct {
-	DefaultDB string `toml:"default_db"`
+	DefaultDB       string `toml:"default_db"`
+	DisplayArt      bool   `toml:"display_art"`
+	WarnOnDelete    bool   `toml:"warn_on_delete"`
+	WarnOnOverwrite bool   `toml:"warn_on_overwrite"`
 }
 
 var (
-	config    Config
+	config   Config
+	asciiArt string = `                 ▄▄           
+                 ██           
+ ██▄███▄    ▄███▄██   ▄█████▄
+ ██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
+ ██    ██  ██    ██  ▄██▀▀▀██
+ ███▄▄██▀  ▀██▄▄███  ██▄▄▄███
+ ██ ▀▀▀      ▀▀▀ ▀▀   ▀▀▀▀ ▀▀
+ ██      (c) 2025 Lewis Wynne
+`
 	configErr error
 )
 
@@ -24,7 +36,10 @@ func init() {
 
 func defaultConfig() Config {
 	return Config{
-		DefaultDB: "default",
+		DefaultDB:       "default",
+		DisplayArt:      false,
+		WarnOnOverwrite: true,
+		WarnOnDelete:    true,
 	}
 }
 
@@ -43,12 +58,25 @@ func loadConfig() (Config, error) {
 		return cfg, err
 	}
 
-	if _, err := toml.DecodeFile(path, &cfg); err != nil {
+	md, err := toml.DecodeFile(path, &cfg)
+	if err != nil {
 		return cfg, fmt.Errorf("parse %s: %w", path, err)
 	}
 
-	if cfg.DefaultDB == "" {
+	if !md.IsDefined("default_db") || cfg.DefaultDB == "" {
 		cfg.DefaultDB = defaultConfig().DefaultDB
+	}
+
+	if !md.IsDefined("display_art") {
+		cfg.DisplayArt = defaultConfig().DisplayArt
+	}
+
+	if !md.IsDefined("warn_on_delete") {
+		cfg.WarnOnDelete = defaultConfig().WarnOnDelete
+	}
+
+	if !md.IsDefined("warn_on_overwrite") {
+		cfg.WarnOnOverwrite = defaultConfig().WarnOnOverwrite
 	}
 
 	return cfg, nil

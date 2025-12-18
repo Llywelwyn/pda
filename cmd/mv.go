@@ -70,7 +70,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		readonly: false,
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
-			if !force {
+			if !force && config.WarnOnOverwrite {
 				if _, err := tx.Get(k); err == nil {
 					return fmt.Errorf("cannot move '%s': '%s' already exists > run with --force to overwrite", fromSpec.Key, toSpec.Key)
 				} else if err != badger.ErrKeyNotFound {
