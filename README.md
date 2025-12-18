@@ -33,6 +33,7 @@
 - [Overview](https://github.com/Llywelwyn/pda#overview)
 - [Installation](https://github.com/Llywelwyn/pda#installation)
 - [Get Started](https://github.com/Llywelwyn/pda#get-started)
+- [Git-backed version control](https://github.com/Llywelwyn/pda#git)
 - [Templates](https://github.com/Llywelwyn/pda#templates)
 - [Globs](https://github.com/Llywelwyn/pda#globs)
 - [Secrets](https://github.com/Llywelwyn/pda#secrets)
@@ -58,6 +59,7 @@ Available Commands:
     completion  # Generate autocompletions for a specified shell.
     help        # Additional help for any command.
     version     # Current version.
+    vcs         # List version control subcommands.
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -215,6 +217,66 @@ pda restore birthdays < friends_birthdays
 
 # Delete it.
 pda del-db birthdays --force
+```
+
+<p align="center"></p><!-- spacer -->
+
+### Git
+
+pda! supports automatic version control backed by Git, either in a local-only repository or by initialising from a remote repository.
+
+`pda vcs init` will initialise the version control system.
+```bash
+# Initialise an empty pda! repository.
+pda vcs init
+
+# Or clone an existing one.
+pda vcs init https://github.com/llywelwyn/my-repository
+
+# --clean to replace your (existing) local repo with a new one.
+pda vcs init --clean
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda vcs snapshot` to save a copy of your pda.
+```bash
+pda vcs snapshot
+# functionally, dumps all databases into pda/vcs
+# to convert them into text, and commits them to
+# your local pda! repository.
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda vcs push` and `pda vcs pull`
+```bash
+# Push to a remote repository.
+pda vcs push
+
+# Pull all keys from version control and restore them.
+pda vcs pull
+
+# Or --clean to delete your existing stores before restoring.
+pda vcs pull --clean
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda vcs gitignore` to generate a .gitignore for pda!
+```bash
+# Generate if not present.
+pda vcs gitignore
+
+# Rewrite an existing .gitignore
+pda vcs gitignore --rewrite
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda vcs log` to view pda!'s Git log.
+```bash
+pda vcs log
 ```
 
 <p align="center"></p><!-- spacer -->
