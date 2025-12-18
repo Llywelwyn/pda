@@ -12,4 +12,4 @@ $ pda get a2
 $ pda get b1 --> FAIL
 Error: cannot get 'b1': Key not found
 $ pda restore --glob c* --file dumpfile --> FAIL
-Error: cannot restore '@default': No matches for pattern
+Error: cannot restore '@default': No matches for pattern 'c*'

@@ -66,6 +66,10 @@ func del(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if len(targetKeys) == 0 {
+		return fmt.Errorf("cannot remove: No such key")
+	}
+
 	if !force {
 		var confirm string
 		quotedTargets := make([]string, 0, len(targetKeys))
@@ -153,14 +157,13 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 	var targetKeys []string
 	var deleteTargets []string
 
-	var matched bool
 	for _, arg := range exactArgs {
 		exists, err := keyExists(store, arg)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot remove '%s': %v", arg, err)
 		}
 		if !exists {
-			return nil, nil, fmt.Errorf("cannot remove '%s': No such key", arg)
+			continue
 		}
 		formatted, err := formatKeyForPrompt(store, arg)
 		if err != nil {
@@ -170,7 +173,6 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 			targetSet[arg] = struct{}{}
 			targetKeys = append(targetKeys, formatted)
 			deleteTargets = append(deleteTargets, arg)
-			matched = true
 		}
 	}
 
@@ -233,13 +235,8 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 				}
 				targetKeys = append(targetKeys, display)
 				deleteTargets = append(deleteTargets, full)
-				matched = true
 			}
 		}
-	}
-
-	if len(globPatterns) > 0 && !matched {
-		return nil, nil, fmt.Errorf("cannot remove '%s': No matches for pattern", globPatterns[0])
 	}
 
 	return targetKeys, deleteTargets, nil

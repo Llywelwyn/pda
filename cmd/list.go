@@ -162,7 +162,7 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && matchedCount == 0 {
-		return fmt.Errorf("cannot ls '%s': No matches for pattern", targetDB)
+		return fmt.Errorf("cannot ls '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
 	}
 
 	applyColumnConstraints(tw, columnKinds, output, maxContentWidths)

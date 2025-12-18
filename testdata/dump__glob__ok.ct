@@ -5,4 +5,4 @@ $ pda dump --glob a*
 {"key":"a1","value":"1","encoding":"text"}
 {"key":"a2","value":"2","encoding":"text"}
 $ pda dump --glob c* --> FAIL
-Error: cannot dump '@default': No matches for pattern
+Error: cannot dump '@default': No matches for pattern 'c*'

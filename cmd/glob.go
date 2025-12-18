@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gobwas/glob"
@@ -51,4 +52,12 @@ func globMatch(matchers []glob.Glob, key string) bool {
 		}
 	}
 	return false
+}
+
+func formatGlobPatterns(patterns []string) string {
+	quoted := make([]string, 0, len(patterns))
+	for _, pattern := range patterns {
+		quoted = append(quoted, fmt.Sprintf("'%s'", pattern))
+	}
+	return strings.Join(quoted, ", ")
 }

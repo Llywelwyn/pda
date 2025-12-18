@@ -116,7 +116,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && !matched {
-		return fmt.Errorf("cannot restore '%s': No matches for pattern", displayTarget)
+		return fmt.Errorf("cannot restore '%s': No matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
 	}
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "Restored %d entries into @%s\n", restored, dbName)

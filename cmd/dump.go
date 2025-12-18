@@ -142,7 +142,7 @@ func dump(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && !matched {
-		return fmt.Errorf("cannot dump '%s': No matches for pattern", displayTarget)
+		return fmt.Errorf("cannot dump '%s': No matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
 	}
 	return nil
 }
