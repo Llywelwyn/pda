@@ -1,7 +1,7 @@
 $ pda set a1 1
 $ pda set a2 2
 $ pda set b1 3
-$ pda del --glob a* --force
+$ pda del --glob a*
 $ pda get a1 --> FAIL
 Error: cannot get 'a1': Key not found
 $ pda get a2 --> FAIL

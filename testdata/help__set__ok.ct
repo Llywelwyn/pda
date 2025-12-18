@@ -19,6 +19,7 @@ Aliases:
 
 Flags:
   -h, --help           help for set
+  -i, --interactive    Prompt before overwriting an existing key
       --secret         Mark the stored value as a secret
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
 Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
@@ -40,5 +41,6 @@ Aliases:
 
 Flags:
   -h, --help           help for set
+  -i, --interactive    Prompt before overwriting an existing key
       --secret         Mark the stored value as a secret
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)

@@ -9,8 +9,8 @@ Aliases:
   del-db, delete-db, rm-db, remove-db
 
 Flags:
-  -f, --force   Force delete without confirmation
-  -h, --help    help for del-db
+  -h, --help          help for del-db
+  -i, --interactive   Prompt yes/no for each deletion
 Delete a database.
 
 Usage:
@@ -20,5 +20,5 @@ Aliases:
   del-db, delete-db, rm-db, remove-db
 
 Flags:
-  -f, --force   Force delete without confirmation
-  -h, --help    help for del-db
+  -h, --help          help for del-db
+  -i, --interactive   Prompt yes/no for each deletion

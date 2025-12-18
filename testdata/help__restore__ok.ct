@@ -13,6 +13,7 @@ Flags:
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for restore
+  -i, --interactive       Prompt before overwriting existing keys
 Restore key/value pairs from an NDJSON dump
 
 Usage:
@@ -26,3 +27,4 @@ Flags:
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for restore
+  -i, --interactive       Prompt before overwriting existing keys
