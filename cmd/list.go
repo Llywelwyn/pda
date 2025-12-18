@@ -41,7 +41,7 @@ var listCmd = &cobra.Command{
 
 func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	targetDB := "@default"
+	targetDB := "@" + config.DefaultDB
 	if len(args) == 1 {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)

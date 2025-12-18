@@ -30,8 +30,7 @@ var dumpCmd = &cobra.Command{
 
 func dump(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	targetDB := "@default"
-	displayTarget := targetDB
+	targetDB := "@" + config.DefaultDB
 	if len(args) == 1 {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)
@@ -46,17 +45,16 @@ func dump(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		targetDB = "@" + dbName
-		displayTarget = targetDB
 	}
 
 	mode, err := cmd.Flags().GetString("encoding")
 	if err != nil {
-		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+		return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 	}
 	switch mode {
 	case "auto", "base64", "text":
 	default:
-		return fmt.Errorf("cannot dump '%s': unsupported encoding '%s'", displayTarget, mode)
+		return fmt.Errorf("cannot dump '%s': unsupported encoding '%s'", targetDB, mode)
 	}
 
 	includeSecret, err := cmd.Flags().GetBool("secret")
@@ -65,15 +63,15 @@ func dump(cmd *cobra.Command, args []string) error {
 	}
 	globPatterns, err := cmd.Flags().GetStringSlice("glob")
 	if err != nil {
-		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+		return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 	}
 	separators, err := parseGlobSeparators(cmd)
 	if err != nil {
-		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+		return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 	}
 	matchers, err := compileGlobMatchers(globPatterns, separators)
 	if err != nil {
-		return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+		return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 	}
 
 	var matched bool
@@ -112,7 +110,7 @@ func dump(cmd *cobra.Command, args []string) error {
 						encodeBase64(&entry, v)
 					case "text":
 						if err := encodeText(&entry, key, v); err != nil {
-							return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+							return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 						}
 					case "auto":
 						if utf8.Valid(v) {
@@ -124,13 +122,13 @@ func dump(cmd *cobra.Command, args []string) error {
 					}
 					payload, err := json.Marshal(entry)
 					if err != nil {
-						return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+						return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 					}
 					fmt.Fprintln(cmd.OutOrStdout(), string(payload))
 					matched = true
 					return nil
 				}); err != nil {
-					return fmt.Errorf("cannot dump '%s': %v", displayTarget, err)
+					return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 				}
 			}
 			return nil
@@ -142,7 +140,7 @@ func dump(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && !matched {
-		return fmt.Errorf("cannot dump '%s': No matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
+		return fmt.Errorf("cannot dump '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
 	}
 	return nil
 }
