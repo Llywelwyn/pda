@@ -36,7 +36,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Display pda! version",
 	Run: func(cmd *cobra.Command, args []string) {
-		if config.DisplayArt {
+		if config.DisplayAsciiArt {
 			fmt.Print(asciiArt + "\n ")
 		}
 		fmt.Printf("%s\n", version)

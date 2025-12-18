@@ -59,7 +59,7 @@ func ParseKey(raw string, defaults bool) (KeySpec, error) {
 	key := strings.ToLower(rawKey)
 	db := strings.ToLower(rawDB)
 	if db == "" && defaults {
-		db = config.DefaultDB
+		db = config.Store.DefaultStoreName
 	}
 
 	return KeySpec{
@@ -82,7 +82,7 @@ func (k KeySpec) Full() string {
 // Display returns the normalized key reference
 // but omits the default database if none was set manually
 func (k KeySpec) Display() string {
-	if k.DB == "" || k.DB == config.DefaultDB {
+	if k.DB == "" || k.DB == config.Store.DefaultStoreName {
 		return k.Key
 	}
 	return fmt.Sprintf("%s@%s", k.Key, k.DB)

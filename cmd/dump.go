@@ -52,7 +52,7 @@ var dumpCmd = &cobra.Command{
 
 func dump(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	targetDB := "@" + config.DefaultDB
+	targetDB := "@" + config.Store.DefaultStoreName
 	if len(args) == 1 {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)

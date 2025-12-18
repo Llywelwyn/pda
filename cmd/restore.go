@@ -46,7 +46,7 @@ var restoreCmd = &cobra.Command{
 
 func restore(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	dbName := config.DefaultDB
+	dbName := config.Store.DefaultStoreName
 	if len(args) == 1 {
 		parsed, err := store.parseDB(args[0], false)
 		if err != nil {

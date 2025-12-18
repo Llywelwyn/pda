@@ -45,7 +45,7 @@ var delCmd = &cobra.Command{
 func del(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
-	force, err := cmd.Flags().GetBool("force")
+	interactive, err := cmd.Flags().GetBool("interactive")
 	if err != nil {
 		return err
 	}
@@ -71,23 +71,18 @@ func del(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot remove: No such key")
 	}
 
-	if !force && config.WarnOnDelete {
-		var confirm string
-		quotedTargets := make([]string, 0, len(targets))
-		for _, target := range targets {
-			quotedTargets = append(quotedTargets, fmt.Sprintf("%q", target.display))
-		}
-		message := fmt.Sprintf("remove %s: are you sure? (y/n)", strings.Join(quotedTargets, ", "))
-		fmt.Println(message)
-		if _, err := fmt.Scanln(&confirm); err != nil {
-			return fmt.Errorf("cannot remove '%s': %v", args[0], err)
-		}
-		if strings.ToLower(confirm) != "y" {
-			return nil
-		}
-	}
-
 	for _, target := range targets {
+		if interactive || config.Key.AlwaysPromptDelete {
+			var confirm string
+			message := fmt.Sprintf("remove %q: are you sure? (y/n)", target.display)
+			fmt.Println(message)
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot remove '%s': %v", target.full, err)
+			}
+			if strings.ToLower(confirm) != "y" {
+				continue
+			}
+		}
 		trans := TransactionArgs{
 			key:      target.full,
 			readonly: false,
@@ -112,7 +107,7 @@ func del(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	delCmd.Flags().BoolP("force", "f", false, "Force delete without confirmation")
+	delCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
 	delCmd.Flags().StringSliceP("glob", "g", nil, "Delete keys matching glob pattern (repeatable)")
 	delCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(delCmd)

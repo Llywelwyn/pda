@@ -25,10 +25,10 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // delDbCmd represents the set command
@@ -52,26 +52,24 @@ func delDb(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
 	}
 
-	force, err := cmd.Flags().GetBool("force")
+	interactive, err := cmd.Flags().GetBool("interactive")
 	if err != nil {
 		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
 	}
 
-	if force {
-		return executeDeletion(path)
-	}
+	if interactive || config.Store.AlwaysPromptDelete {
+		message := fmt.Sprintf("delete-db '%s': are you sure? (y/n)", args[0])
+		fmt.Println(message)
 
-	message := fmt.Sprintf("delete-db '%s': are you sure? (y/n)", args[0])
-	fmt.Println(message)
-
-	var confirm string
-	if _, err := fmt.Scanln(&confirm); err != nil {
-		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
+		var confirm string
+		if _, err := fmt.Scanln(&confirm); err != nil {
+			return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
+		}
+		if strings.ToLower(confirm) != "y" {
+			return nil
+		}
 	}
-	if strings.ToLower(confirm) == "y" {
-		return executeDeletion(path)
-	}
-	return nil
+	return executeDeletion(path)
 }
 
 func executeDeletion(path string) error {
@@ -82,6 +80,6 @@ func executeDeletion(path string) error {
 }
 
 func init() {
-	delDbCmd.Flags().BoolP("force", "f", false, "Force delete without confirmation")
+	delDbCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
 	rootCmd.AddCommand(delDbCmd)
 }

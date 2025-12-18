@@ -32,10 +32,19 @@ import (
 )
 
 type Config struct {
-	DefaultDB       string `toml:"default_db"`
-	DisplayArt      bool   `toml:"display_art"`
-	WarnOnDelete    bool   `toml:"warn_on_delete"`
-	WarnOnOverwrite bool   `toml:"warn_on_overwrite"`
+	DisplayAsciiArt bool        `toml:"display_ascii_art"`
+	Key             KeyConfig   `toml:"key"`
+	Store           StoreConfig `toml:"store"`
+}
+
+type KeyConfig struct {
+	AlwaysPromptDelete    bool `toml:"always_prompt_delete"`
+	AlwaysPromptOverwrite bool `toml:"always_prompt_overwrite"`
+}
+
+type StoreConfig struct {
+	DefaultStoreName   string `toml:"default_store_name"`
+	AlwaysPromptDelete bool   `toml:"always_prompt_delete"`
 }
 
 var (
@@ -58,10 +67,15 @@ func init() {
 
 func defaultConfig() Config {
 	return Config{
-		DefaultDB:       "default",
-		DisplayArt:      false,
-		WarnOnOverwrite: true,
-		WarnOnDelete:    true,
+		DisplayAsciiArt: true,
+		Key: KeyConfig{
+			AlwaysPromptDelete:    false,
+			AlwaysPromptOverwrite: false,
+		},
+		Store: StoreConfig{
+			DefaultStoreName:   "default",
+			AlwaysPromptDelete: true,
+		},
 	}
 }
 
@@ -85,20 +99,25 @@ func loadConfig() (Config, error) {
 		return cfg, fmt.Errorf("parse %s: %w", path, err)
 	}
 
-	if !md.IsDefined("default_db") || cfg.DefaultDB == "" {
-		cfg.DefaultDB = defaultConfig().DefaultDB
+	if !md.IsDefined("display_ascii_art") {
+		cfg.DisplayAsciiArt = defaultConfig().DisplayAsciiArt
+
 	}
 
-	if !md.IsDefined("display_art") {
-		cfg.DisplayArt = defaultConfig().DisplayArt
+	if !md.IsDefined("key", "always_prompt_delete") {
+		cfg.Key.AlwaysPromptDelete = defaultConfig().Key.AlwaysPromptDelete
 	}
 
-	if !md.IsDefined("warn_on_delete") {
-		cfg.WarnOnDelete = defaultConfig().WarnOnDelete
+	if !md.IsDefined("store", "default_store_name") || cfg.Store.DefaultStoreName == "" {
+		cfg.Store.DefaultStoreName = defaultConfig().Store.DefaultStoreName
+
+	}
+	if !md.IsDefined("store", "always_prompt_delete") {
+		cfg.Store.AlwaysPromptDelete = defaultConfig().Store.AlwaysPromptDelete
 	}
 
-	if !md.IsDefined("warn_on_overwrite") {
-		cfg.WarnOnOverwrite = defaultConfig().WarnOnOverwrite
+	if !md.IsDefined("key", "always_prompt_overwrite") {
+		cfg.Key.AlwaysPromptOverwrite = defaultConfig().Key.AlwaysPromptOverwrite
 	}
 
 	return cfg, nil
