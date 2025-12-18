@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -42,6 +43,10 @@ var rootCmd = &cobra.Command{
 `}
 
 func Execute() {
+	if configErr != nil {
+		fmt.Fprintln(os.Stderr, "failed to load config:", configErr)
+		os.Exit(1)
+	}
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)

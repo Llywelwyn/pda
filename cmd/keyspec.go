@@ -15,7 +15,7 @@ type KeySpec struct {
 }
 
 // ParseKey parses "KEY[@DB]" into a normalized KeySpec.
-// When defaults is true, a missing DB defaults to "default".
+// When defaults is true, a missing DB defaults to the configured default.
 func ParseKey(raw string, defaults bool) (KeySpec, error) {
 	parts := strings.Split(raw, "@")
 	if len(parts) > 2 {
@@ -34,7 +34,7 @@ func ParseKey(raw string, defaults bool) (KeySpec, error) {
 	key := strings.ToLower(rawKey)
 	db := strings.ToLower(rawDB)
 	if db == "" && defaults {
-		db = "default"
+		db = config.DefaultDB
 	}
 
 	return KeySpec{
@@ -57,7 +57,7 @@ func (k KeySpec) Full() string {
 // Display returns the normalized key reference
 // but omits the default database if none was set manually
 func (k KeySpec) Display() string {
-	if k.DB == "" || k.DB == "default" {
+	if k.DB == "" || k.DB == config.DefaultDB {
 		return k.Key
 	}
 	return fmt.Sprintf("%s@%s", k.Key, k.DB)

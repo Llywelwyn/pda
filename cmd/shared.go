@@ -173,7 +173,7 @@ func (s *Store) parseDB(v string, defaults bool) (string, error) {
 	}
 	if db == "" {
 		if defaults {
-			return "default", nil
+			return config.DefaultDB, nil
 		}
 		return "", fmt.Errorf("cannot parse db: bad db format, use DB or @DB")
 	}
@@ -182,7 +182,7 @@ func (s *Store) parseDB(v string, defaults bool) (string, error) {
 
 func (s *Store) open(name string) (*badger.DB, error) {
 	if name == "" {
-		name = "default"
+		name = config.DefaultDB
 	}
 	path, err := s.path(name)
 	if err != nil {
