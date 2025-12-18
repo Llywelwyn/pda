@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,31 +23,11 @@ var vcsCmd = &cobra.Command{
 }
 
 var vcsInitCmd = &cobra.Command{
-	Use:          "init",
-	Short:        "Initialise local version control for pda data",
+	Use:          "init [remote-url]",
+	Short:        "Initialise or fetch a Git repo for version control",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir, err := vcsRepoRoot()
-		if err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Join(repoDir), 0o750); err != nil {
-			return err
-		}
-
-		gitDir := filepath.Join(repoDir, ".git")
-		if _, err := os.Stat(gitDir); os.IsNotExist(err) {
-			if err := runGit(repoDir, "init"); err != nil {
-				return err
-			}
-		}
-
-		if err := writeGitignore(repoDir); err != nil {
-			return err
-		}
-
-		return nil
-	},
+	Args:         cobra.MaximumNArgs(1),
+	RunE:         vcsInit,
 }
 
 var vcsSnapshotCmd = &cobra.Command{
@@ -84,10 +66,165 @@ var vcsSnapshotCmd = &cobra.Command{
 	},
 }
 
+var vcsLogCmd = &cobra.Command{
+	Use:          "log",
+	Short:        "show git log for pda snapshots",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		repoDir, err := ensureVCSInitialized()
+		if err != nil {
+			return err
+		}
+		return runGit(repoDir, "log", "--oneline", "--graph", "--decorate")
+	},
+}
+
+var vcsPullCmd = &cobra.Command{
+	Use:          "pull",
+	Short:        "pull snapshots from remote and restore into local store",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoDir, err := ensureVCSInitialized()
+		if err != nil {
+			return err
+		}
+
+		clean, err := cmd.Flags().GetBool("clean")
+		if err != nil {
+			return err
+		}
+
+		hasUpstream, err := repoHasUpstream(repoDir)
+		if err != nil {
+			return err
+		}
+		if hasUpstream {
+			if err := runGit(repoDir, "pull"); err != nil {
+				return err
+			}
+		}
+
+		store := &Store{}
+		if clean {
+			fmt.Printf("this will remove all existing stores before restoring from version control. continue? (y/n)\n")
+			var confirm string
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot clean stores: %w", err)
+			}
+			if strings.ToLower(confirm) != "y" {
+				return fmt.Errorf("pull aborted; stores not removed")
+			}
+			if err := wipeAllStores(store); err != nil {
+				return err
+			}
+		}
+		if err := restoreAllSnapshots(store, repoDir); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
+var vcsPushCmd = &cobra.Command{
+	Use:          "push",
+	Short:        "push local snapshots to remote",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoDir, err := ensureVCSInitialized()
+		if err != nil {
+			return err
+		}
+		hasUpstream, err := repoHasUpstream(repoDir)
+		if err != nil {
+			return err
+		}
+		if !hasUpstream {
+			hasOrigin, err := repoHasRemote(repoDir, "origin")
+			if err != nil {
+				return err
+			}
+			if !hasOrigin {
+				return fmt.Errorf("no upstream configured; set a remote before pushing")
+			}
+			branch, err := currentBranch(repoDir)
+			if err != nil {
+				return err
+			}
+			if branch == "" {
+				branch = "main"
+			}
+			fmt.Printf("running: git push -u origin %s\n", branch)
+			return runGit(repoDir, "push", "-u", "origin", branch)
+		}
+		return runGit(repoDir, "push")
+	},
+}
+
 func init() {
+	vcsInitCmd.Flags().Bool("clean", false, "Remove existing VCS directory before initialising")
 	vcsCmd.AddCommand(vcsInitCmd)
 	vcsCmd.AddCommand(vcsSnapshotCmd)
+	vcsCmd.AddCommand(vcsLogCmd)
+	vcsPullCmd.Flags().Bool("clean", false, "Remove all existing stores before restoring snapshots")
+	vcsCmd.AddCommand(vcsPullCmd)
+	vcsCmd.AddCommand(vcsPushCmd)
 	rootCmd.AddCommand(vcsCmd)
+}
+
+func vcsInit(cmd *cobra.Command, args []string) error {
+	repoDir, err := vcsRepoRoot()
+	if err != nil {
+		return err
+	}
+	clean, err := cmd.Flags().GetBool("clean")
+	if err != nil {
+		return err
+	}
+	if clean {
+		entries, err := os.ReadDir(repoDir)
+		if err == nil && len(entries) > 0 {
+			fmt.Printf("remove existing VCS directory '%s'? (y/n)\n", repoDir)
+			var confirm string
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot clean vcs dir: %w", err)
+			}
+			if strings.ToLower(confirm) != "y" {
+				return fmt.Errorf("aborted cleaning vcs dir")
+			}
+		}
+		if err := os.RemoveAll(repoDir); err != nil {
+			return fmt.Errorf("cannot clean vcs dir: %w", err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(repoDir), 0o750); err != nil {
+		return err
+	}
+
+	gitDir := filepath.Join(repoDir, ".git")
+	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
+		if len(args) == 1 {
+			remote := args[0]
+			fmt.Printf("running: git clone %s %s\n", remote, repoDir)
+			if err := runGit("", "clone", remote, repoDir); err != nil {
+				return err
+			}
+		} else {
+			fmt.Printf("running: git init\n")
+			if err := runGit(repoDir, "init"); err != nil {
+				return err
+			}
+		}
+	} else {
+		fmt.Println("vcs already initialised; use --clean to reinitialise")
+		return nil
+	}
+
+	if err := writeGitignore(repoDir); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func vcsRepoRoot() (string, error) {
@@ -195,4 +332,149 @@ func runGit(dir string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func repoHasUpstream(dir string) (bool, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	cmd.Dir = dir
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
+		return false, nil
+	}
+	return false, err
+}
+
+func repoHasRemote(dir, name string) (bool, error) {
+	cmd := exec.Command("git", "remote", "get-url", name)
+	cmd.Dir = dir
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
+		return false, nil
+	}
+	return false, err
+}
+
+func currentBranch(dir string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	branch := strings.TrimSpace(string(out))
+	if branch == "HEAD" {
+		return "", nil
+	}
+	return branch, nil
+}
+
+func restoreAllSnapshots(store *Store, repoDir string) error {
+	snapDir := filepath.Join(repoDir, "snapshots")
+	entries, err := os.ReadDir(snapDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("no snapshots directory found")
+		}
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if filepath.Ext(e.Name()) != ".ndjson" {
+			continue
+		}
+		dbName := strings.TrimSuffix(e.Name(), ".ndjson")
+		if err := restoreSnapshot(store, filepath.Join(snapDir, e.Name()), dbName); err != nil {
+			return fmt.Errorf("restore %q: %w", dbName, err)
+		}
+	}
+	return nil
+}
+
+func wipeAllStores(store *Store) error {
+	dbs, err := store.AllStores()
+	if err != nil {
+		return err
+	}
+	for _, db := range dbs {
+		path, err := store.FindStore(db)
+		if err != nil {
+			return err
+		}
+		if err := os.RemoveAll(path); err != nil {
+			return fmt.Errorf("remove db '%s': %w", db, err)
+		}
+	}
+	return nil
+}
+
+func restoreSnapshot(store *Store, path string, dbName string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	db, err := store.open(dbName)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	decoder := json.NewDecoder(bufio.NewReader(f))
+	wb := db.NewWriteBatch()
+	defer wb.Cancel()
+
+	entryNo := 0
+	for {
+		var entry dumpEntry
+		if err := decoder.Decode(&entry); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("entry %d: %w", entryNo+1, err)
+		}
+		entryNo++
+		if entry.Key == "" {
+			return fmt.Errorf("entry %d: missing key", entryNo)
+		}
+
+		value, err := decodeEntryValue(entry)
+		if err != nil {
+			return fmt.Errorf("entry %d: %w", entryNo, err)
+		}
+
+		entryMeta := byte(0x0)
+		if entry.Secret {
+			entryMeta = metaSecret
+		}
+
+		writeEntry := badger.NewEntry([]byte(entry.Key), value).WithMeta(entryMeta)
+		if entry.ExpiresAt != nil {
+			if *entry.ExpiresAt < 0 {
+				return fmt.Errorf("entry %d: expires_at must be >= 0", entryNo)
+			}
+			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
+		}
+
+		if err := wb.SetEntry(writeEntry); err != nil {
+			return fmt.Errorf("entry %d: %w", entryNo, err)
+		}
+	}
+
+	if err := wb.Flush(); err != nil {
+		return err
+	}
+	return nil
 }

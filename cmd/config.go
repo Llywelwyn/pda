@@ -35,6 +35,7 @@ type Config struct {
 	DisplayAsciiArt bool        `toml:"display_ascii_art"`
 	Key             KeyConfig   `toml:"key"`
 	Store           StoreConfig `toml:"store"`
+	Git             GitConfig   `toml:"git"`
 }
 
 type KeyConfig struct {
@@ -45,6 +46,10 @@ type KeyConfig struct {
 type StoreConfig struct {
 	DefaultStoreName   string `toml:"default_store_name"`
 	AlwaysPromptDelete bool   `toml:"always_prompt_delete"`
+}
+
+type GitConfig struct {
+	AutoCommit bool `toml:"auto_commit"`
 }
 
 var (
@@ -75,6 +80,9 @@ func defaultConfig() Config {
 		Store: StoreConfig{
 			DefaultStoreName:   "default",
 			AlwaysPromptDelete: true,
+		},
+		Git: GitConfig{
+			AutoCommit: false,
 		},
 	}
 }
@@ -118,6 +126,10 @@ func loadConfig() (Config, error) {
 
 	if !md.IsDefined("key", "always_prompt_overwrite") {
 		cfg.Key.AlwaysPromptOverwrite = defaultConfig().Key.AlwaysPromptOverwrite
+	}
+
+	if !md.IsDefined("git", "auto_commit") {
+		cfg.Git.AutoCommit = defaultConfig().Git.AutoCommit
 	}
 
 	return cfg, nil
