@@ -88,6 +88,12 @@ func restore(cmd *cobra.Command, args []string) error {
 	wb := db.NewWriteBatch()
 	defer wb.Cancel()
 
+	interactive, err := cmd.Flags().GetBool("interactive")
+	if err != nil {
+		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
+	}
+	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
+
 	entryNo := 0
 	var restored int
 	var matched bool
@@ -106,6 +112,23 @@ func restore(cmd *cobra.Command, args []string) error {
 		}
 		if !globMatch(matchers, entry.Key) {
 			continue
+		}
+
+		if promptOverwrite {
+			exists, err := keyExistsInDB(db, entry.Key)
+			if err != nil {
+				return fmt.Errorf("cannot restore '%s': entry %d: %v", displayTarget, entryNo, err)
+			}
+			if exists {
+				fmt.Printf("overwrite '%s'? (y/n)\n", entry.Key)
+				var confirm string
+				if _, err := fmt.Scanln(&confirm); err != nil {
+					return fmt.Errorf("cannot restore '%s': entry %d: %v", displayTarget, entryNo, err)
+				}
+				if strings.ToLower(confirm) != "y" {
+					continue
+				}
+			}
 		}
 
 		value, err := decodeEntryValue(entry)
@@ -179,5 +202,22 @@ func init() {
 	restoreCmd.Flags().StringP("file", "f", "", "Path to an NDJSON dump (defaults to stdin)")
 	restoreCmd.Flags().StringSliceP("glob", "g", nil, "Restore keys matching glob pattern (repeatable)")
 	restoreCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
+	restoreCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting existing keys")
 	rootCmd.AddCommand(restoreCmd)
+}
+
+func keyExistsInDB(db *badger.DB, key string) (bool, error) {
+	var exists bool
+	err := db.View(func(tx *badger.Txn) error {
+		_, err := tx.Get([]byte(key))
+		if err == nil {
+			exists = true
+			return nil
+		}
+		if err == badger.ErrKeyNotFound {
+			return nil
+		}
+		return err
+	})
+	return exists, err
 }

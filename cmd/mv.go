@@ -24,6 +24,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -52,6 +53,12 @@ func cp(cmd *cobra.Command, args []string) error {
 func mv(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
+	interactive, err := cmd.Flags().GetBool("interactive")
+	if err != nil {
+		return err
+	}
+	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
+
 	fromSpec, err := store.parseKey(args[0], true)
 	if err != nil {
 		return err
@@ -66,6 +73,37 @@ func mv(cmd *cobra.Command, args []string) error {
 	var srcExpires uint64
 	fromRef := fromSpec.Full()
 	toRef := toSpec.Full()
+
+	var destExists bool
+	if promptOverwrite {
+		existsErr := store.Transaction(TransactionArgs{
+			key:      toRef,
+			readonly: true,
+			transact: func(tx *badger.Txn, k []byte) error {
+				if _, err := tx.Get(k); err == nil {
+					destExists = true
+					return nil
+				} else if err == badger.ErrKeyNotFound {
+					return nil
+				}
+				return err
+			},
+		})
+		if existsErr != nil {
+			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, existsErr)
+		}
+	}
+
+	if promptOverwrite && destExists {
+		var confirm string
+		fmt.Printf("overwrite '%s'? (y/n)\n", toSpec.Display())
+		if _, err := fmt.Scanln(&confirm); err != nil {
+			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
+		}
+		if strings.ToLower(confirm) != "y" {
+			return nil
+		}
+	}
 
 	readErr := store.Transaction(TransactionArgs{
 		key:      fromRef,
@@ -92,13 +130,6 @@ func mv(cmd *cobra.Command, args []string) error {
 		readonly: false,
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
-			if !force && config.Key.AlwaysPromptOverwrite {
-				if _, err := tx.Get(k); err == nil {
-					return fmt.Errorf("cannot move '%s': '%s' already exists > run with --force to overwrite", fromSpec.Key, toSpec.Key)
-				} else if err != badger.ErrKeyNotFound {
-					return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
-				}
-			}
 			entry := badger.NewEntry(k, srcVal).WithMeta(srcMeta)
 			if srcExpires > 0 {
 				entry.ExpiresAt = srcExpires
@@ -125,14 +156,13 @@ func mv(cmd *cobra.Command, args []string) error {
 }
 
 var (
-	copy  bool = false
-	force bool = false
+	copy bool = false
 )
 
 func init() {
 	mvCmd.Flags().BoolVar(&copy, "copy", false, "Copy instead of move (keeps source)")
-	mvCmd.Flags().BoolVarP(&force, "force", "f", false, "Overwrite destination if it exists")
+	mvCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
 	rootCmd.AddCommand(mvCmd)
-	cpCmd.Flags().BoolVarP(&force, "force", "f", false, "Overwrite destination if it exists")
+	cpCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
 	rootCmd.AddCommand(cpCmd)
 }

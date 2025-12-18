@@ -25,6 +25,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -53,6 +54,17 @@ For example:
 func set(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
+	interactive, err := cmd.Flags().GetBool("interactive")
+	if err != nil {
+		return err
+	}
+	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
+
+	spec, err := store.parseKey(args[0], true)
+	if err != nil {
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
+	}
+
 	var value []byte
 	if len(args) == 2 {
 		value = []byte(args[1])
@@ -71,6 +83,23 @@ func set(cmd *cobra.Command, args []string) error {
 	ttl, err := cmd.Flags().GetDuration("ttl")
 	if err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
+	}
+
+	if promptOverwrite {
+		exists, err := keyExists(store, spec.Full())
+		if err != nil {
+			return fmt.Errorf("cannot set '%s': %v", args[0], err)
+		}
+		if exists {
+			fmt.Printf("overwrite '%s'? (y/n)\n", spec.Display())
+			var confirm string
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot set '%s': %v", args[0], err)
+			}
+			if strings.ToLower(confirm) != "y" {
+				return nil
+			}
+		}
 	}
 
 	trans := TransactionArgs{
@@ -96,4 +125,5 @@ func init() {
 	rootCmd.AddCommand(setCmd)
 	setCmd.Flags().Bool("secret", false, "Mark the stored value as a secret")
 	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
+	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
 }
