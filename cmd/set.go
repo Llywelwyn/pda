@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
@@ -118,7 +119,13 @@ func set(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	return store.Transaction(trans)
+	if err := store.Transaction(trans); err != nil {
+		return err
+	}
+
+	valSummary := summarizeValue(value)
+	msg := fmt.Sprintf("set %s: %s", spec.Display(), valSummary)
+	return autoCommit(store, []string{spec.DB}, msg)
 }
 
 func init() {
@@ -126,4 +133,15 @@ func init() {
 	setCmd.Flags().Bool("secret", false, "Mark the stored value as a secret")
 	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
 	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
+}
+
+func summarizeValue(v []byte) string {
+	if !utf8.Valid(v) {
+		return "(binary)"
+	}
+	s := string(v)
+	if len(s) > 80 {
+		return s[:80] + "..."
+	}
+	return s
 }

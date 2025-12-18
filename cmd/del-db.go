@@ -43,18 +43,22 @@ var delDbCmd = &cobra.Command{
 
 func delDb(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	var notFound errNotFound
-	path, err := store.FindStore(args[0])
-	if errors.As(err, &notFound) {
-		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
-	}
+	dbName, err := store.parseDB(args[0], false)
 	if err != nil {
 		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
+	}
+	var notFound errNotFound
+	path, err := store.FindStore(dbName)
+	if errors.As(err, &notFound) {
+		return fmt.Errorf("cannot delete-db '%s': %v", dbName, err)
+	}
+	if err != nil {
+		return fmt.Errorf("cannot delete-db '%s': %v", dbName, err)
 	}
 
 	interactive, err := cmd.Flags().GetBool("interactive")
 	if err != nil {
-		return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
+		return fmt.Errorf("cannot delete-db '%s': %v", dbName, err)
 	}
 
 	if interactive || config.Store.AlwaysPromptDelete {
@@ -63,13 +67,17 @@ func delDb(cmd *cobra.Command, args []string) error {
 
 		var confirm string
 		if _, err := fmt.Scanln(&confirm); err != nil {
-			return fmt.Errorf("cannot delete-db '%s': %v", args[0], err)
+			return fmt.Errorf("cannot delete-db '%s': %v", dbName, err)
 		}
 		if strings.ToLower(confirm) != "y" {
 			return nil
 		}
 	}
-	return executeDeletion(path)
+	if err := executeDeletion(path); err != nil {
+		return err
+	}
+	msg := fmt.Sprintf("rm-db @%s", dbName)
+	return autoCommit(store, []string{dbName}, msg)
 }
 
 func executeDeletion(path string) error {

@@ -142,17 +142,23 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	if copy {
-		return nil
+		msg := fmt.Sprintf("cp %s -> %s", fromSpec.Display(), toSpec.Display())
+		return autoCommit(store, []string{fromSpec.DB, toSpec.DB}, msg)
 	}
 
-	return store.Transaction(TransactionArgs{
+	if err := store.Transaction(TransactionArgs{
 		key:      fromRef,
 		readonly: false,
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
 			return tx.Delete(k)
 		},
-	})
+	}); err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("mv %s -> %s", fromSpec.Display(), toSpec.Display())
+	return autoCommit(store, []string{fromSpec.DB, toSpec.DB}, msg)
 }
 
 var (

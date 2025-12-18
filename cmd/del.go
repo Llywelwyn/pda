@@ -71,6 +71,7 @@ func del(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot remove: No such key")
 	}
 
+	var processed []resolvedTarget
 	for _, target := range targets {
 		if interactive || config.Key.AlwaysPromptDelete {
 			var confirm string
@@ -101,9 +102,25 @@ func del(cmd *cobra.Command, args []string) error {
 		if err := store.Transaction(trans); err != nil {
 			return err
 		}
+		processed = append(processed, target)
 	}
 
-	return nil
+	if len(processed) == 0 {
+		return nil
+	}
+
+	var dbs []string
+	var labels []string
+	for _, t := range processed {
+		spec, err := store.parseKey(t.full, true)
+		if err != nil {
+			return err
+		}
+		dbs = append(dbs, spec.DB)
+		labels = append(labels, t.display)
+	}
+	msg := fmt.Sprintf("rm %s", strings.Join(labels, ", "))
+	return autoCommit(store, dbs, msg)
 }
 
 func init() {

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -477,4 +478,51 @@ func restoreSnapshot(store *Store, path string, dbName string) error {
 		return err
 	}
 	return nil
+}
+
+func autoCommit(store *Store, dbs []string, message string) error {
+	if !config.Git.AutoCommit {
+		return nil
+	}
+
+	repoDir, err := ensureVCSInitialized()
+	if err != nil {
+		return err
+	}
+
+	unique := make(map[string]struct{})
+	for _, db := range dbs {
+		if db == "" {
+			db = config.Store.DefaultStoreName
+		}
+		unique[db] = struct{}{}
+	}
+
+	for db := range unique {
+		if err := snapshotOrRemoveDB(store, repoDir, db); err != nil {
+			return err
+		}
+	}
+
+	if err := runGit(repoDir, "add", "snapshots"); err != nil {
+		return err
+	}
+
+	return runGit(repoDir, "commit", "--allow-empty", "-m", message)
+}
+
+func snapshotOrRemoveDB(store *Store, repoDir, db string) error {
+	_, err := store.FindStore(db)
+	var nf errNotFound
+	if errors.As(err, &nf) {
+		snapPath := filepath.Join(repoDir, "snapshots", fmt.Sprintf("%s.ndjson", db))
+		if rmErr := os.Remove(snapPath); rmErr != nil && !os.IsNotExist(rmErr) {
+			return rmErr
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return snapshotDB(store, repoDir, db)
 }
