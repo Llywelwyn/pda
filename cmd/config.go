@@ -137,7 +137,7 @@ func loadConfig() (Config, error) {
 
 func configPath() (string, error) {
 	if override := os.Getenv("PDA_CONFIG"); override != "" {
-		return override, nil
+		return filepath.Join(override, "config.toml"), nil
 	}
 	scope := gap.NewScope(gap.User, "pda")
 	dir, err := scope.ConfigPath("")
