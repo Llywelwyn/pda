@@ -51,6 +51,9 @@ func ParseKey(raw string, defaults bool) (KeySpec, error) {
 		if strings.TrimSpace(rawDB) == "" {
 			return KeySpec{}, fmt.Errorf("bad key format, use KEY@DB")
 		}
+		if err := validateDBName(rawDB); err != nil {
+			return KeySpec{}, err
+		}
 	}
 
 	key := strings.ToLower(rawKey)

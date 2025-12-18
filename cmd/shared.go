@@ -178,6 +178,9 @@ func (s *Store) parseDB(v string, defaults bool) (string, error) {
 		}
 		return "", fmt.Errorf("cannot parse db: bad db format, use DB or @DB")
 	}
+	if err := validateDBName(db); err != nil {
+		return "", fmt.Errorf("cannot parse db: %w", err)
+	}
 	return strings.ToLower(db), nil
 }
 
@@ -197,7 +200,11 @@ func (s *Store) path(args ...string) (string, error) {
 		if err := os.MkdirAll(override, 0o750); err != nil {
 			return "", err
 		}
-		return filepath.Join(append([]string{override}, args...)...), nil
+		target := filepath.Join(append([]string{override}, args...)...)
+		if err := ensureSubpath(override, target); err != nil {
+			return "", err
+		}
+		return target, nil
 	}
 	scope := gap.NewVendorScope(gap.User, "pda", "stores")
 	dir, err := scope.DataPath("")
@@ -207,7 +214,11 @@ func (s *Store) path(args ...string) (string, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", err
 	}
-	return filepath.Join(append([]string{dir}, args...)...), nil
+	target := filepath.Join(append([]string{dir}, args...)...)
+	if err := ensureSubpath(dir, target); err != nil {
+		return "", err
+	}
+	return target, nil
 }
 
 func (s *Store) suggestStores(target string) ([]string, error) {
@@ -227,6 +238,33 @@ func (s *Store) suggestStores(target string) ([]string, error) {
 		}
 	}
 	return suggestions, nil
+}
+
+func ensureSubpath(base, target string) error {
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return err
+	}
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(absBase, absTarget)
+	if err != nil {
+		return err
+	}
+	sep := string(filepath.Separator)
+	if rel == ".." || strings.HasPrefix(rel, ".."+sep) {
+		return fmt.Errorf("path escapes store root")
+	}
+	return nil
+}
+
+func validateDBName(name string) error {
+	if strings.ContainsAny(name, `/\`) {
+		return fmt.Errorf("bad db format, use DB or @DB")
+	}
+	return nil
 }
 
 func formatExpiry(expiresAt uint64) string {
