@@ -58,7 +58,7 @@ func configPath() (string, error) {
 	if override := os.Getenv("PDA_CONFIG"); override != "" {
 		return override, nil
 	}
-	scope := gap.NewVendorScope(gap.User, "pda", "config")
+	scope := gap.NewScope(gap.User, "pda")
 	dir, err := scope.ConfigPath("")
 	if err != nil {
 		return "", err
