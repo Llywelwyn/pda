@@ -63,4 +63,5 @@ Set Height 600
 Set BorderRadius 5
 Set PlaybackSpeed 0.8
 
-Env PDA_DATA_DIR "/tmp/pda-demo"
+Env PDA_DATA "/tmp/pda-demo"
+Env PDA_CONFIG "/tmp/pda-config"

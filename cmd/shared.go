@@ -196,7 +196,7 @@ func (s *Store) open(name string) (*badger.DB, error) {
 }
 
 func (s *Store) path(args ...string) (string, error) {
-	if override := os.Getenv("PDA_DATA_DIR"); override != "" {
+	if override := os.Getenv("PDA_DATA"); override != "" {
 		if err := os.MkdirAll(override, 0o750); err != nil {
 			return "", err
 		}

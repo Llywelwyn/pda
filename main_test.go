@@ -34,7 +34,8 @@ import (
 var update = flag.Bool("update", false, "update test files with results")
 
 func TestMain(t *testing.T) {
-	t.Setenv("PDA_DATA_DIR", t.TempDir())
+	t.Setenv("PDA_DATA", t.TempDir())
+	t.Setenv("PDA_CONFIG", t.TempDir())
 	ts, err := cmdtest.Read("testdata")
 	if err != nil {
 		t.Fatalf("read testdata: %v", err)

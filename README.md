@@ -547,6 +547,17 @@ pda dump
 
 ### Environment
 
+Config is stored in your user config directory in `pda/config.toml`.
+
+Usually: `~/.config/pda/config.toml`
+
+`PDA_CONFIG` overrides the default config location. pda! will look for a config.toml file in that directory.
+```bash
+PDA_CONFIG=/tmp/config/ pda set key value
+```
+
+<p align="center"></p><!-- spacer -->
+
 Data is stored in your user data directory under `pda/stores/`.
 
 Usually:
@@ -554,9 +565,9 @@ Usually:
 - macOS: `~/Library/Application Support/pda/stores/`
 - windows: `%LOCALAPPDATA%/pda/stores/`
 
-`PDA_DATA_DIR` overrides the default storage location.
+`PDA_DATA` overrides the default storage location.
 ```bash
-PDATA_DATA_DIR=/tmp/stores pda set key value
+PDA_DATA=/tmp/stores pda set key value
 ```
 
 <p align="center"></p><!-- spacer -->
