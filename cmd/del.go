@@ -139,17 +139,11 @@ func keyExists(store *Store, arg string) (bool, error) {
 }
 
 func formatKeyForPrompt(store *Store, arg string) (string, error) {
-	_, db, err := store.parse(arg, true)
+	spec, err := store.parseKey(arg, true)
 	if err != nil {
 		return "", err
 	}
-	if strings.Contains(arg, "@") {
-		return arg, nil
-	}
-	if db == "" {
-		return arg, nil
-	}
-	return fmt.Sprintf("%s@%s", arg, db), nil
+	return spec.Display(), nil
 }
 
 func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string, separators []rune) ([]string, []string, error) {
@@ -188,18 +182,18 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 
 	var compiled []compiledPattern
 	for _, raw := range globPatterns {
-		kb, db, err := store.parse(raw, true)
+		spec, err := store.parseKey(raw, true)
 		if err != nil {
 			return nil, nil, err
 		}
-		pattern := string(kb)
+		pattern := spec.Key
 		m, err := glob.Compile(pattern, separators...)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot remove '%s': %v", raw, err)
 		}
 		compiled = append(compiled, compiledPattern{
 			rawArg:  raw,
-			db:      db,
+			db:      spec.DB,
 			matcher: m,
 		})
 	}

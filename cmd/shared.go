@@ -61,12 +61,12 @@ type TransactionArgs struct {
 }
 
 func (s *Store) Transaction(args TransactionArgs) error {
-	k, dbName, err := s.parse(args.key, true)
+	spec, err := s.parseKey(args.key, true)
 	if err != nil {
 		return err
 	}
 
-	db, err := s.open(dbName)
+	db, err := s.open(spec.DB)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (s *Store) Transaction(args TransactionArgs) error {
 	tx := db.NewTransaction(!args.readonly)
 	defer tx.Discard()
 
-	if err := args.transact(tx, k); err != nil {
+	if err := args.transact(tx, []byte(spec.Key)); err != nil {
 		return err
 	}
 
@@ -162,22 +162,8 @@ func (s *Store) FindStore(k string) (string, error) {
 	return path, nil
 }
 
-func (s *Store) parse(k string, defaults bool) ([]byte, string, error) {
-	var key, db string
-	ps := strings.Split(k, "@")
-	switch len(ps) {
-	case 1:
-		key = strings.ToLower(ps[0])
-		if defaults {
-			db = "default"
-		}
-	case 2:
-		key = strings.ToLower(ps[0])
-		db = strings.ToLower(ps[1])
-	default:
-		return nil, "", fmt.Errorf("bad key format, use KEY@DB")
-	}
-	return []byte(key), db, nil
+func (s *Store) parseKey(raw string, defaults bool) (KeySpec, error) {
+	return ParseKey(raw, defaults)
 }
 
 func (s *Store) parseDB(v string, defaults bool) (string, error) {

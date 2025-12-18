@@ -30,11 +30,11 @@ func cp(cmd *cobra.Command, args []string) error {
 func mv(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
-	fromKey, fromDB, err := store.parse(args[0], true)
+	fromSpec, err := store.parseKey(args[0], true)
 	if err != nil {
 		return err
 	}
-	toKey, toDB, err := store.parse(args[1], true)
+	toSpec, err := store.parseKey(args[1], true)
 	if err != nil {
 		return err
 	}
@@ -42,13 +42,16 @@ func mv(cmd *cobra.Command, args []string) error {
 	var srcVal []byte
 	var srcMeta byte
 	var srcExpires uint64
+	fromRef := fromSpec.Full()
+	toRef := toSpec.Full()
+
 	readErr := store.Transaction(TransactionArgs{
-		key:      fmt.Sprintf("%s@%s", fromKey, fromDB),
+		key:      fromRef,
 		readonly: true,
 		transact: func(tx *badger.Txn, k []byte) error {
 			item, err := tx.Get(k)
 			if err != nil {
-				return fmt.Errorf("cannot move '%s': %v", fromKey, err)
+				return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 			}
 			srcMeta = item.UserMeta()
 			srcExpires = item.ExpiresAt()
@@ -63,15 +66,15 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	writeErr := store.Transaction(TransactionArgs{
-		key:      fmt.Sprintf("%s@%s", toKey, toDB),
+		key:      toRef,
 		readonly: false,
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
 			if !force {
 				if _, err := tx.Get(k); err == nil {
-					return fmt.Errorf("cannot move '%s': '%s' already exists > run with --force to overwrite", fromKey, toKey)
+					return fmt.Errorf("cannot move '%s': '%s' already exists > run with --force to overwrite", fromSpec.Key, toSpec.Key)
 				} else if err != badger.ErrKeyNotFound {
-					return fmt.Errorf("cannot move '%s': %v", fromKey, err)
+					return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 				}
 			}
 			entry := badger.NewEntry(k, srcVal).WithMeta(srcMeta)
@@ -90,7 +93,7 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	return store.Transaction(TransactionArgs{
-		key:      fmt.Sprintf("%s@%s", fromKey, fromDB),
+		key:      fromRef,
 		readonly: false,
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
