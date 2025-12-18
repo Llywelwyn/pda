@@ -1,0 +1,2 @@
+$ pda get key@foo/bar --> FAIL
+Error: cannot get 'key@foo/bar': bad db format, use DB or @DB

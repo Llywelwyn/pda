@@ -1,0 +1,2 @@
+$ pda del-db foo/bar --> FAIL
+Error: cannot delete-db 'foo/bar': cannot parse db: bad db format, use DB or @DB

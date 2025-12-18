@@ -261,7 +261,7 @@ func ensureSubpath(base, target string) error {
 }
 
 func validateDBName(name string) error {
-	if strings.ContainsAny(name, `/\`) {
+	if strings.ContainsAny(name, `/\~`) {
 		return fmt.Errorf("bad db format, use DB or @DB")
 	}
 	return nil

@@ -1,0 +1,2 @@
+$ pda ls foo/bar --> FAIL
+Error: cannot ls 'foo/bar': cannot parse db: bad db format, use DB or @DB

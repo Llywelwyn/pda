@@ -24,7 +24,7 @@ Available Commands:
   mv          Move a key between (or within) databases.
   restore     Restore key/value pairs from an NDJSON dump
   set         Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
-  version     Show the version of your CLI tool
+  version     Display pda! version
 
 Flags:
   -h, --help   help for pda
