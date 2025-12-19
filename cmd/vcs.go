@@ -68,7 +68,7 @@ var vcsSnapshotCmd = &cobra.Command{
 			}
 		}
 
-		if err := runGit(repoDir, "add", "snapshots"); err != nil {
+		if err := runGit(repoDir, "add", storeDirName); err != nil {
 			return err
 		}
 
@@ -178,7 +178,8 @@ var vcsPushCmd = &cobra.Command{
 }
 
 var (
-	rewrite bool = false
+	storeDirName string = "stores"
+	rewrite      bool   = false
 )
 
 func init() {
@@ -280,6 +281,8 @@ func writeGitignore(repoDir string, rewrite bool) error {
 			"*",
 			"!/",
 			"!.gitignore",
+			"!" + storeDirName + "/",
+			"!" + storeDirName + "/*",
 			"",
 		}, "\n")
 		if err := os.WriteFile(path, []byte(content), 0o640); err != nil {
@@ -296,10 +299,11 @@ func writeGitignore(repoDir string, rewrite bool) error {
 }
 
 func snapshotDB(store *Store, repoDir, db string) error {
-	if err := os.MkdirAll(repoDir, 0o750); err != nil {
+	targetDir := filepath.Join(repoDir, storeDirName)
+	if err := os.MkdirAll(targetDir, 0o750); err != nil {
 		return err
 	}
-	target := filepath.Join(repoDir, fmt.Sprintf("%s.ndjson", db))
+	target := filepath.Join(targetDir, fmt.Sprintf("%s.ndjson", db))
 	f, err := os.Create(target)
 	if err != nil {
 		return err
@@ -408,7 +412,8 @@ func currentBranch(dir string) (string, error) {
 }
 
 func restoreAllSnapshots(store *Store, repoDir string) error {
-	entries, err := os.ReadDir(repoDir)
+	targetDir := filepath.Join(repoDir, storeDirName)
+	entries, err := os.ReadDir(targetDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("no repo directory found")
@@ -423,7 +428,7 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 			continue
 		}
 		dbName := strings.TrimSuffix(e.Name(), ".ndjson")
-		if err := restoreSnapshot(store, filepath.Join(repoDir, e.Name()), dbName); err != nil {
+		if err := restoreSnapshot(store, filepath.Join(targetDir, e.Name()), dbName); err != nil {
 			return fmt.Errorf("restore %q: %w", dbName, err)
 		}
 	}
@@ -531,7 +536,7 @@ func autoCommit(store *Store, dbs []string, message string) error {
 		}
 	}
 
-	if err := runGit(repoDir, "add", strings.Join(dbs, " ")); err != nil {
+	if err := runGit(repoDir, "add", storeDirName); err != nil {
 		return err
 	}
 
@@ -542,7 +547,7 @@ func snapshotOrRemoveDB(store *Store, repoDir, db string) error {
 	_, err := store.FindStore(db)
 	var nf errNotFound
 	if errors.As(err, &nf) {
-		snapPath := filepath.Join(repoDir, "snapshots", fmt.Sprintf("%s.ndjson", db))
+		snapPath := filepath.Join(repoDir, storeDirName, fmt.Sprintf("%s.ndjson", db))
 		if rmErr := os.Remove(snapPath); rmErr != nil && !os.IsNotExist(rmErr) {
 			return rmErr
 		}
