@@ -18,6 +18,23 @@
 
 <p align="center"></p><!-- spacer -->
 
+`pda!` is a command-line key-value store tool with:
+- [templates](https://github.com/Llywelwyn/pda#templates),
+- search and filtering with [globs](https://github.com/Llywelwyn/pda#globs),
+- Git-backed [version control](https://github.com/Llywelwyn/pda#git),
+- plaintext exports in multiple formats,
+- [secrets](https://github.com/Llywelwyn/pda#secrets),
+- support for [binary data](https://github.com/Llywelwyn/pda#binary),
+- [time-to-live](https://github.com/Llywelwyn/pda#ttl) support,
+
+and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
+
+<p align="center"></p><!-- spacer -->
+
+`pda` canonically stores key-value pairs in [badger](https://github.com/dgraph-io/badger) databases for the sake of speed, but supports exporting everything out to a handful of different plaintext formats too, including but not limited to [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON), and [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables. `pda` uses newline-delimited JSON for version control; a full snapshot of every existing key-value pair across all stores can be manually requested with the snapshot command, or auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
+
+<p align="center"></p><!-- spacer -->
+
 <div align="center">
   <a href="https://github.com/llywelwyn/pda/actions" rel="nofollow">
     <img src="https://github.com/Llywelwyn/pda/blob/main/vhs/intro.gif"
