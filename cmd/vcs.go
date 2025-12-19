@@ -196,7 +196,10 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	return writeGitignore(repoDir)
+	if err := writeGitignore(repoDir); err != nil {
+		return err
+	}
+	return restoreAllSnapshots(store, repoDir)
 }
 
 func vcsRepoRoot() (string, error) {
