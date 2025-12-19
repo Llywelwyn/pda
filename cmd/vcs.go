@@ -483,7 +483,8 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 	entries, err := os.ReadDir(targetDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("no existing stores found")
+			fmt.Printf("no existing stores found, not restoring")
+			return nil
 		}
 		return err
 	}
