@@ -199,6 +199,10 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 	if err := writeGitignore(repoDir); err != nil {
 		return err
 	}
+
+	if len(args) == 0 {
+		return nil
+	}
 	return restoreAllSnapshots(store, repoDir)
 }
 
@@ -479,7 +483,7 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 	entries, err := os.ReadDir(targetDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("no repo directory found")
+			return fmt.Errorf("no existing stores found")
 		}
 		return err
 	}
