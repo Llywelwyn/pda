@@ -165,8 +165,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(cmd.ErrOrStderr(), "Restored %d entries into @%s\n", restored, dbName)
-	msg := fmt.Sprintf("restore @%s (%d entries)", dbName, restored)
-	return autoCommit(store, []string{dbName}, msg)
+	return autoSync()
 }
 
 func restoreInput(cmd *cobra.Command) (io.Reader, io.Closer, error) {

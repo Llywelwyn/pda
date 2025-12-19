@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/dgraph-io/badger/v4"
 	gap "github.com/muesli/go-app-paths"
@@ -31,86 +30,26 @@ var vcsInitCmd = &cobra.Command{
 	RunE:         vcsInit,
 }
 
-var vcsGitignoreCmd = &cobra.Command{
-	Use:          "gitignore",
-	Short:        "generates a suitable .gitignore file",
-	SilenceUsage: true,
-	Args:         cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir, err := ensureVCSInitialized()
-		if err != nil {
-			return err
-		}
-
-		return writeGitignore(repoDir, rewrite)
-	},
-}
-
-var vcsSnapshotCmd = &cobra.Command{
-	Use:          "snapshot",
-	Short:        "commit a snapshot into the vcs",
+var vcsSyncCmd = &cobra.Command{
+	Use:          "sync",
+	Short:        "export, commit, pull, restore, and push changes",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir, err := ensureVCSInitialized()
-		if err != nil {
-			return err
-		}
-
 		store := &Store{}
-		stores, err := store.AllStores()
+		repoDir, err := preGitHook(store)
 		if err != nil {
 			return err
 		}
 
-		for _, db := range stores {
-			if err := snapshotDB(store, repoDir, db); err != nil {
-				return fmt.Errorf("snapshot %q: %w", db, err)
-			}
-		}
-
+		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
 		if err := runGit(repoDir, "add", storeDirName); err != nil {
 			return err
 		}
-
-		message := fmt.Sprintf("snapshot: %s", time.Now().UTC().Format(time.RFC3339))
-		if err := runGit(repoDir, "commit", "-m", message); err != nil {
-			fmt.Println(err.Error())
-			return nil
-		}
-
-		return nil
-	},
-}
-
-var vcsLogCmd = &cobra.Command{
-	Use:          "log",
-	Short:        "show git log for pda snapshots",
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-
-		repoDir, err := ensureVCSInitialized()
-		if err != nil {
-			return err
-		}
-		return runGit(repoDir, "log", "--oneline", "--graph", "--decorate")
-	},
-}
-
-var vcsPullCmd = &cobra.Command{
-	Use:          "pull",
-	Short:        "pull snapshots from remote and restore into local store",
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir, err := ensureVCSInitialized()
-		if err != nil {
+		if err := runGit(repoDir, "commit", "-m", msg); err != nil {
 			return err
 		}
 
-		clean, err := cmd.Flags().GetBool("clean")
-		if err != nil {
-			return err
-		}
-
+		pulled := false
 		hasUpstream, err := repoHasUpstream(repoDir)
 		if err != nil {
 			return err
@@ -119,50 +58,56 @@ var vcsPullCmd = &cobra.Command{
 			if err := runGit(repoDir, "pull"); err != nil {
 				return err
 			}
-		}
-
-		store := &Store{}
-		if clean {
-			fmt.Printf("this will remove all existing stores before restoring from version control. continue? (y/n)\n")
-			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot clean stores: %w", err)
-			}
-			if strings.ToLower(confirm) != "y" {
-				return fmt.Errorf("pull aborted; stores not removed")
-			}
-			if err := wipeAllStores(store); err != nil {
-				return err
-			}
-		}
-		if err := restoreAllSnapshots(store, repoDir); err != nil {
-			return err
-		}
-		return nil
-	},
-}
-
-var vcsPushCmd = &cobra.Command{
-	Use:          "push",
-	Short:        "push local snapshots to remote",
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repoDir, err := ensureVCSInitialized()
-		if err != nil {
-			return err
-		}
-		hasUpstream, err := repoHasUpstream(repoDir)
-		if err != nil {
-			return err
-		}
-		if !hasUpstream {
+			pulled = true
+		} else {
 			hasOrigin, err := repoHasRemote(repoDir, "origin")
 			if err != nil {
 				return err
 			}
-			if !hasOrigin {
-				return fmt.Errorf("no upstream configured; set a remote before pushing")
+			if hasOrigin {
+				branch, err := currentBranch(repoDir)
+				if err != nil {
+					return err
+				}
+				if branch == "" {
+					branch = "main"
+				}
+				fmt.Printf("running: git pull origin %s\n", branch)
+				if err := runGit(repoDir, "pull", "origin", branch); err != nil {
+					return err
+				}
+				pulled = true
+			} else {
+				fmt.Println("no remote configured; skipping pull")
 			}
+		}
+
+		if pulled {
+			conflicted, err := hasMergeConflicts(repoDir)
+			if err != nil {
+				return err
+			}
+			if conflicted {
+				return fmt.Errorf("git pull left merge conflicts; resolve and re-run sync")
+			}
+			if err := restoreAllSnapshots(store, repoDir); err != nil {
+				return err
+			}
+		}
+
+		hasUpstream, err = repoHasUpstream(repoDir)
+		if err != nil {
+			return err
+		}
+		if hasUpstream {
+			return runGit(repoDir, "push")
+		}
+
+		hasOrigin, err := repoHasRemote(repoDir, "origin")
+		if err != nil {
+			return err
+		}
+		if hasOrigin {
 			branch, err := currentBranch(repoDir)
 			if err != nil {
 				return err
@@ -173,25 +118,18 @@ var vcsPushCmd = &cobra.Command{
 			fmt.Printf("running: git push -u origin %s\n", branch)
 			return runGit(repoDir, "push", "-u", "origin", branch)
 		}
-		return runGit(repoDir, "push")
+
+		fmt.Println("no remote configured; skipping push")
+		return nil
 	},
 }
 
-var (
-	storeDirName string = "stores"
-	rewrite      bool   = false
-)
+const storeDirName = "stores"
 
 func init() {
 	vcsInitCmd.Flags().Bool("clean", false, "Remove existing VCS directory before initialising")
 	vcsCmd.AddCommand(vcsInitCmd)
-	vcsGitignoreCmd.Flags().BoolVarP(&rewrite, "rewrite", "r", false, "Rewrite existing .gitignore, if present")
-	vcsCmd.AddCommand(vcsGitignoreCmd)
-	vcsCmd.AddCommand(vcsSnapshotCmd)
-	vcsCmd.AddCommand(vcsLogCmd)
-	vcsPullCmd.Flags().Bool("clean", false, "Remove all existing stores before restoring snapshots")
-	vcsCmd.AddCommand(vcsPullCmd)
-	vcsCmd.AddCommand(vcsPushCmd)
+	vcsCmd.AddCommand(vcsSyncCmd)
 	rootCmd.AddCommand(vcsCmd)
 }
 
@@ -200,6 +138,7 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	store := &Store{}
 
 	clean, err := cmd.Flags().GetBool("clean")
 	if err != nil {
@@ -219,6 +158,21 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 		}
 		if err := os.RemoveAll(repoDir); err != nil {
 			return fmt.Errorf("cannot clean vcs dir: %w", err)
+		}
+
+		dbs, err := store.AllStores()
+		if err == nil && len(dbs) > 0 {
+			fmt.Printf("remove all existing stores? (y/n)\n")
+			var confirm string
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot clean stores: %w", err)
+			}
+			if strings.ToLower(confirm) != "y" {
+				return fmt.Errorf("aborted cleaning stores")
+			}
+			if err := wipeAllStores(store); err != nil {
+				return fmt.Errorf("cannot clean stores: %w", err)
+			}
 		}
 	}
 	if err := os.MkdirAll(filepath.Join(repoDir), 0o750); err != nil {
@@ -244,7 +198,7 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	return vcsGitignoreCmd.RunE(cmd, args)
+	return writeGitignore(repoDir)
 }
 
 func vcsRepoRoot() (string, error) {
@@ -273,9 +227,23 @@ func ensureVCSInitialized() (string, error) {
 	return repoDir, nil
 }
 
-func writeGitignore(repoDir string, rewrite bool) error {
+func preGitHook(store *Store) (string, error) {
+	repoDir, err := ensureVCSInitialized()
+	if err != nil {
+		return "", err
+	}
+	if store == nil {
+		store = &Store{}
+	}
+	if err := exportAllStores(store, repoDir); err != nil {
+		return "", err
+	}
+	return repoDir, nil
+}
+
+func writeGitignore(repoDir string) error {
 	path := filepath.Join(repoDir, ".gitignore")
-	if _, err := os.Stat(path); os.IsNotExist(err) || rewrite {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		content := strings.Join([]string{
 			"# generated by pda",
 			"*",
@@ -310,53 +278,56 @@ func snapshotDB(store *Store, repoDir, db string) error {
 	}
 	defer f.Close()
 
-	trans := TransactionArgs{
-		key:      "@" + db,
-		readonly: true,
-		sync:     true,
-		transact: func(tx *badger.Txn, k []byte) error {
-			it := tx.NewIterator(badger.DefaultIteratorOptions)
-			defer it.Close()
-			for it.Rewind(); it.Valid(); it.Next() {
-				item := it.Item()
-				key := item.KeyCopy(nil)
-				meta := item.UserMeta()
-				isSecret := meta&metaSecret != 0
-				expiresAt := item.ExpiresAt()
-				if err := item.Value(func(v []byte) error {
-					entry := dumpEntry{
-						Key:    string(key),
-						Secret: isSecret,
-					}
-					if expiresAt > 0 {
-						ts := int64(expiresAt)
-						entry.ExpiresAt = &ts
-					}
-					if utf8.Valid(v) {
-						entry.Encoding = "text"
-						entry.Value = string(v)
-					} else {
-						encodeBase64(&entry, v)
-					}
-					payload, err := json.Marshal(entry)
-					if err != nil {
-						return err
-					}
-					_, err = fmt.Fprintln(f, string(payload))
-					return err
-				}); err != nil {
-					return err
-				}
-			}
-			return nil
-		},
+	opts := DumpOptions{
+		Encoding:      "auto",
+		IncludeSecret: false,
 	}
-
-	if err := store.Transaction(trans); err != nil {
+	if err := dumpDatabase(store, db, f, opts); err != nil {
 		return err
 	}
 
 	return f.Sync()
+}
+
+// exportAllStores writes every Badger store to ndjson files under repoDir/stores
+// and removes stale snapshot files for deleted databases.
+func exportAllStores(store *Store, repoDir string) error {
+	stores, err := store.AllStores()
+	if err != nil {
+		return err
+	}
+
+	targetDir := filepath.Join(repoDir, storeDirName)
+	if err := os.MkdirAll(targetDir, 0o750); err != nil {
+		return err
+	}
+
+	current := make(map[string]struct{})
+	for _, db := range stores {
+		current[db] = struct{}{}
+		if err := snapshotDB(store, repoDir, db); err != nil {
+			return fmt.Errorf("snapshot %q: %w", db, err)
+		}
+	}
+
+	entries, err := os.ReadDir(targetDir)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() || filepath.Ext(e.Name()) != ".ndjson" {
+			continue
+		}
+		dbName := strings.TrimSuffix(e.Name(), ".ndjson")
+		if _, ok := current[dbName]; ok {
+			continue
+		}
+		if err := os.Remove(filepath.Join(targetDir, e.Name())); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func runGit(dir string, args ...string) error {
@@ -420,6 +391,8 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 		}
 		return err
 	}
+	snapshotDBs := make(map[string]struct{})
+
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
@@ -428,10 +401,35 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 			continue
 		}
 		dbName := strings.TrimSuffix(e.Name(), ".ndjson")
+		snapshotDBs[dbName] = struct{}{}
+
+		dbPath, err := store.FindStore(dbName)
+		if err == nil {
+			_ = os.RemoveAll(dbPath)
+		}
+
 		if err := restoreSnapshot(store, filepath.Join(targetDir, e.Name()), dbName); err != nil {
 			return fmt.Errorf("restore %q: %w", dbName, err)
 		}
 	}
+
+	localDBs, err := store.AllStores()
+	if err != nil {
+		return err
+	}
+	for _, db := range localDBs {
+		if _, ok := snapshotDBs[db]; ok {
+			continue
+		}
+		dbPath, err := store.FindStore(db)
+		if err != nil {
+			return err
+		}
+		if err := os.RemoveAll(dbPath); err != nil {
+			return fmt.Errorf("remove db '%s': %w", db, err)
+		}
+	}
+
 	return nil
 }
 
@@ -512,49 +510,22 @@ func restoreSnapshot(store *Store, path string, dbName string) error {
 	return nil
 }
 
-func autoCommit(store *Store, dbs []string, message string) error {
+// hasMergeConflicts returns true if there are files with unresolved merge
+// conflicts in the working tree.
+func hasMergeConflicts(dir string) (bool, error) {
+	cmd := exec.Command("git", "diff", "--name-only", "--diff-filter=U")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	return len(bytes.TrimSpace(out)) > 0, nil
+}
+
+func autoSync() error {
 	if !config.Git.AutoCommit {
 		return nil
 	}
-
-	repoDir, err := ensureVCSInitialized()
-	if err != nil {
-		return err
-	}
-
-	unique := make(map[string]struct{})
-	for _, db := range dbs {
-		if db == "" {
-			db = config.Store.DefaultStoreName
-		}
-		unique[db] = struct{}{}
-	}
-
-	for db := range unique {
-		if err := snapshotOrRemoveDB(store, repoDir, db); err != nil {
-			return err
-		}
-	}
-
-	if err := runGit(repoDir, "add", storeDirName); err != nil {
-		return err
-	}
-
-	return runGit(repoDir, "commit", "--allow-empty", "-m", message)
-}
-
-func snapshotOrRemoveDB(store *Store, repoDir, db string) error {
-	_, err := store.FindStore(db)
-	var nf errNotFound
-	if errors.As(err, &nf) {
-		snapPath := filepath.Join(repoDir, storeDirName, fmt.Sprintf("%s.ndjson", db))
-		if rmErr := os.Remove(snapPath); rmErr != nil && !os.IsNotExist(rmErr) {
-			return rmErr
-		}
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	return snapshotDB(store, repoDir, db)
+	// Reuse the sync command end-to-end (export, commit, pull/restore, push).
+	return vcsSyncCmd.RunE(vcsSyncCmd, []string{})
 }

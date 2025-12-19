@@ -27,9 +27,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/dgraph-io/badger/v4"
+	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
 
@@ -96,75 +99,13 @@ func dump(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
 	}
 
-	var matched bool
-	trans := TransactionArgs{
-		key:      targetDB,
-		readonly: true,
-		sync:     true,
-		transact: func(tx *badger.Txn, k []byte) error {
-			opts := badger.DefaultIteratorOptions
-			opts.PrefetchSize = 64
-			it := tx.NewIterator(opts)
-			defer it.Close()
-			for it.Rewind(); it.Valid(); it.Next() {
-				item := it.Item()
-				key := item.KeyCopy(nil)
-				if !globMatch(matchers, string(key)) {
-					continue
-				}
-				meta := item.UserMeta()
-				isSecret := meta&metaSecret != 0
-				if isSecret && !includeSecret {
-					continue
-				}
-				expiresAt := item.ExpiresAt()
-				if err := item.Value(func(v []byte) error {
-					entry := dumpEntry{
-						Key:    string(key),
-						Secret: isSecret,
-					}
-					if expiresAt > 0 {
-						ts := int64(expiresAt)
-						entry.ExpiresAt = &ts
-					}
-					switch mode {
-					case "base64":
-						encodeBase64(&entry, v)
-					case "text":
-						if err := encodeText(&entry, key, v); err != nil {
-							return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
-						}
-					case "auto":
-						if utf8.Valid(v) {
-							entry.Encoding = "text"
-							entry.Value = string(v)
-						} else {
-							encodeBase64(&entry, v)
-						}
-					}
-					payload, err := json.Marshal(entry)
-					if err != nil {
-						return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
-					}
-					fmt.Fprintln(cmd.OutOrStdout(), string(payload))
-					matched = true
-					return nil
-				}); err != nil {
-					return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
-				}
-			}
-			return nil
-		},
+	opts := DumpOptions{
+		Encoding:      mode,
+		IncludeSecret: includeSecret,
+		Matchers:      matchers,
+		GlobPatterns:  globPatterns,
 	}
-
-	if err := store.Transaction(trans); err != nil {
-		return err
-	}
-
-	if len(matchers) > 0 && !matched {
-		return fmt.Errorf("cannot dump '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
-	}
-	return nil
+	return dumpDatabase(store, strings.TrimPrefix(targetDB, "@"), cmd.OutOrStdout(), opts)
 }
 
 func init() {
@@ -186,5 +127,93 @@ func encodeText(entry *dumpEntry, key []byte, v []byte) error {
 	}
 	entry.Value = string(v)
 	entry.Encoding = "text"
+	return nil
+}
+
+// DumpOptions controls how a database is dumped to NDJSON.
+type DumpOptions struct {
+	Encoding      string
+	IncludeSecret bool
+	Matchers      []glob.Glob
+	GlobPatterns  []string
+}
+
+// dumpDatabase writes entries from dbName to w as NDJSON.
+func dumpDatabase(store *Store, dbName string, w io.Writer, opts DumpOptions) error {
+	targetDB := "@" + dbName
+	if opts.Encoding == "" {
+		opts.Encoding = "auto"
+	}
+
+	var matched bool
+	trans := TransactionArgs{
+		key:      targetDB,
+		readonly: true,
+		sync:     true,
+		transact: func(tx *badger.Txn, k []byte) error {
+			it := tx.NewIterator(badger.DefaultIteratorOptions)
+			defer it.Close()
+			for it.Rewind(); it.Valid(); it.Next() {
+				item := it.Item()
+				key := item.KeyCopy(nil)
+				if !globMatch(opts.Matchers, string(key)) {
+					continue
+				}
+				meta := item.UserMeta()
+				isSecret := meta&metaSecret != 0
+				if isSecret && !opts.IncludeSecret {
+					continue
+				}
+				expiresAt := item.ExpiresAt()
+				if err := item.Value(func(v []byte) error {
+					entry := dumpEntry{
+						Key:    string(key),
+						Secret: isSecret,
+					}
+					if expiresAt > 0 {
+						ts := int64(expiresAt)
+						entry.ExpiresAt = &ts
+					}
+					switch opts.Encoding {
+					case "base64":
+						encodeBase64(&entry, v)
+					case "text":
+						if err := encodeText(&entry, key, v); err != nil {
+							return err
+						}
+					case "auto":
+						if utf8.Valid(v) {
+							entry.Encoding = "text"
+							entry.Value = string(v)
+						} else {
+							encodeBase64(&entry, v)
+						}
+					default:
+						return fmt.Errorf("unsupported encoding '%s'", opts.Encoding)
+					}
+					payload, err := json.Marshal(entry)
+					if err != nil {
+						return err
+					}
+					_, err = fmt.Fprintln(w, string(payload))
+					if err == nil {
+						matched = true
+					}
+					return err
+				}); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
+
+	if err := store.Transaction(trans); err != nil {
+		return err
+	}
+
+	if len(opts.Matchers) > 0 && !matched {
+		return fmt.Errorf("No matches for pattern %s", formatGlobPatterns(opts.GlobPatterns))
+	}
 	return nil
 }

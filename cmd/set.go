@@ -124,8 +124,8 @@ func set(cmd *cobra.Command, args []string) error {
 	}
 
 	valSummary := summarizeValue(value)
-	msg := fmt.Sprintf("set %s: %s", spec.Display(), valSummary)
-	return autoCommit(store, []string{spec.DB}, msg)
+	_ = fmt.Sprintf("set %s: %s", spec.Display(), valSummary) // placeholder for future messaging
+	return autoSync()
 }
 
 func init() {

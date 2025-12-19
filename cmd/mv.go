@@ -142,8 +142,7 @@ func mv(cmd *cobra.Command, args []string) error {
 	}
 
 	if copy {
-		msg := fmt.Sprintf("cp %s -> %s", fromSpec.Display(), toSpec.Display())
-		return autoCommit(store, []string{fromSpec.DB, toSpec.DB}, msg)
+		return autoSync()
 	}
 
 	if err := store.Transaction(TransactionArgs{
@@ -157,8 +156,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("mv %s -> %s", fromSpec.Display(), toSpec.Display())
-	return autoCommit(store, []string{fromSpec.DB, toSpec.DB}, msg)
+	return autoSync()
 }
 
 var (

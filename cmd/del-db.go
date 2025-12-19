@@ -76,8 +76,7 @@ func delDb(cmd *cobra.Command, args []string) error {
 	if err := executeDeletion(path); err != nil {
 		return err
 	}
-	msg := fmt.Sprintf("rm-db @%s", dbName)
-	return autoCommit(store, []string{dbName}, msg)
+	return autoSync()
 }
 
 func executeDeletion(path string) error {

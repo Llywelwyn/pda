@@ -119,8 +119,7 @@ func del(cmd *cobra.Command, args []string) error {
 		dbs = append(dbs, spec.DB)
 		labels = append(labels, t.display)
 	}
-	msg := fmt.Sprintf("rm %s", strings.Join(labels, ", "))
-	return autoCommit(store, dbs, msg)
+	return autoSync()
 }
 
 func init() {
