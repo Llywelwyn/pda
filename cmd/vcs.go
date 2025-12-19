@@ -42,11 +42,6 @@ var vcsGitignoreCmd = &cobra.Command{
 			return err
 		}
 
-		rewrite, err := cmd.Flags().GetBool("rewrite")
-		if err != nil {
-			return err
-		}
-
 		return writeGitignore(repoDir, rewrite)
 	},
 }
@@ -182,10 +177,14 @@ var vcsPushCmd = &cobra.Command{
 	},
 }
 
+var (
+	rewrite bool = false
+)
+
 func init() {
 	vcsInitCmd.Flags().Bool("clean", false, "Remove existing VCS directory before initialising")
 	vcsCmd.AddCommand(vcsInitCmd)
-	vcsGitignoreCmd.Flags().BoolP("rewrite", "r", false, "Rewrite existing .gitignore, if present")
+	vcsGitignoreCmd.Flags().BoolVarP(&rewrite, "rewrite", "r", false, "Rewrite existing .gitignore, if present")
 	vcsCmd.AddCommand(vcsGitignoreCmd)
 	vcsCmd.AddCommand(vcsSnapshotCmd)
 	vcsCmd.AddCommand(vcsLogCmd)
@@ -409,11 +408,10 @@ func currentBranch(dir string) (string, error) {
 }
 
 func restoreAllSnapshots(store *Store, repoDir string) error {
-	snapDir := filepath.Join(repoDir, "snapshots")
-	entries, err := os.ReadDir(snapDir)
+	entries, err := os.ReadDir(repoDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("no snapshots directory found")
+			return fmt.Errorf("no repo directory found")
 		}
 		return err
 	}
@@ -425,7 +423,7 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 			continue
 		}
 		dbName := strings.TrimSuffix(e.Name(), ".ndjson")
-		if err := restoreSnapshot(store, filepath.Join(snapDir, e.Name()), dbName); err != nil {
+		if err := restoreSnapshot(store, filepath.Join(repoDir, e.Name()), dbName); err != nil {
 			return fmt.Errorf("restore %q: %w", dbName, err)
 		}
 	}
