@@ -49,7 +49,9 @@ type StoreConfig struct {
 }
 
 type GitConfig struct {
+	AutoFetch  bool `toml:"auto_fetch"`
 	AutoCommit bool `toml:"auto_commit"`
+	AutoPush   bool `toml:"auto_push"`
 }
 
 var (
@@ -82,7 +84,9 @@ func defaultConfig() Config {
 			AlwaysPromptDelete: true,
 		},
 		Git: GitConfig{
+			AutoFetch:  false,
 			AutoCommit: false,
+			AutoPush:   false,
 		},
 	}
 }
@@ -128,8 +132,16 @@ func loadConfig() (Config, error) {
 		cfg.Key.AlwaysPromptOverwrite = defaultConfig().Key.AlwaysPromptOverwrite
 	}
 
+	if !md.IsDefined("git", "auto_fetch") {
+		cfg.Git.AutoFetch = defaultConfig().Git.AutoFetch
+	}
+
 	if !md.IsDefined("git", "auto_commit") {
 		cfg.Git.AutoCommit = defaultConfig().Git.AutoCommit
+	}
+
+	if !md.IsDefined("git", "auto_push") {
+		cfg.Git.AutoPush = defaultConfig().Git.AutoPush
 	}
 
 	return cfg, nil

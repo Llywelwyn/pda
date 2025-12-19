@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,93 +36,90 @@ var vcsSyncCmd = &cobra.Command{
 	Short:        "export, commit, pull, restore, and push changes",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store := &Store{}
-		repoDir, err := preGitHook(store)
+		return sync(true)
+	},
+}
+
+func sync(manual bool) error {
+	store := &Store{}
+	repoDir, err := ensureVCSInitialized()
+	if err != nil {
+		return err
+	}
+
+	remoteInfo, err := repoRemoteInfo(repoDir)
+	if err != nil {
+		return err
+	}
+
+	var ahead int
+	if remoteInfo.Ref != "" {
+		if manual || config.Git.AutoFetch {
+			if err := runGit(repoDir, "fetch", "--prune"); err != nil {
+				return err
+			}
+		}
+		remoteAhead, behind, err := repoAheadBehind(repoDir, remoteInfo.Ref)
 		if err != nil {
 			return err
 		}
-
-		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
-		if err := runGit(repoDir, "add", storeDirName); err != nil {
-			return err
+		ahead = remoteAhead
+		if behind > 0 {
+			if ahead > 0 {
+				return fmt.Errorf("repo diverged from remote (ahead %d, behind %d); resolve manually", ahead, behind)
+			}
+			fmt.Printf("remote has %d commit(s) not present locally; discard local changes and pull? (y/n)\n", behind)
+			var confirm string
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot continue sync: %w", err)
+			}
+			if strings.ToLower(confirm) != "y" {
+				return fmt.Errorf("aborted sync")
+			}
+			dirty, err := repoHasChanges(repoDir)
+			if err != nil {
+				return err
+			}
+			if dirty {
+				stashMsg := fmt.Sprintf("pda sync: %s", time.Now().UTC().Format(time.RFC3339))
+				if err := runGit(repoDir, "stash", "push", "-u", "-m", stashMsg); err != nil {
+					return err
+				}
+			}
+			if err := pullRemote(repoDir, remoteInfo); err != nil {
+				return err
+			}
+			return restoreAllSnapshots(store, repoDir)
 		}
+	}
+
+	if err := exportAllStores(store, repoDir); err != nil {
+		return err
+	}
+	if err := runGit(repoDir, "add", storeDirName); err != nil {
+		return err
+	}
+	changed, err := repoHasStagedChanges(repoDir)
+	if err != nil {
+		return err
+	}
+	madeCommit := false
+	if !changed {
+		fmt.Println("no changes to commit")
+	} else {
+		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
 		if err := runGit(repoDir, "commit", "-m", msg); err != nil {
 			return err
 		}
-
-		pulled := false
-		hasUpstream, err := repoHasUpstream(repoDir)
-		if err != nil {
-			return err
+		madeCommit = true
+	}
+	if manual || config.Git.AutoPush {
+		if remoteInfo.Ref != "" && (madeCommit || ahead > 0) {
+			return pushRemote(repoDir, remoteInfo)
 		}
-		if hasUpstream {
-			if err := runGit(repoDir, "pull"); err != nil {
-				return err
-			}
-			pulled = true
-		} else {
-			hasOrigin, err := repoHasRemote(repoDir, "origin")
-			if err != nil {
-				return err
-			}
-			if hasOrigin {
-				branch, err := currentBranch(repoDir)
-				if err != nil {
-					return err
-				}
-				if branch == "" {
-					branch = "main"
-				}
-				fmt.Printf("running: git pull origin %s\n", branch)
-				if err := runGit(repoDir, "pull", "origin", branch); err != nil {
-					return err
-				}
-				pulled = true
-			} else {
-				fmt.Println("no remote configured; skipping pull")
-			}
-		}
-
-		if pulled {
-			conflicted, err := hasMergeConflicts(repoDir)
-			if err != nil {
-				return err
-			}
-			if conflicted {
-				return fmt.Errorf("git pull left merge conflicts; resolve and re-run sync")
-			}
-			if err := restoreAllSnapshots(store, repoDir); err != nil {
-				return err
-			}
-		}
-
-		hasUpstream, err = repoHasUpstream(repoDir)
-		if err != nil {
-			return err
-		}
-		if hasUpstream {
-			return runGit(repoDir, "push")
-		}
-
-		hasOrigin, err := repoHasRemote(repoDir, "origin")
-		if err != nil {
-			return err
-		}
-		if hasOrigin {
-			branch, err := currentBranch(repoDir)
-			if err != nil {
-				return err
-			}
-			if branch == "" {
-				branch = "main"
-			}
-			fmt.Printf("running: git push -u origin %s\n", branch)
-			return runGit(repoDir, "push", "-u", "origin", branch)
-		}
-
 		fmt.Println("no remote configured; skipping push")
-		return nil
-	},
+	}
+	return nil
 }
 
 const storeDirName = "stores"
@@ -227,20 +225,6 @@ func ensureVCSInitialized() (string, error) {
 	return repoDir, nil
 }
 
-func preGitHook(store *Store) (string, error) {
-	repoDir, err := ensureVCSInitialized()
-	if err != nil {
-		return "", err
-	}
-	if store == nil {
-		store = &Store{}
-	}
-	if err := exportAllStores(store, repoDir); err != nil {
-		return "", err
-	}
-	return repoDir, nil
-}
-
 func writeGitignore(repoDir string) error {
 	path := filepath.Join(repoDir, ".gitignore")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -336,6 +320,111 @@ func runGit(dir string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+type gitRemoteInfo struct {
+	Ref         string
+	HasUpstream bool
+	Remote      string
+	Branch      string
+}
+
+func repoRemoteInfo(dir string) (gitRemoteInfo, error) {
+	hasUpstream, err := repoHasUpstream(dir)
+	if err != nil {
+		return gitRemoteInfo{}, err
+	}
+	if hasUpstream {
+		return gitRemoteInfo{Ref: "@{u}", HasUpstream: true}, nil
+	}
+	hasOrigin, err := repoHasRemote(dir, "origin")
+	if err != nil {
+		return gitRemoteInfo{}, err
+	}
+	if !hasOrigin {
+		return gitRemoteInfo{}, nil
+	}
+	branch, err := currentBranch(dir)
+	if err != nil {
+		return gitRemoteInfo{}, err
+	}
+	if branch == "" {
+		branch = "main"
+	}
+	return gitRemoteInfo{
+		Ref:    fmt.Sprintf("origin/%s", branch),
+		Remote: "origin",
+		Branch: branch,
+	}, nil
+}
+
+func repoAheadBehind(dir, ref string) (int, int, error) {
+	cmd := exec.Command("git", "rev-list", "--left-right", "--count", "HEAD..."+ref)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, 0, err
+	}
+	fields := strings.Fields(string(out))
+	if len(fields) != 2 {
+		return 0, 0, fmt.Errorf("unexpected rev-list output: %q", strings.TrimSpace(string(out)))
+	}
+	ahead, err := strconv.Atoi(fields[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse ahead count: %w", err)
+	}
+	behind, err := strconv.Atoi(fields[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse behind count: %w", err)
+	}
+	return ahead, behind, nil
+}
+
+func repoHasChanges(dir string) (bool, error) {
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	return len(bytes.TrimSpace(out)) > 0, nil
+}
+
+func repoHasStagedChanges(dir string) (bool, error) {
+	cmd := exec.Command("git", "diff", "--cached", "--quiet")
+	cmd.Dir = dir
+	err := cmd.Run()
+	if err == nil {
+		return false, nil
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+		return true, nil
+	}
+	return false, err
+}
+
+func pullRemote(dir string, info gitRemoteInfo) error {
+	if info.HasUpstream {
+		return runGit(dir, "pull", "--ff-only")
+	}
+	if info.Remote != "" && info.Branch != "" {
+		fmt.Printf("running: git pull --ff-only %s %s\n", info.Remote, info.Branch)
+		return runGit(dir, "pull", "--ff-only", info.Remote, info.Branch)
+	}
+	fmt.Println("no remote configured; skipping pull")
+	return nil
+}
+
+func pushRemote(dir string, info gitRemoteInfo) error {
+	if info.HasUpstream {
+		return runGit(dir, "push")
+	}
+	if info.Remote != "" && info.Branch != "" {
+		fmt.Printf("running: git push -u %s %s\n", info.Remote, info.Branch)
+		return runGit(dir, "push", "-u", info.Remote, info.Branch)
+	}
+	fmt.Println("no remote configured; skipping push")
+	return nil
 }
 
 func repoHasUpstream(dir string) (bool, error) {
@@ -526,6 +615,5 @@ func autoSync() error {
 	if !config.Git.AutoCommit {
 		return nil
 	}
-	// Reuse the sync command end-to-end (export, commit, pull/restore, push).
-	return vcsSyncCmd.RunE(vcsSyncCmd, []string{})
+	return sync(false)
 }
