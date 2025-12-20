@@ -31,7 +31,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 
 <p align="center"></p><!-- spacer -->
 
-`pda` canonically stores key-value pairs in [badger](https://github.com/dgraph-io/badger) databases for the sake of speed, but supports exporting everything out to a handful of different plaintext formats too, including but not limited to [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON), and [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables. `pda` uses newline-delimited JSON for version control; a full snapshot of every existing key-value pair across all stores can be manually requested with the snapshot command, or auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
+`pda!` canonically stores key-value pairs in [badger](https://github.com/dgraph-io/badger) databases for the sake of speed, but supports exporting everything out to a handful of different plaintext formats too, including but not limited to [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON), and [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables. `pda!` uses newline-delimited JSON for version control; a full snapshot of every existing key-value pair across all stores can be manually requested with the snapshot command, or auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
 
 <p align="center"></p><!-- spacer -->
 
@@ -256,45 +256,22 @@ pda vcs init --clean
 
 <p align="center"></p><!-- spacer -->
 
-`pda vcs snapshot` to save a copy of your pda.
+`pda vcs sync` conducts a best-effort syncing of your local data with your Git repository. Any time you swap machine or know you've made changes outside of `pda!` itself, I recommend syncing.
+
+If you're ahead of your Git repo, syncing will add your changes, commit them, and push to remote if a remote is set. If you use multiple devices or otherwise end up behind your Git repo, syncing will detect this and give you a prompt: either stash your local changes and pull the latest commit from version control, or abort and fix the issue manually.
+
 ```bash
-pda vcs snapshot
-# functionally, dumps all databases into pda/vcs
-# to convert them into text, and commits them to
-# your local pda! repository.
+# Sync with Git
+pda vcs sync
 ```
 
-<p align="center"></p><!-- spacer -->
+`pda!` supports some automation via its config There are options for `git.auto_commit`, `git.auto_fetch`, and `git.auto_push`. Any of these operations will slow down `pda!` because it means exporting and versioning with every change, but it does effectively guarantee never managing to desync oneself and requiring manual fixes, and reduces the frequency with which one will need to manually run the sync command.
 
-`pda vcs push` and `pda vcs pull`
-```bash
-# Push to a remote repository.
-pda vcs push
+Auto-commit will commit changes immediately to the local Git repository any time `pda!` data is changed. Auto-fetch will fetch before committing any changes, but incurs a significant slowdown in operations simply due to the time a fetch takes. Auto-push will automatically push committed changes to the remote repository, if one is set.
 
-# Pull all keys from version control and restore them.
-pda vcs pull
+If auto-commit is set to false, auto-fetch and auto-push will do nothing. They can be considered to be additional steps taken during the commit process.
 
-# Or --clean to delete your existing stores before restoring.
-pda vcs pull --clean
-```
-
-<p align="center"></p><!-- spacer -->
-
-`pda vcs gitignore` to generate a .gitignore for pda!
-```bash
-# Generate if not present.
-pda vcs gitignore
-
-# Rewrite an existing .gitignore
-pda vcs gitignore --rewrite
-```
-
-<p align="center"></p><!-- spacer -->
-
-`pda vcs log` to view pda!'s Git log.
-```bash
-pda vcs log
-```
+Running `pda vcs sync` manually will always fetch, commit, and push - or if behind it will fetch, stash, and pull - regardless of config.
 
 <p align="center"></p><!-- spacer -->
 
