@@ -273,6 +273,8 @@ If auto-commit is set to false, auto-fetch and auto-push will do nothing. They c
 
 Running `pda vcs sync` manually will always fetch, commit, and push - or if behind it will fetch, stash, and pull - regardless of config.
 
+My general recommendation would be to enable `git.auto_commit`, and to run a manual `pda vcs sync` any time you're preparing to switch machines, or loading up a new one.
+
 <p align="center"></p><!-- spacer -->
 
 ### Templates
