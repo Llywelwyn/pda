@@ -1,2 +1,2 @@
 $ pda set a b
-$ pda del a
+$ pda rm a

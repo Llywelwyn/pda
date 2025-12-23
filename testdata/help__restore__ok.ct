@@ -3,28 +3,28 @@ $ pda restore --help
 Restore key/value pairs from an NDJSON dump
 
 Usage:
-  pda restore [STORE] [flags]
+  pda import [STORE] [flags]
 
 Aliases:
-  restore, import
+  import, restore
 
 Flags:
   -f, --file string       Path to an NDJSON dump (defaults to stdin)
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
-  -h, --help              help for restore
+  -h, --help              help for import
   -i, --interactive       Prompt before overwriting existing keys
 Restore key/value pairs from an NDJSON dump
 
 Usage:
-  pda restore [STORE] [flags]
+  pda import [STORE] [flags]
 
 Aliases:
-  restore, import
+  import, restore
 
 Flags:
   -f, --file string       Path to an NDJSON dump (defaults to stdin)
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
-  -h, --help              help for restore
+  -h, --help              help for import
   -i, --interactive       Prompt before overwriting existing keys

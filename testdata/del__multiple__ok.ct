@@ -1,6 +1,6 @@
 $ pda set a 1
 $ pda set b 2
-$ pda del a b
+$ pda rm a b
 $ pda get a --> FAIL
 Error: cannot get 'a': Key not found
 $ pda get b --> FAIL

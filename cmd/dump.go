@@ -45,9 +45,9 @@ type dumpEntry struct {
 }
 
 var dumpCmd = &cobra.Command{
-	Use:          "dump [STORE]",
+	Use:          "export [STORE]",
 	Short:        "Dump all key/value pairs as NDJSON",
-	Aliases:      []string{"export"},
+	Aliases:      []string{"dump"},
 	Args:         cobra.MaximumNArgs(1),
 	RunE:         dump,
 	SilenceUsage: true,

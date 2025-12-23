@@ -1,7 +1,7 @@
 $ pda set foo 1
 $ pda set bar1 2
 $ pda set bar2 3
-$ pda del foo --glob bar*
+$ pda rm foo --glob bar*
 $ pda get foo --> FAIL
 Error: cannot get 'foo': Key not found
 $ pda get bar1 --> FAIL

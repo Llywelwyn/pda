@@ -33,9 +33,9 @@ import (
 
 // delStoreCmd represents the set command
 var delStoreCmd = &cobra.Command{
-	Use:          "del-store STORE",
+	Use:          "remove-store STORE",
 	Short:        "Delete a store",
-	Aliases:      []string{"delete-store", "rm-store", "remove-store"},
+	Aliases:      []string{"rm-store", "rms"},
 	Args:         cobra.ExactArgs(1),
 	RunE:         delStore,
 	SilenceUsage: true,

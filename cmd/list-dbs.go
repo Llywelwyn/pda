@@ -31,7 +31,7 @@ import (
 var listStoresCmd = &cobra.Command{
 	Use:          "list-stores",
 	Short:        "List all stores",
-	Aliases:      []string{"ls-stores", "lsd"},
+	Aliases:      []string{"ls-stores", "lss"},
 	Args:         cobra.NoArgs,
 	RunE:         listStores,
 	SilenceUsage: true,

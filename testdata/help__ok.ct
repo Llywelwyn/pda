@@ -12,23 +12,29 @@ $ pda --help
 Usage:
   pda [command]
 
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  cp          Make a copy of a key
-  del         Delete one or more keys
-  del-store   Delete a store
-  dump        Dump all key/value pairs as NDJSON
-  get         Get the value of a key
-  git         Run any arbitrary command. Use with caution.
-  help        Help about any command
-  init        Initialise pda! version control
-  list        List the contents of a store
-  list-stores List all stores
-  mv          Move a key
-  restore     Restore key/value pairs from an NDJSON dump
-  set         Set a key to a given value
-  sync        Manually sync your stores with Git
-  version     Display pda! version
+Key commands:
+  copy         Make a copy of a key
+  get          Get the value of a key
+  list         List the contents of a store
+  move         Move a key
+  remove       Delete one or more keys
+  set          Set a key to a given value
+
+Store commands:
+  export       Dump all key/value pairs as NDJSON
+  import       Restore key/value pairs from an NDJSON dump
+  list-stores  List all stores
+  remove-store Delete a store
+
+Git commands:
+  git          Run any arbitrary command. Use with caution.
+  init         Initialise pda! version control
+  sync         Manually sync your stores with Git
+
+Additional Commands:
+  completion   Generate the autocompletion script for the specified shell
+  help         Help about any command
+  version      Display pda! version
 
 Flags:
   -h, --help   help for pda
@@ -46,23 +52,29 @@ Use "pda [command] --help" for more information about a command.
 Usage:
   pda [command]
 
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  cp          Make a copy of a key
-  del         Delete one or more keys
-  del-store   Delete a store
-  dump        Dump all key/value pairs as NDJSON
-  get         Get the value of a key
-  git         Run any arbitrary command. Use with caution.
-  help        Help about any command
-  init        Initialise pda! version control
-  list        List the contents of a store
-  list-stores List all stores
-  mv          Move a key
-  restore     Restore key/value pairs from an NDJSON dump
-  set         Set a key to a given value
-  sync        Manually sync your stores with Git
-  version     Display pda! version
+Key commands:
+  copy         Make a copy of a key
+  get          Get the value of a key
+  list         List the contents of a store
+  move         Move a key
+  remove       Delete one or more keys
+  set          Set a key to a given value
+
+Store commands:
+  export       Dump all key/value pairs as NDJSON
+  import       Restore key/value pairs from an NDJSON dump
+  list-stores  List all stores
+  remove-store Delete a store
+
+Git commands:
+  git          Run any arbitrary command. Use with caution.
+  init         Initialise pda! version control
+  sync         Manually sync your stores with Git
+
+Additional Commands:
+  completion   Generate the autocompletion script for the specified shell
+  help         Help about any command
+  version      Display pda! version
 
 Flags:
   -h, --help   help for pda

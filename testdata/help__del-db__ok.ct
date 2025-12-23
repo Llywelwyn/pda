@@ -1,24 +1,24 @@
-$ pda help del-store
-$ pda del-store --help
+$ pda help rms
+$ pda rms --help
 Delete a store
 
 Usage:
-  pda del-store STORE [flags]
+  pda remove-store STORE [flags]
 
 Aliases:
-  del-store, delete-store, rm-store, remove-store
+  remove-store, rm-store, rms
 
 Flags:
-  -h, --help          help for del-store
+  -h, --help          help for remove-store
   -i, --interactive   Prompt yes/no for each deletion
 Delete a store
 
 Usage:
-  pda del-store STORE [flags]
+  pda remove-store STORE [flags]
 
 Aliases:
-  del-store, delete-store, rm-store, remove-store
+  remove-store, rm-store, rms
 
 Flags:
-  -h, --help          help for del-store
+  -h, --help          help for remove-store
   -i, --interactive   Prompt yes/no for each deletion

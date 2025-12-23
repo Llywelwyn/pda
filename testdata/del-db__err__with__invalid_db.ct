@@ -1,2 +1,2 @@
-$ pda del-store foo/bar --> FAIL
+$ pda rms foo/bar --> FAIL
 Error: cannot delete-store 'foo/bar': cannot parse store: bad store format, use STORE or @STORE

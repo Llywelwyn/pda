@@ -6,7 +6,7 @@ Usage:
   pda list-stores [flags]
 
 Aliases:
-  list-stores, ls-stores, lsd
+  list-stores, ls-stores, lss
 
 Flags:
   -h, --help   help for list-stores
@@ -16,7 +16,7 @@ Usage:
   pda list-stores [flags]
 
 Aliases:
-  list-stores, ls-stores, lsd
+  list-stores, ls-stores, lss
 
 Flags:
   -h, --help   help for list-stores

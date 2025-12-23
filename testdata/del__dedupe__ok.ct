@@ -3,7 +3,7 @@ $ pda set bar 2
 $ pda ls
  bar  2 
  foo  1
-$ pda del foo --glob "*"
+$ pda rm foo --glob "*"
 $ pda get bar --> FAIL
 Error: cannot get 'bar': Key not found
 $ pda get foo --> FAIL

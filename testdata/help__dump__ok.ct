@@ -3,28 +3,28 @@ $ pda dump --help
 Dump all key/value pairs as NDJSON
 
 Usage:
-  pda dump [STORE] [flags]
+  pda export [STORE] [flags]
 
 Aliases:
-  dump, export
+  export, dump
 
 Flags:
   -e, --encoding string   value encoding: auto, base64, or text (default "auto")
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
-  -h, --help              help for dump
+  -h, --help              help for export
       --secret            Include entries marked as secret
 Dump all key/value pairs as NDJSON
 
 Usage:
-  pda dump [STORE] [flags]
+  pda export [STORE] [flags]
 
 Aliases:
-  dump, export
+  export, dump
 
 Flags:
   -e, --encoding string   value encoding: auto, base64, or text (default "auto")
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
-  -h, --help              help for dump
+  -h, --help              help for export
       --secret            Include entries marked as secret

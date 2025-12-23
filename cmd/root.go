@@ -47,4 +47,26 @@ func Execute() {
 	}
 }
 
-func init() {}
+func init() {
+	rootCmd.AddGroup(&cobra.Group{ID: "keys", Title: "Key commands:"})
+
+	setCmd.GroupID = "keys"
+	getCmd.GroupID = "keys"
+	mvCmd.GroupID = "keys"
+	cpCmd.GroupID = "keys"
+	delCmd.GroupID = "keys"
+	listCmd.GroupID = "keys"
+
+	rootCmd.AddGroup(&cobra.Group{ID: "stores", Title: "Store commands:"})
+
+	listStoresCmd.GroupID = "stores"
+	delStoreCmd.GroupID = "stores"
+	dumpCmd.GroupID = "stores"
+	restoreCmd.GroupID = "stores"
+
+	rootCmd.AddGroup(&cobra.Group{ID: "git", Title: "Git commands:"})
+
+	initCmd.GroupID = "git"
+	syncCmd.GroupID = "git"
+	gitCmd.GroupID = "git"
+}
