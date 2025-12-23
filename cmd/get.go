@@ -39,8 +39,8 @@ import (
 // getCmd represents the get command
 var getCmd = &cobra.Command{
 	Use:   "get KEY[@DB]",
-	Short: "Get a value for a key. Optionally specify a db.",
-	Long: `Get a value for a key. Optionally specify a db.
+	Short: "Get the value of a key",
+	Long: `Get the value of a key. Optionally specify a db.
 
 {{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
 additional argument after the initial KEY being fetched.

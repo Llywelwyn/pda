@@ -14,18 +14,20 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
-  cp          Make a copy of a key.
-  del         Delete one or more keys. Optionally specify a db.
-  del-db      Delete a database.
+  cp          Make a copy of a key
+  del         Delete one or more keys
+  del-db      Delete a database
   dump        Dump all key/value pairs as NDJSON
-  get         Get a value for a key. Optionally specify a db.
+  get         Get the value of a key
+  git         Run any arbitrary command. Use with caution.
   help        Help about any command
-  list        List the contents of a db.
-  list-dbs    List all dbs.
-  mv          Move a key between (or within) databases.
+  init        Initialise pda! version control
+  list        List the contents of a database
+  list-dbs    List all databases
+  mv          Move a key
   restore     Restore key/value pairs from an NDJSON dump
-  set         Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
-  vcs         Version control utilities
+  set         Set a key to a given value
+  sync        Manually sync your stores with Git
   version     Display pda! version
 
 Flags:
@@ -46,18 +48,20 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
-  cp          Make a copy of a key.
-  del         Delete one or more keys. Optionally specify a db.
-  del-db      Delete a database.
+  cp          Make a copy of a key
+  del         Delete one or more keys
+  del-db      Delete a database
   dump        Dump all key/value pairs as NDJSON
-  get         Get a value for a key. Optionally specify a db.
+  get         Get the value of a key
+  git         Run any arbitrary command. Use with caution.
   help        Help about any command
-  list        List the contents of a db.
-  list-dbs    List all dbs.
-  mv          Move a key between (or within) databases.
+  init        Initialise pda! version control
+  list        List the contents of a database
+  list-dbs    List all databases
+  mv          Move a key
   restore     Restore key/value pairs from an NDJSON dump
-  set         Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
-  vcs         Version control utilities
+  set         Set a key to a given value
+  sync        Manually sync your stores with Git
   version     Display pda! version
 
 Flags:

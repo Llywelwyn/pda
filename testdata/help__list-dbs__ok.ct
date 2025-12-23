@@ -1,6 +1,6 @@
 $ pda help list-dbs
 $ pda list-dbs --help
-List all dbs.
+List all databases
 
 Usage:
   pda list-dbs [flags]
@@ -10,7 +10,7 @@ Aliases:
 
 Flags:
   -h, --help   help for list-dbs
-List all dbs.
+List all databases
 
 Usage:
   pda list-dbs [flags]

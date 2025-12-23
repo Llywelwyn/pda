@@ -1,6 +1,6 @@
 $ pda help del
 $ pda del --help
-Delete one or more keys. Optionally specify a db.
+Delete one or more keys
 
 Usage:
   pda del KEY[@DB] [KEY[@DB] ...] [flags]
@@ -13,7 +13,7 @@ Flags:
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for del
   -i, --interactive       Prompt yes/no for each deletion
-Delete one or more keys. Optionally specify a db.
+Delete one or more keys
 
 Usage:
   pda del KEY[@DB] [KEY[@DB] ...] [flags]

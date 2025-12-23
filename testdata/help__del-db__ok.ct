@@ -1,6 +1,6 @@
 $ pda help del-db
 $ pda del-db --help
-Delete a database.
+Delete a database
 
 Usage:
   pda del-db DB [flags]
@@ -11,7 +11,7 @@ Aliases:
 Flags:
   -h, --help          help for del-db
   -i, --interactive   Prompt yes/no for each deletion
-Delete a database.
+Delete a database
 
 Usage:
   pda del-db DB [flags]

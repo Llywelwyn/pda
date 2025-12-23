@@ -33,7 +33,7 @@ import (
 
 var listCmd = &cobra.Command{
 	Use:          "list [DB]",
-	Short:        "List the contents of a db.",
+	Short:        "List the contents of a database",
 	Aliases:      []string{"ls"},
 	Args:         cobra.MaximumNArgs(1),
 	RunE:         list,

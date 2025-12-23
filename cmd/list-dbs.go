@@ -30,7 +30,7 @@ import (
 // delCmd represents the set command
 var listDbsCmd = &cobra.Command{
 	Use:          "list-dbs",
-	Short:        "List all dbs.",
+	Short:        "List all databases",
 	Aliases:      []string{"ls-dbs", "lsd"},
 	Args:         cobra.NoArgs,
 	RunE:         listDbs,

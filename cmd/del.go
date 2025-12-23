@@ -35,7 +35,7 @@ import (
 // delCmd represents the set command
 var delCmd = &cobra.Command{
 	Use:          "del KEY[@DB] [KEY[@DB] ...]",
-	Short:        "Delete one or more keys. Optionally specify a db.",
+	Short:        "Delete one or more keys",
 	Aliases:      []string{"delete", "rm", "remove"},
 	Args:         cobra.ArbitraryArgs,
 	RunE:         del,

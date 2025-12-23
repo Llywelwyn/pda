@@ -33,7 +33,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:          "init [remote-url]",
-	Short:        "Initialise (or fetch) Git-backed version control.",
+	Short:        "Initialise pda! version control",
 	SilenceUsage: true,
 	Args:         cobra.MaximumNArgs(1),
 	RunE:         vcsInit,

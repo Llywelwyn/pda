@@ -1,6 +1,6 @@
 $ pda help get
 $ pda get --help
-Get a value for a key. Optionally specify a db.
+Get the value of a key. Optionally specify a db.
 
 {{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
 additional argument after the initial KEY being fetched.
@@ -21,7 +21,7 @@ Flags:
       --no-template      directly output template syntax
   -c, --run              execute the result as a shell command
       --secret           display values marked as secret
-Get a value for a key. Optionally specify a db.
+Get the value of a key. Optionally specify a db.
 
 {{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
 additional argument after the initial KEY being fetched.
