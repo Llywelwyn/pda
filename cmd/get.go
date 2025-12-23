@@ -54,6 +54,22 @@ For example:
 	SilenceUsage: true,
 }
 
+var runCmd = &cobra.Command{
+	Use:   "run KEY[@STORE]",
+	Short: "Get the value of a key and execute it",
+	Long: `Get the value of a key and execute it as a shell command. Optionally specify a store.
+
+{{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
+additional argument after the initial KEY being fetched.
+
+For example:
+	pda set greeting 'Hello, {{ .NAME }}!'
+	pda run greeting NAME=World`,
+	Args:         cobra.MinimumNArgs(1),
+	RunE:         run,
+	SilenceUsage: true,
+}
+
 func get(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
@@ -91,11 +107,6 @@ func get(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 
-	run, err := cmd.Flags().GetBool("run")
-	if err != nil {
-		return fmt.Errorf("cannot get '%s': %v", args[0], err)
-	}
-
 	noTemplate, err := cmd.Flags().GetBool("no-template")
 	if err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
@@ -112,8 +123,8 @@ func get(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if run {
-		return runCmd(string(v))
+	if runFlag {
+		return runShellCommand(string(v))
 	}
 
 	store.Print("%s", binary, v)
@@ -194,7 +205,7 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func runCmd(command string) error {
+func runShellCommand(command string) error {
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/sh"
@@ -218,10 +229,22 @@ func runCmd(command string) error {
 	return nil
 }
 
+func run(cmd *cobra.Command, args []string) error {
+	runFlag = true
+	return get(cmd, args)
+}
+
+var runFlag bool
+
 func init() {
 	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
 	getCmd.Flags().Bool("secret", false, "display values marked as secret")
-	getCmd.Flags().BoolP("run", "c", false, "execute the result as a shell command")
+	getCmd.Flags().BoolVarP(&runFlag, "run", "c", false, "execute the result as a shell command")
 	getCmd.Flags().Bool("no-template", false, "directly output template syntax")
 	rootCmd.AddCommand(getCmd)
+
+	runCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
+	runCmd.Flags().Bool("secret", false, "display values marked as secret")
+	runCmd.Flags().Bool("no-template", false, "directly output template syntax")
+	rootCmd.AddCommand(runCmd)
 }

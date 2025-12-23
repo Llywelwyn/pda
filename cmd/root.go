@@ -52,6 +52,7 @@ func init() {
 
 	setCmd.GroupID = "keys"
 	getCmd.GroupID = "keys"
+	runCmd.GroupID = "keys"
 	mvCmd.GroupID = "keys"
 	cpCmd.GroupID = "keys"
 	delCmd.GroupID = "keys"

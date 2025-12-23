@@ -17,6 +17,7 @@ Key commands:
   list         List the contents of a store
   move         Move a key
   remove       Delete one or more keys
+  run          Get the value of a key and execute it
   set          Set a key to a given value
 
 Store commands:

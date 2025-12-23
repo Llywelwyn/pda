@@ -81,6 +81,7 @@ Key commands:
   list         List the contents of a store
   move         Move a key
   remove       Delete one or more keys
+  run          Get the value of a key and execute it
   set          Set a key to a given value
 
 Store commands:
@@ -143,7 +144,8 @@ pda get name
 # Alice
 
 # Or run it directly.
-pda get name --run
+pda run name
+# same as: pda get name --run
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -651,14 +653,14 @@ PDA_DATA=/tmp/stores pda set key value
 
 <p align="center"></p><!-- spacer -->
 
-`pda get --run` uses `SHELL` for command execution.
+`pda run` (or `pda get --run`) uses `SHELL` for command execution.
 ```bash
 # SHELL is usually your current shell.
-pda get script --run
+pda run script
 
 # An empty SHELL falls back to using 'sh'.
 export SHELL=""
-pda get script --run
+pda run script
 ```
 
 <p align="center"></p><!-- spacer -->
