@@ -632,6 +632,24 @@ Config is stored in your user config directory in `pda/config.toml`.
 
 Usually: `~/.config/pda/config.toml`
 
+```
+# ~/.config/pda/config.toml
+display_ascii_art = true
+
+[key]
+always_prompt_delete = false
+always_prompt_overwrite = false
+
+[store]
+default_store_name = "default"
+always_prompt_delete = true
+
+[git]
+auto_fetch = false
+auto_commit = true
+auto_push = false
+```
+
 `PDA_CONFIG` overrides the default config location. pda! will look for a config.toml file in that directory.
 ```bash
 PDA_CONFIG=/tmp/config/ pda set key value
