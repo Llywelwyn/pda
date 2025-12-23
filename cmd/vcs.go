@@ -11,200 +11,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/dgraph-io/badger/v4"
 	gap "github.com/muesli/go-app-paths"
-	"github.com/spf13/cobra"
 )
 
-var vcsCmd = &cobra.Command{
-	Use:   "vcs",
-	Short: "Version control utilities",
-}
-
-var vcsInitCmd = &cobra.Command{
-	Use:          "init [remote-url]",
-	Short:        "Initialise or fetch a Git repo for version control",
-	SilenceUsage: true,
-	Args:         cobra.MaximumNArgs(1),
-	RunE:         vcsInit,
-}
-
-var vcsSyncCmd = &cobra.Command{
-	Use:          "sync",
-	Short:        "export, commit, pull, restore, and push changes",
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return sync(true)
-	},
-}
-
-func sync(manual bool) error {
-	store := &Store{}
-	repoDir, err := ensureVCSInitialized()
-	if err != nil {
-		return err
-	}
-
-	remoteInfo, err := repoRemoteInfo(repoDir)
-	if err != nil {
-		return err
-	}
-
-	var ahead int
-	if remoteInfo.Ref != "" {
-		if manual || config.Git.AutoFetch {
-			if err := runGit(repoDir, "fetch", "--prune"); err != nil {
-				return err
-			}
-		}
-		remoteAhead, behind, err := repoAheadBehind(repoDir, remoteInfo.Ref)
-		if err != nil {
-			return err
-		}
-		ahead = remoteAhead
-		if behind > 0 {
-			if ahead > 0 {
-				return fmt.Errorf("repo diverged from remote (ahead %d, behind %d); resolve manually", ahead, behind)
-			}
-			fmt.Printf("remote has %d commit(s) not present locally; discard local changes and pull? (y/n)\n", behind)
-			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot continue sync: %w", err)
-			}
-			if strings.ToLower(confirm) != "y" {
-				return fmt.Errorf("aborted sync")
-			}
-			dirty, err := repoHasChanges(repoDir)
-			if err != nil {
-				return err
-			}
-			if dirty {
-				stashMsg := fmt.Sprintf("pda sync: %s", time.Now().UTC().Format(time.RFC3339))
-				if err := runGit(repoDir, "stash", "push", "-u", "-m", stashMsg); err != nil {
-					return err
-				}
-			}
-			if err := pullRemote(repoDir, remoteInfo); err != nil {
-				return err
-			}
-			return restoreAllSnapshots(store, repoDir)
-		}
-	}
-
-	if err := exportAllStores(store, repoDir); err != nil {
-		return err
-	}
-	if err := runGit(repoDir, "add", storeDirName); err != nil {
-		return err
-	}
-	changed, err := repoHasStagedChanges(repoDir)
-	if err != nil {
-		return err
-	}
-	madeCommit := false
-	if !changed {
-		fmt.Println("no changes to commit")
-	} else {
-		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
-		if err := runGit(repoDir, "commit", "-m", msg); err != nil {
-			return err
-		}
-		madeCommit = true
-	}
-	if manual || config.Git.AutoPush {
-		if remoteInfo.Ref != "" && (madeCommit || ahead > 0) {
-			return pushRemote(repoDir, remoteInfo)
-		}
-		fmt.Println("no remote configured; skipping push")
-	}
-	return nil
-}
-
 const storeDirName = "stores"
-
-func init() {
-	vcsInitCmd.Flags().Bool("clean", false, "Remove existing VCS directory before initialising")
-	vcsCmd.AddCommand(vcsInitCmd)
-	vcsCmd.AddCommand(vcsSyncCmd)
-	rootCmd.AddCommand(vcsCmd)
-}
-
-func vcsInit(cmd *cobra.Command, args []string) error {
-	repoDir, err := vcsRepoRoot()
-	if err != nil {
-		return err
-	}
-	store := &Store{}
-
-	clean, err := cmd.Flags().GetBool("clean")
-	if err != nil {
-		return err
-	}
-	if clean {
-		entries, err := os.ReadDir(repoDir)
-		if err == nil && len(entries) > 0 {
-			fmt.Printf("remove existing VCS directory '%s'? (y/n)\n", repoDir)
-			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot clean vcs dir: %w", err)
-			}
-			if strings.ToLower(confirm) != "y" {
-				return fmt.Errorf("aborted cleaning vcs dir")
-			}
-		}
-		if err := os.RemoveAll(repoDir); err != nil {
-			return fmt.Errorf("cannot clean vcs dir: %w", err)
-		}
-
-		dbs, err := store.AllStores()
-		if err == nil && len(dbs) > 0 {
-			fmt.Printf("remove all existing stores? (y/n)\n")
-			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot clean stores: %w", err)
-			}
-			if strings.ToLower(confirm) != "y" {
-				return fmt.Errorf("aborted cleaning stores")
-			}
-			if err := wipeAllStores(store); err != nil {
-				return fmt.Errorf("cannot clean stores: %w", err)
-			}
-		}
-	}
-	if err := os.MkdirAll(filepath.Join(repoDir), 0o750); err != nil {
-		return err
-	}
-
-	gitDir := filepath.Join(repoDir, ".git")
-	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
-		if len(args) == 1 {
-			remote := args[0]
-			fmt.Printf("running: git clone %s %s\n", remote, repoDir)
-			if err := runGit("", "clone", remote, repoDir); err != nil {
-				return err
-			}
-		} else {
-			fmt.Printf("running: git init\n")
-			if err := runGit(repoDir, "init"); err != nil {
-				return err
-			}
-		}
-	} else {
-		fmt.Println("vcs already initialised; use --clean to reinitialise")
-		return nil
-	}
-
-	if err := writeGitignore(repoDir); err != nil {
-		return err
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-	return restoreAllSnapshots(store, repoDir)
-}
 
 func vcsRepoRoot() (string, error) {
 	scope := gap.NewVendorScope(gap.User, "pda", "vcs")
@@ -225,7 +37,7 @@ func ensureVCSInitialized() (string, error) {
 	}
 	if _, err := os.Stat(filepath.Join(repoDir, ".git")); err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("vcs repository not initialised; run 'pda vcs init' first")
+			return "", fmt.Errorf("vcs repository not initialised; run 'pda init' first")
 		}
 		return "", err
 	}
@@ -617,11 +429,4 @@ func hasMergeConflicts(dir string) (bool, error) {
 		return false, err
 	}
 	return len(bytes.TrimSpace(out)) > 0, nil
-}
-
-func autoSync() error {
-	if !config.Git.AutoCommit {
-		return nil
-	}
-	return sync(false)
 }
