@@ -32,9 +32,9 @@ import (
 var gitCmd = &cobra.Command{
 	Use:   "git [args...]",
 	Short: "Run any arbitrary command. Use with caution.",
-	Long: `Run any arbitrary command. Use with caution.
+Long: `Run any arbitrary command. Use with caution.
 
-Be wary of how pda! version control operates before using this. Regular data is stored in "PDA_DATA/pda/stores" as a database; the Git repository is in "PDA_DATA/pda/vcs" and contains a replica of the database stored as plaintext.
+Be wary of how pda! version control operates before using this. Regular data is stored in "PDA_DATA/pda/stores" as a store; the Git repository is in "PDA_DATA/pda/vcs" and contains a plaintext replica of the store data.
 
 The regular sync command (or auto-syncing) exports pda! data into plaintext in the Git repository. If you manually modify the repository without using the built-in commands, or exporting your data to the folder in the correct format first, you may desynchronize your repository.`,
 	Args:               cobra.ArbitraryArgs,

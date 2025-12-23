@@ -1,24 +1,24 @@
-$ pda help del-db
-$ pda del-db --help
-Delete a database
+$ pda help del-store
+$ pda del-store --help
+Delete a store
 
 Usage:
-  pda del-db DB [flags]
+  pda del-store STORE [flags]
 
 Aliases:
-  del-db, delete-db, rm-db, remove-db
+  del-store, delete-store, rm-store, remove-store
 
 Flags:
-  -h, --help          help for del-db
+  -h, --help          help for del-store
   -i, --interactive   Prompt yes/no for each deletion
-Delete a database
+Delete a store
 
 Usage:
-  pda del-db DB [flags]
+  pda del-store STORE [flags]
 
 Aliases:
-  del-db, delete-db, rm-db, remove-db
+  del-store, delete-store, rm-store, remove-store
 
 Flags:
-  -h, --help          help for del-db
+  -h, --help          help for del-store
   -i, --interactive   Prompt yes/no for each deletion

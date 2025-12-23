@@ -3,7 +3,7 @@ $ pda restore --help
 Restore key/value pairs from an NDJSON dump
 
 Usage:
-  pda restore [DB] [flags]
+  pda restore [STORE] [flags]
 
 Aliases:
   restore, import
@@ -17,7 +17,7 @@ Flags:
 Restore key/value pairs from an NDJSON dump
 
 Usage:
-  pda restore [DB] [flags]
+  pda restore [STORE] [flags]
 
 Aliases:
   restore, import

@@ -31,7 +31,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 
 <p align="center"></p><!-- spacer -->
 
-`pda!` canonically stores key-value pairs in [badger](https://github.com/dgraph-io/badger) databases for the sake of speed, but supports exporting everything out to a handful of different plaintext formats too, including but not limited to [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON), and [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables. `pda!` uses newline-delimited JSON for version control; a full snapshot of every existing key-value pair across all stores can be manually requested with the snapshot command, or auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
+`pda!` canonically stores key-value pairs in [badger](https://github.com/dgraph-io/badger) stores for the sake of speed, but supports exporting everything out to a handful of different plaintext formats too, including but not limited to [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON), and [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables. `pda!` uses newline-delimited JSON for version control; a full snapshot of every existing key-value pair across all stores can be manually requested with the snapshot command, or auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
 
 <p align="center"></p><!-- spacer -->
 
@@ -69,10 +69,10 @@ Available Commands:
     cp          # Copy a value.
     mv          # Move a value.
     del         # Delete a value.
-    del-db      # Delete a whole database.
-    list-dbs    # List all databases.
-    dump        # Export a database as NDJSON.
-    restore     # Imports NDJSON into a database.
+    del-store   # Delete a whole store.
+    list-stores # List all stores.
+    dump        # Export a store as NDJSON.
+    restore     # Imports NDJSON into a store.
     init        # Initialise or fetch a Git repo for version control.
     sync        # Export, commit, pull, restore, and push changes.
     git         # Run git in the pda VCS repository.
@@ -215,11 +215,11 @@ pda restore --glob a* -f my_backup
 
 You can have as many stores as you want.
 ```bash
-# Save to a spceific store.
+# Save to a specific store.
 pda set alice@birthdays 11/11/1998
 
 # See which stores have contents.
-pda list-dbs
+pda list-stores
 # @default
 # @birthdays
 
@@ -235,7 +235,7 @@ pda dump birthdays > friends_birthdays
 pda restore birthdays < friends_birthdays
 
 # Delete it.
-pda del-db birthdays --force
+pda del-store birthdays --force
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -378,7 +378,7 @@ pda get hello --no-template
 
 Globs can be used in a few commands where their use makes sense. `gobwas/glob` is used for matching.
 
-Searching for globs is inherently slower than looking for direct matches, so globs are opt-in via a repeatable `--glob/-g` flag by default rather than having every string treated as a glob by default. Realistically the performance impact will be negligible unless you have many thousands of entries in the same database.
+Searching for globs is inherently slower than looking for direct matches, so globs are opt-in via a repeatable `--glob/-g` flag by default rather than having every string treated as a glob by default. Realistically the performance impact will be negligible unless you have many thousands of entries in the same store.
 
 <p align="center"></p><!-- spacer -->
 

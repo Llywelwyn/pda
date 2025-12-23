@@ -36,7 +36,7 @@ import (
 )
 
 var restoreCmd = &cobra.Command{
-	Use:          "restore [DB]",
+	Use:          "restore [STORE]",
 	Short:        "Restore key/value pairs from an NDJSON dump",
 	Aliases:      []string{"import"},
 	Args:         cobra.MaximumNArgs(1),

@@ -45,7 +45,7 @@ type dumpEntry struct {
 }
 
 var dumpCmd = &cobra.Command{
-	Use:          "dump [DB]",
+	Use:          "dump [STORE]",
 	Short:        "Dump all key/value pairs as NDJSON",
 	Aliases:      []string{"export"},
 	Args:         cobra.MaximumNArgs(1),
@@ -130,7 +130,7 @@ func encodeText(entry *dumpEntry, key []byte, v []byte) error {
 	return nil
 }
 
-// DumpOptions controls how a database is dumped to NDJSON.
+// DumpOptions controls how a store is dumped to NDJSON.
 type DumpOptions struct {
 	Encoding      string
 	IncludeSecret bool

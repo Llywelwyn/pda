@@ -176,10 +176,10 @@ func (s *Store) parseDB(v string, defaults bool) (string, error) {
 		if defaults {
 			return config.Store.DefaultStoreName, nil
 		}
-		return "", fmt.Errorf("cannot parse db: bad db format, use DB or @DB")
+		return "", fmt.Errorf("cannot parse store: bad store format, use STORE or @STORE")
 	}
 	if err := validateDBName(db); err != nil {
-		return "", fmt.Errorf("cannot parse db: %w", err)
+		return "", fmt.Errorf("cannot parse store: %w", err)
 	}
 	return strings.ToLower(db), nil
 }
@@ -262,7 +262,7 @@ func ensureSubpath(base, target string) error {
 
 func validateDBName(name string) error {
 	if strings.ContainsAny(name, `/\~`) {
-		return fmt.Errorf("bad db format, use DB or @DB")
+		return fmt.Errorf("bad store format, use STORE or @STORE")
 	}
 	return nil
 }
@@ -279,7 +279,7 @@ func formatExpiry(expiresAt uint64) string {
 	return fmt.Sprintf("%s (in %s)", expiry.Format(time.RFC3339), remaining.Round(time.Second))
 }
 
-// Keys returns all keys for the provided database name (or default if empty).
+// Keys returns all keys for the provided store name (or default if empty).
 // Keys are returned in lowercase to mirror stored key format.
 func (s *Store) Keys(dbName string) ([]string, error) {
 	db, err := s.open(dbName)

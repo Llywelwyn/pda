@@ -1,2 +1,2 @@
-$ pda del-db foo/bar --> FAIL
-Error: cannot delete-db 'foo/bar': cannot parse db: bad db format, use DB or @DB
+$ pda del-store foo/bar --> FAIL
+Error: cannot delete-store 'foo/bar': cannot parse store: bad store format, use STORE or @STORE

@@ -32,8 +32,8 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use:          "list [DB]",
-	Short:        "List the contents of a database",
+	Use:          "list [STORE]",
+	Short:        "List the contents of a store",
 	Aliases:      []string{"ls"},
 	Args:         cobra.MaximumNArgs(1),
 	RunE:         list,
@@ -52,7 +52,7 @@ func list(cmd *cobra.Command, args []string) error {
 		if _, err := store.FindStore(dbName); err != nil {
 			var notFound errNotFound
 			if errors.As(err, &notFound) {
-				return fmt.Errorf("cannot ls '%s': No such DB", args[0])
+				return fmt.Errorf("cannot ls '%s': No such store", args[0])
 			}
 			return fmt.Errorf("cannot ls '%s': %v", args[0], err)
 		}

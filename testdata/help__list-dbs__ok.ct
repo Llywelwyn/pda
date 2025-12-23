@@ -1,22 +1,22 @@
-$ pda help list-dbs
-$ pda list-dbs --help
-List all databases
+$ pda help list-stores
+$ pda list-stores --help
+List all stores
 
 Usage:
-  pda list-dbs [flags]
+  pda list-stores [flags]
 
 Aliases:
-  list-dbs, ls-dbs, lsd
+  list-stores, ls-stores, lsd
 
 Flags:
-  -h, --help   help for list-dbs
-List all databases
+  -h, --help   help for list-stores
+List all stores
 
 Usage:
-  pda list-dbs [flags]
+  pda list-stores [flags]
 
 Aliases:
-  list-dbs, ls-dbs, lsd
+  list-stores, ls-stores, lsd
 
 Flags:
-  -h, --help   help for list-dbs
+  -h, --help   help for list-stores

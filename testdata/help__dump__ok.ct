@@ -3,7 +3,7 @@ $ pda dump --help
 Dump all key/value pairs as NDJSON
 
 Usage:
-  pda dump [DB] [flags]
+  pda dump [STORE] [flags]
 
 Aliases:
   dump, export
@@ -17,7 +17,7 @@ Flags:
 Dump all key/value pairs as NDJSON
 
 Usage:
-  pda dump [DB] [flags]
+  pda dump [STORE] [flags]
 
 Aliases:
   dump, export

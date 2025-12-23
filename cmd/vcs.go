@@ -93,7 +93,7 @@ func snapshotDB(store *Store, repoDir, db string) error {
 }
 
 // exportAllStores writes every Badger store to ndjson files under repoDir/stores
-// and removes stale snapshot files for deleted databases.
+// and removes stale snapshot files for deleted stores.
 func exportAllStores(store *Store, repoDir string) error {
 	stores, err := store.AllStores()
 	if err != nil {
@@ -335,7 +335,7 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 			return err
 		}
 		if err := os.RemoveAll(dbPath); err != nil {
-			return fmt.Errorf("remove db '%s': %w", db, err)
+			return fmt.Errorf("remove store '%s': %w", db, err)
 		}
 	}
 
@@ -353,7 +353,7 @@ func wipeAllStores(store *Store) error {
 			return err
 		}
 		if err := os.RemoveAll(path); err != nil {
-			return fmt.Errorf("remove db '%s': %w", db, err)
+			return fmt.Errorf("remove store '%s': %w", db, err)
 		}
 	}
 	return nil

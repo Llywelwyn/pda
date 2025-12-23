@@ -28,20 +28,20 @@ import (
 )
 
 // delCmd represents the set command
-var listDbsCmd = &cobra.Command{
-	Use:          "list-dbs",
-	Short:        "List all databases",
-	Aliases:      []string{"ls-dbs", "lsd"},
+var listStoresCmd = &cobra.Command{
+	Use:          "list-stores",
+	Short:        "List all stores",
+	Aliases:      []string{"ls-stores", "lsd"},
 	Args:         cobra.NoArgs,
-	RunE:         listDbs,
+	RunE:         listStores,
 	SilenceUsage: true,
 }
 
-func listDbs(cmd *cobra.Command, args []string) error {
+func listStores(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	dbs, err := store.AllStores()
 	if err != nil {
-		return fmt.Errorf("cannot list-dbs: %v", err)
+		return fmt.Errorf("cannot list-stores: %v", err)
 	}
 	for _, db := range dbs {
 		fmt.Println("@" + db)
@@ -50,5 +50,5 @@ func listDbs(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	rootCmd.AddCommand(listDbsCmd)
+	rootCmd.AddCommand(listStoresCmd)
 }

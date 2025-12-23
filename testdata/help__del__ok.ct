@@ -3,7 +3,7 @@ $ pda del --help
 Delete one or more keys
 
 Usage:
-  pda del KEY[@DB] [KEY[@DB] ...] [flags]
+  pda del KEY[@STORE] [KEY[@STORE] ...] [flags]
 
 Aliases:
   del, delete, rm, remove
@@ -16,7 +16,7 @@ Flags:
 Delete one or more keys
 
 Usage:
-  pda del KEY[@DB] [KEY[@DB] ...] [flags]
+  pda del KEY[@STORE] [KEY[@STORE] ...] [flags]
 
 Aliases:
   del, delete, rm, remove

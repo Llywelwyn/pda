@@ -31,17 +31,17 @@ import (
 type KeySpec struct {
 	Raw    string // Whole, unmodified user input
 	RawKey string // Key segment
-	RawDB  string // DB segment
+	RawDB  string // Store segment
 	Key    string // Normalised Key
-	DB     string // Normalised DB
+	DB     string // Normalised store
 }
 
-// ParseKey parses "KEY[@DB]" into a normalized KeySpec.
-// When defaults is true, a missing DB defaults to the configured default.
+// ParseKey parses "KEY[@STORE]" into a normalized KeySpec.
+// When defaults is true, a missing store defaults to the configured default.
 func ParseKey(raw string, defaults bool) (KeySpec, error) {
 	parts := strings.Split(raw, "@")
 	if len(parts) > 2 {
-		return KeySpec{}, fmt.Errorf("bad key format, use KEY@DB")
+		return KeySpec{}, fmt.Errorf("bad key format, use KEY@STORE")
 	}
 
 	rawKey := parts[0]
@@ -49,7 +49,7 @@ func ParseKey(raw string, defaults bool) (KeySpec, error) {
 	if len(parts) == 2 {
 		rawDB = parts[1]
 		if strings.TrimSpace(rawDB) == "" {
-			return KeySpec{}, fmt.Errorf("bad key format, use KEY@DB")
+			return KeySpec{}, fmt.Errorf("bad key format, use KEY@STORE")
 		}
 		if err := validateDBName(rawDB); err != nil {
 			return KeySpec{}, err
@@ -80,7 +80,7 @@ func (k KeySpec) Full() string {
 }
 
 // Display returns the normalized key reference
-// but omits the default database if none was set manually
+// but omits the default store if none was set manually
 func (k KeySpec) Display() string {
 	if k.DB == "" || k.DB == config.Store.DefaultStoreName {
 		return k.Key

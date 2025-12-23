@@ -1,2 +1,2 @@
 $ pda ls foo/bar --> FAIL
-Error: cannot ls 'foo/bar': cannot parse db: bad db format, use DB or @DB
+Error: cannot ls 'foo/bar': cannot parse store: bad store format, use STORE or @STORE
