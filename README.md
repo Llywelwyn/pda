@@ -63,22 +63,41 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 ### Overview
 
   ```bash
-Available Commands:
-    get         # Get a value.
-    set         # Set a value.
-    cp          # Copy a value.
-    mv          # Move a value.
-    del         # Delete a value.
-    del-store   # Delete a whole store.
-    list-stores # List all stores.
-    dump        # Export a store as NDJSON.
-    restore     # Imports NDJSON into a store.
-    init        # Initialise or fetch a Git repo for version control.
-    sync        # Export, commit, pull, restore, and push changes.
-    git         # Run git in the pda VCS repository.
-    completion  # Generate autocompletions for a specified shell.
-    help        # Additional help for any command.
-    version     # Current version.
+  ▄▄
+  ██
+██▄███▄    ▄███▄██   ▄█████▄
+██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
+██    ██  ██    ██  ▄██▀▀▀██
+███▄▄██▀  ▀██▄▄███  ██▄▄▄███
+██ ▀▀▀      ▀▀▀ ▀▀   ▀▀▀▀ ▀▀
+██      (c) 2025 Lewis Wynne
+
+Usage:
+  pda [command]
+
+Key commands:
+  copy         Make a copy of a key
+  get          Get the value of a key
+  list         List the contents of a store
+  move         Move a key
+  remove       Delete one or more keys
+  set          Set a key to a given value
+
+Store commands:
+  export       Dump all key/value pairs as NDJSON
+  import       Restore key/value pairs from an NDJSON dump
+  list-stores  List all stores
+  remove-store Delete a store
+
+Git commands:
+  git          Run any arbitrary command. Use with caution.
+  init         Initialise pda! version control
+  sync         Manually sync your stores with Git
+
+Additional Commands:
+  completion   Generate the autocompletion script for the specified shell
+  help         Help about any command
+  version      Display pda! version
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -145,17 +164,17 @@ pda mv name name2 --copy
 
 <p align="center"></p><!-- spacer -->
 
-`pda del` to delete one or more keys.
+`pda rm` to delete one or more keys.
 ```bash
-pda del kitty
+pda rm kitty
 # remove  "kitty": are you sure? [y/n]
 # y
 
 # Or skip the prompt.
-pda del kitty --force
+pda rm kitty --force
 
 # Remove multiple keys, within the same or different stores.
-pda del kitty dog@animals
+pda rm kitty dog@animals
 # remove "kitty", "dog@animals": are you sure? [y/n]
 # y
 
@@ -163,7 +182,7 @@ pda del kitty dog@animals
 pda set cog "cogs"
 pda set dog "doggy"
 pda set kitty "cat"
-pda del kitty --glob ?og
+pda rm kitty --glob ?og
 # remove "kitty", "cog", "dog": are you sure? [y/n]
 # y
 # Default glob separators: "/-_.@: " (space included). Override with --glob-sep.
@@ -235,7 +254,7 @@ pda dump birthdays > friends_birthdays
 pda restore birthdays < friends_birthdays
 
 # Delete it.
-pda del-store birthdays --force
+pda rm-store birthdays --force
 ```
 
 <p align="center"></p><!-- spacer -->
