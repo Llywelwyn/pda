@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	version = "pda! 2025.51 release"
+	version = "pda! 2025.52 Christmas release"
 )
 
 // versionCmd represents the version command
