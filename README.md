@@ -63,8 +63,8 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 ### Overview
 
   ```bash
-                ▄▄
-                ██
+                  ▄▄
+                  ██
 ██▄███▄    ▄███▄██   ▄█████▄
 ██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
 ██    ██  ██    ██  ▄██▀▀▀██
