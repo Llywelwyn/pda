@@ -73,10 +73,12 @@ Available Commands:
     list-dbs    # List all databases.
     dump        # Export a database as NDJSON.
     restore     # Imports NDJSON into a database.
+    init        # Initialise or fetch a Git repo for version control.
+    sync        # Export, commit, pull, restore, and push changes.
+    git         # Run git in the pda VCS repository.
     completion  # Generate autocompletions for a specified shell.
     help        # Additional help for any command.
     version     # Current version.
-    vcs         # List version control subcommands.
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -242,27 +244,27 @@ pda del-db birthdays --force
 
 pda! supports automatic version control backed by Git, either in a local-only repository or by initialising from a remote repository.
 
-`pda vcs init` will initialise the version control system.
+`pda init` will initialise the version control system.
 ```bash
 # Initialise an empty pda! repository.
-pda vcs init
+pda init
 
 # Or clone an existing one.
-pda vcs init https://github.com/llywelwyn/my-repository
+pda init https://github.com/llywelwyn/my-repository
 
 # --clean to replace your (existing) local repo with a new one.
-pda vcs init --clean
+pda init --clean
 ```
 
 <p align="center"></p><!-- spacer -->
 
-`pda vcs sync` conducts a best-effort syncing of your local data with your Git repository. Any time you swap machine or know you've made changes outside of `pda!` itself, I recommend syncing.
+`pda sync` conducts a best-effort syncing of your local data with your Git repository. Any time you swap machine or know you've made changes outside of `pda!` itself, I recommend syncing.
 
 If you're ahead of your Git repo, syncing will add your changes, commit them, and push to remote if a remote is set. If you use multiple devices or otherwise end up behind your Git repo, syncing will detect this and give you a prompt: either stash your local changes and pull the latest commit from version control, or abort and fix the issue manually.
 
 ```bash
 # Sync with Git
-pda vcs sync
+pda sync
 ```
 
 `pda!` supports some automation via its config. There are options for `git.auto_commit`, `git.auto_fetch`, and `git.auto_push`. Any of these operations will slow down `pda!` because it means exporting and versioning with every change, but it does effectively guarantee never managing to desync oneself and requiring manual fixes, and reduces the frequency with which one will need to manually run the sync command.
@@ -271,9 +273,9 @@ Auto-commit will commit changes immediately to the local Git repository any time
 
 If auto-commit is set to false, auto-fetch and auto-push will do nothing. They can be considered to be additional steps taken during the commit process.
 
-Running `pda vcs sync` manually will always fetch, commit, and push - or if behind it will fetch, stash, and pull - regardless of config.
+Running `pda sync` manually will always fetch, commit, and push - or if behind it will fetch, stash, and pull - regardless of config.
 
-My general recommendation would be to enable `git.auto_commit`, and to run a manual `pda vcs sync` any time you're preparing to switch machines, or loading up a new one.
+My general recommendation would be to enable `git.auto_commit`, and to run a manual `pda sync` any time you're preparing to switch machines, or loading up a new one.
 
 <p align="center"></p><!-- spacer -->
 
