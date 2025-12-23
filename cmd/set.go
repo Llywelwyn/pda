@@ -34,8 +34,8 @@ import (
 // setCmd represents the set command
 var setCmd = &cobra.Command{
 	Use:   "set KEY[@DB] [VALUE]",
-	Short: "Set a value for a key by passing VALUE or Stdin. Optionally specify a db.",
-	Long: `Set a value for a key by passing VALUE or Stdin. Optionally specify a db.
+	Short: "Set a key to a given value",
+	Long: `Set a key to a given value or stdin. Optionally specify a db.
 	
 PDA supports parsing Go templates. Actions are delimited with {{ }}.
 

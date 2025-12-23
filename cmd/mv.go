@@ -32,14 +32,14 @@ import (
 
 var cpCmd = &cobra.Command{
 	Use:   "cp FROM[@DB] TO[@DB]",
-	Short: "Make a copy of a key.",
+	Short: "Make a copy of a key",
 	Args:  cobra.ExactArgs(2),
 	RunE:  cp,
 }
 
 var mvCmd = &cobra.Command{
 	Use:          "mv FROM[@DB] TO[@DB]",
-	Short:        "Move a key between (or within) databases.",
+	Short:        "Move a key",
 	Args:         cobra.ExactArgs(2),
 	RunE:         mv,
 	SilenceUsage: true,
