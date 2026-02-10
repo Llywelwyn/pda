@@ -109,16 +109,6 @@ func del(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	var dbs []string
-	var labels []string
-	for _, t := range processed {
-		spec, err := store.parseKey(t.full, true)
-		if err != nil {
-			return err
-		}
-		dbs = append(dbs, spec.DB)
-		labels = append(labels, t.display)
-	}
 	return autoSync()
 }
 
@@ -153,14 +143,6 @@ func keyExists(store *Store, arg string) (bool, error) {
 		return false, err
 	}
 	return !notFound, nil
-}
-
-func formatKeyForPrompt(store *Store, arg string) (string, error) {
-	spec, err := store.parseKey(arg, true)
-	if err != nil {
-		return "", err
-	}
-	return spec.Display(), nil
 }
 
 func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string, separators []rune) ([]resolvedTarget, error) {
