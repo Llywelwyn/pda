@@ -25,10 +25,50 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strconv"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
+)
+
+// formatEnum implements pflag.Value for format selection.
+type formatEnum string
+
+func (e *formatEnum) String() string { return string(*e) }
+
+func (e *formatEnum) Set(v string) error {
+	switch v {
+	case "table", "tsv", "csv", "html", "markdown":
+		*e = formatEnum(v)
+		return nil
+	default:
+		return fmt.Errorf("must be one of \"table\", \"tsv\", \"csv\", \"html\", or \"markdown\"")
+	}
+}
+
+func (e *formatEnum) Type() string { return "format" }
+
+var (
+	listBinary   bool
+	listSecret   bool
+	listNoKeys   bool
+	listNoValues bool
+	listTTL      bool
+	listHeader   bool
+	listFormat   formatEnum = "table"
+)
+
+type columnKind int
+
+const (
+	columnKey columnKind = iota
+	columnValue
+	columnTTL
 )
 
 var listCmd = &cobra.Command{
@@ -59,9 +99,19 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	flags, err := enrichFlags()
-	if err != nil {
-		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	if listNoKeys && listNoValues && !listTTL {
+		return fmt.Errorf("cannot ls '%s': no columns selected; disable --no-keys/--no-values or pass --ttl", targetDB)
+	}
+
+	var columns []columnKind
+	if !listNoKeys {
+		columns = append(columns, columnKey)
+	}
+	if !listNoValues {
+		columns = append(columns, columnValue)
+	}
+	if listTTL {
+		columns = append(columns, columnTTL)
 	}
 
 	globPatterns, err := cmd.Flags().GetStringSlice("glob")
@@ -77,29 +127,19 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
-	columnKinds, err := requireColumns(flags)
-	if err != nil {
-		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
-	}
-
+	showValues := !listNoValues
 	output := cmd.OutOrStdout()
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
 	tw.SetStyle(table.StyleDefault)
-	// Should these be settable flags?
 	tw.Style().Options.SeparateHeader = false
 	tw.Style().Options.SeparateFooter = false
 	tw.Style().Options.DrawBorder = false
 	tw.Style().Options.SeparateRows = false
 	tw.Style().Options.SeparateColumns = false
 
-	var maxContentWidths []int
-	maxContentWidths = make([]int, len(columnKinds))
-
-	if flags.header {
-		header := buildHeaderCells(columnKinds)
-		updateMaxContentWidths(maxContentWidths, header)
-		tw.AppendHeader(stringSliceToRow(header))
+	if listHeader {
+		tw.AppendHeader(headerRow(columns))
 	}
 
 	placeholder := "**********"
@@ -111,7 +151,7 @@ func list(cmd *cobra.Command, args []string) error {
 		transact: func(tx *badger.Txn, k []byte) error {
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = 10
-			opts.PrefetchValues = flags.value
+			opts.PrefetchValues = showValues
 			it := tx.NewIterator(opts)
 			defer it.Close()
 			var valueBuf []byte
@@ -126,33 +166,32 @@ func list(cmd *cobra.Command, args []string) error {
 				isSecret := meta&metaSecret != 0
 
 				var valueStr string
-				if flags.value && (!isSecret || flags.secrets) {
+				if showValues && (!isSecret || listSecret) {
 					if err := item.Value(func(v []byte) error {
 						valueBuf = append(valueBuf[:0], v...)
 						return nil
 					}); err != nil {
 						return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 					}
-					valueStr = store.FormatBytes(flags.binary, valueBuf)
+					valueStr = store.FormatBytes(listBinary, valueBuf)
 				}
 
-				columns := make([]string, 0, len(columnKinds))
-				for _, column := range columnKinds {
-					switch column {
+				row := make(table.Row, 0, len(columns))
+				for _, col := range columns {
+					switch col {
 					case columnKey:
-						columns = append(columns, key)
+						row = append(row, key)
 					case columnValue:
-						if isSecret && !flags.secrets {
-							columns = append(columns, placeholder)
+						if isSecret && !listSecret {
+							row = append(row, placeholder)
 						} else {
-							columns = append(columns, valueStr)
+							row = append(row, valueStr)
 						}
 					case columnTTL:
-						columns = append(columns, formatExpiry(item.ExpiresAt()))
+						row = append(row, formatExpiry(item.ExpiresAt()))
 					}
 				}
-				updateMaxContentWidths(maxContentWidths, columns)
-				tw.AppendRow(stringSliceToRow(columns))
+				tw.AppendRow(row)
 			}
 			return nil
 		},
@@ -166,20 +205,117 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
 	}
 
-	applyColumnConstraints(tw, columnKinds, output, maxContentWidths)
-
-	flags.render(tw)
+	applyColumnWidths(tw, columns, output)
+	renderTable(tw)
 	return nil
 }
 
+func headerRow(columns []columnKind) table.Row {
+	row := make(table.Row, 0, len(columns))
+	for _, col := range columns {
+		switch col {
+		case columnKey:
+			row = append(row, "Key")
+		case columnValue:
+			row = append(row, "Value")
+		case columnTTL:
+			row = append(row, "TTL")
+		}
+	}
+	return row
+}
+
+func applyColumnWidths(tw table.Writer, columns []columnKind, out io.Writer) {
+	termWidth := detectTerminalWidth(out)
+	if termWidth <= 0 {
+		return
+	}
+	tw.SetAllowedRowLength(termWidth)
+
+	// Padding per column: go-pretty's default is one space each side.
+	padding := len(columns) * 2
+	available := termWidth - padding
+	if available < len(columns) {
+		return
+	}
+
+	// Give key and TTL columns a fixed budget; value gets the rest.
+	const keyWidth = 30
+	const ttlWidth = 40
+	valueWidth := available
+	for _, col := range columns {
+		switch col {
+		case columnKey:
+			valueWidth -= keyWidth
+		case columnTTL:
+			valueWidth -= ttlWidth
+		}
+	}
+	if valueWidth < 10 {
+		valueWidth = 10
+	}
+
+	var configs []table.ColumnConfig
+	for i, col := range columns {
+		var maxW int
+		switch col {
+		case columnKey:
+			maxW = keyWidth
+		case columnValue:
+			maxW = valueWidth
+		case columnTTL:
+			maxW = ttlWidth
+		}
+		configs = append(configs, table.ColumnConfig{
+			Number:           i + 1,
+			WidthMax:         maxW,
+			WidthMaxEnforcer: text.WrapText,
+		})
+	}
+	tw.SetColumnConfigs(configs)
+}
+
+func detectTerminalWidth(out io.Writer) int {
+	type fd interface{ Fd() uintptr }
+	if f, ok := out.(fd); ok {
+		if w, _, err := term.GetSize(int(f.Fd())); err == nil && w > 0 {
+			return w
+		}
+	}
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
+		return w
+	}
+	if cols := os.Getenv("COLUMNS"); cols != "" {
+		if parsed, err := strconv.Atoi(cols); err == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	return 0
+}
+
+func renderTable(tw table.Writer) {
+	switch listFormat.String() {
+	case "tsv":
+		tw.RenderTSV()
+	case "csv":
+		tw.RenderCSV()
+	case "html":
+		tw.RenderHTML()
+	case "markdown":
+		tw.RenderMarkdown()
+	default:
+		tw.Render()
+	}
+}
+
 func init() {
-	listCmd.Flags().BoolVarP(&binary, "binary", "b", false, "include binary data in text output")
-	listCmd.Flags().BoolVarP(&secret, "secret", "S", false, "display values marked as secret")
-	listCmd.Flags().BoolVar(&noKeys, "no-keys", false, "suppress the key column")
-	listCmd.Flags().BoolVar(&noValues, "no-values", false, "suppress the value column")
-	listCmd.Flags().BoolVarP(&ttl, "ttl", "t", false, "append a TTL column when entries expire")
-	listCmd.Flags().BoolVar(&header, "header", false, "include header row")
-	listCmd.Flags().VarP(&format, "format", "o", "output format (table|tsv|csv|markdown|html)")
+	listCmd.Flags().BoolVarP(&listBinary, "binary", "b", false, "include binary data in text output")
+	listCmd.Flags().BoolVarP(&listSecret, "secret", "S", false, "display values marked as secret")
+	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
+	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
+	listCmd.Flags().BoolVarP(&listTTL, "ttl", "t", false, "append a TTL column when entries expire")
+	listCmd.Flags().BoolVar(&listHeader, "header", false, "include header row")
+	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html)")
 	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
 	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(listCmd)
