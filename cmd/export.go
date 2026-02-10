@@ -24,50 +24,25 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "pda",
-	Short: "A key-value store tool",
-	Long:  asciiArt,
-}
-
-func Execute() {
-	if configErr != nil {
-		fmt.Fprintln(os.Stderr, "failed to load config:", configErr)
-		os.Exit(1)
-	}
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+var exportCmd = &cobra.Command{
+	Use:     "export [STORE]",
+	Short:   "Export store as NDJSON (alias for list --format ndjson)",
+	Aliases: []string{"dump"},
+	Args:    cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		listFormat = "ndjson"
+		return list(cmd, args)
+	},
+	SilenceUsage: true,
 }
 
 func init() {
-	rootCmd.AddGroup(&cobra.Group{ID: "keys", Title: "Key commands:"})
-
-	setCmd.GroupID = "keys"
-	getCmd.GroupID = "keys"
-	runCmd.GroupID = "keys"
-	mvCmd.GroupID = "keys"
-	cpCmd.GroupID = "keys"
-	delCmd.GroupID = "keys"
-	listCmd.GroupID = "keys"
-
-	rootCmd.AddGroup(&cobra.Group{ID: "stores", Title: "Store commands:"})
-
-	listStoresCmd.GroupID = "stores"
-	delStoreCmd.GroupID = "stores"
-	exportCmd.GroupID = "stores"
-	restoreCmd.GroupID = "stores"
-
-	rootCmd.AddGroup(&cobra.Group{ID: "git", Title: "Git commands:"})
-
-	initCmd.GroupID = "git"
-	syncCmd.GroupID = "git"
-	gitCmd.GroupID = "git"
+	exportCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
+	exportCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
+	exportCmd.Flags().StringVarP(&listEncoding, "encoding", "e", "auto", "value encoding: auto, base64, or text")
+	rootCmd.AddCommand(exportCmd)
 }

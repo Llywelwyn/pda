@@ -23,11 +23,9 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
@@ -71,7 +69,12 @@ func del(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot remove: No such key")
 	}
 
-	var processed []resolvedTarget
+	// Group targets by store for batch deletes.
+	type storeTargets struct {
+		targets []resolvedTarget
+	}
+	byStore := make(map[string]*storeTargets)
+	var storeOrder []string
 	for _, target := range targets {
 		if interactive || config.Key.AlwaysPromptDelete {
 			var confirm string
@@ -84,29 +87,37 @@ func del(cmd *cobra.Command, args []string) error {
 				continue
 			}
 		}
-		trans := TransactionArgs{
-			key:      target.full,
-			readonly: false,
-			sync:     false,
-			transact: func(tx *badger.Txn, k []byte) error {
-				if err := tx.Delete(k); errors.Is(err, badger.ErrKeyNotFound) {
-					return fmt.Errorf("cannot remove '%s': No such key", target.full)
-				}
-				if err != nil {
-					return fmt.Errorf("cannot remove '%s': %v", target.full, err)
-				}
-				return nil
-			},
+		if _, ok := byStore[target.db]; !ok {
+			byStore[target.db] = &storeTargets{}
+			storeOrder = append(storeOrder, target.db)
 		}
-
-		if err := store.Transaction(trans); err != nil {
-			return err
-		}
-		processed = append(processed, target)
+		byStore[target.db].targets = append(byStore[target.db].targets, target)
 	}
 
-	if len(processed) == 0 {
+	if len(byStore) == 0 {
 		return nil
+	}
+
+	for _, dbName := range storeOrder {
+		st := byStore[dbName]
+		p, err := store.storePath(dbName)
+		if err != nil {
+			return err
+		}
+		entries, err := readStoreFile(p)
+		if err != nil {
+			return err
+		}
+		for _, t := range st.targets {
+			idx := findEntry(entries, t.key)
+			if idx < 0 {
+				return fmt.Errorf("cannot remove '%s': No such key", t.full)
+			}
+			entries = append(entries[:idx], entries[idx+1:]...)
+		}
+		if err := writeStoreFile(p, entries); err != nil {
+			return err
+		}
 	}
 
 	return autoSync()
@@ -122,27 +133,24 @@ func init() {
 type resolvedTarget struct {
 	full    string
 	display string
+	key     string
+	db      string
 }
 
 func keyExists(store *Store, arg string) (bool, error) {
-	var notFound bool
-	trans := TransactionArgs{
-		key:      arg,
-		readonly: true,
-		sync:     false,
-		transact: func(tx *badger.Txn, k []byte) error {
-			if _, err := tx.Get(k); errors.Is(err, badger.ErrKeyNotFound) {
-				notFound = true
-				return nil
-			} else {
-				return err
-			}
-		},
-	}
-	if err := store.Transaction(trans); err != nil {
+	spec, err := store.parseKey(arg, true)
+	if err != nil {
 		return false, err
 	}
-	return !notFound, nil
+	p, err := store.storePath(spec.DB)
+	if err != nil {
+		return false, err
+	}
+	entries, err := readStoreFile(p)
+	if err != nil {
+		return false, err
+	}
+	return findEntry(entries, spec.Key) >= 0, nil
 }
 
 func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string, separators []rune) ([]resolvedTarget, error) {
@@ -158,6 +166,8 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 		targets = append(targets, resolvedTarget{
 			full:    full,
 			display: spec.Display(),
+			key:     spec.Key,
+			db:      spec.DB,
 		})
 	}
 

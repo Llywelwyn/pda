@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
 
@@ -48,11 +47,15 @@ var mvCmd = &cobra.Command{
 }
 
 func cp(cmd *cobra.Command, args []string) error {
-	copyMode = true
-	return mv(cmd, args)
+	return mvImpl(cmd, args, true)
 }
 
 func mv(cmd *cobra.Command, args []string) error {
+	keepSource, _ := cmd.Flags().GetBool("copy")
+	return mvImpl(cmd, args, keepSource)
+}
+
+func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	store := &Store{}
 
 	interactive, err := cmd.Flags().GetBool("interactive")
@@ -70,33 +73,40 @@ func mv(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var srcVal []byte
-	var srcMeta byte
-	var srcExpires uint64
-	fromRef := fromSpec.Full()
-	toRef := toSpec.Full()
+	// Read source
+	srcPath, err := store.storePath(fromSpec.DB)
+	if err != nil {
+		return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
+	}
+	srcEntries, err := readStoreFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
+	}
+	srcIdx := findEntry(srcEntries, fromSpec.Key)
+	if srcIdx < 0 {
+		return fmt.Errorf("cannot move '%s': No such key", fromSpec.Key)
+	}
+	srcEntry := srcEntries[srcIdx]
 
-	var destExists bool
-	if promptOverwrite {
-		existsErr := store.Transaction(TransactionArgs{
-			key:      toRef,
-			readonly: true,
-			transact: func(tx *badger.Txn, k []byte) error {
-				if _, err := tx.Get(k); err == nil {
-					destExists = true
-					return nil
-				} else if err == badger.ErrKeyNotFound {
-					return nil
-				}
-				return err
-			},
-		})
-		if existsErr != nil {
-			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, existsErr)
+	sameStore := fromSpec.DB == toSpec.DB
+
+	// Check destination for overwrite prompt
+	dstPath := srcPath
+	dstEntries := srcEntries
+	if !sameStore {
+		dstPath, err = store.storePath(toSpec.DB)
+		if err != nil {
+			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
+		}
+		dstEntries, err = readStoreFile(dstPath)
+		if err != nil {
+			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 		}
 	}
 
-	if promptOverwrite && destExists {
+	dstIdx := findEntry(dstEntries, toSpec.Key)
+
+	if promptOverwrite && dstIdx >= 0 {
 		var confirm string
 		fmt.Printf("overwrite '%s'? (y/n)\n", toSpec.Display())
 		if _, err := fmt.Scanln(&confirm); err != nil {
@@ -107,66 +117,53 @@ func mv(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	readErr := store.Transaction(TransactionArgs{
-		key:      fromRef,
-		readonly: true,
-		transact: func(tx *badger.Txn, k []byte) error {
-			item, err := tx.Get(k)
-			if err != nil {
-				return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
+	// Write destination entry
+	newEntry := Entry{
+		Key:       toSpec.Key,
+		Value:     srcEntry.Value,
+		ExpiresAt: srcEntry.ExpiresAt,
+	}
+
+	if sameStore {
+		// Both source and dest in same file
+		if dstIdx >= 0 {
+			dstEntries[dstIdx] = newEntry
+		} else {
+			dstEntries = append(dstEntries, newEntry)
+		}
+		if !keepSource {
+			// Remove source - find it again since indices may have changed
+			idx := findEntry(dstEntries, fromSpec.Key)
+			if idx >= 0 {
+				dstEntries = append(dstEntries[:idx], dstEntries[idx+1:]...)
 			}
-			srcMeta = item.UserMeta()
-			srcExpires = item.ExpiresAt()
-			return item.Value(func(v []byte) error {
-				srcVal = append(srcVal[:0], v...)
-				return nil
-			})
-		},
-	})
-	if readErr != nil {
-		return readErr
-	}
-
-	writeErr := store.Transaction(TransactionArgs{
-		key:      toRef,
-		readonly: false,
-		sync:     false,
-		transact: func(tx *badger.Txn, k []byte) error {
-			entry := badger.NewEntry(k, srcVal).WithMeta(srcMeta)
-			if srcExpires > 0 {
-				entry.ExpiresAt = srcExpires
+		}
+		if err := writeStoreFile(dstPath, dstEntries); err != nil {
+			return err
+		}
+	} else {
+		// Different stores
+		if dstIdx >= 0 {
+			dstEntries[dstIdx] = newEntry
+		} else {
+			dstEntries = append(dstEntries, newEntry)
+		}
+		if err := writeStoreFile(dstPath, dstEntries); err != nil {
+			return err
+		}
+		if !keepSource {
+			srcEntries = append(srcEntries[:srcIdx], srcEntries[srcIdx+1:]...)
+			if err := writeStoreFile(srcPath, srcEntries); err != nil {
+				return err
 			}
-			return tx.SetEntry(entry)
-		},
-	})
-	if writeErr != nil {
-		return writeErr
-	}
-
-	if copyMode {
-		return autoSync()
-	}
-
-	if err := store.Transaction(TransactionArgs{
-		key:      fromRef,
-		readonly: false,
-		sync:     false,
-		transact: func(tx *badger.Txn, k []byte) error {
-			return tx.Delete(k)
-		},
-	}); err != nil {
-		return err
+		}
 	}
 
 	return autoSync()
 }
 
-var (
-	copyMode bool = false
-)
-
 func init() {
-	mvCmd.Flags().BoolVar(&copyMode, "copy", false, "Copy instead of move (keeps source)")
+	mvCmd.Flags().Bool("copy", false, "Copy instead of move (keeps source)")
 	mvCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
 	rootCmd.AddCommand(mvCmd)
 	cpCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")

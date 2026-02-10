@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ var setCmd = &cobra.Command{
 	Use:   "set KEY[@STORE] [VALUE]",
 	Short: "Set a key to a given value",
 	Long: `Set a key to a given value or stdin. Optionally specify a store.
-	
+
 PDA supports parsing Go templates. Actions are delimited with {{ }}.
 
 For example:
@@ -81,38 +81,44 @@ func set(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
-	if promptOverwrite {
-		exists, err := keyExists(store, spec.Full())
-		if err != nil {
+	p, err := store.storePath(spec.DB)
+	if err != nil {
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
+	}
+	entries, err := readStoreFile(p)
+	if err != nil {
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
+	}
+
+	idx := findEntry(entries, spec.Key)
+
+	if promptOverwrite && idx >= 0 {
+		fmt.Printf("overwrite '%s'? (y/n)\n", spec.Display())
+		var confirm string
+		if _, err := fmt.Scanln(&confirm); err != nil {
 			return fmt.Errorf("cannot set '%s': %v", args[0], err)
 		}
-		if exists {
-			fmt.Printf("overwrite '%s'? (y/n)\n", spec.Display())
-			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot set '%s': %v", args[0], err)
-			}
-			if strings.ToLower(confirm) != "y" {
-				return nil
-			}
+		if strings.ToLower(confirm) != "y" {
+			return nil
 		}
 	}
 
-	trans := TransactionArgs{
-		key:      args[0],
-		readonly: false,
-		sync:     false,
-		transact: func(tx *badger.Txn, k []byte) error {
-			entry := badger.NewEntry(k, value)
-			if ttl != 0 {
-				entry = entry.WithTTL(ttl)
-			}
-			return tx.SetEntry(entry)
-		},
+	entry := Entry{
+		Key:   spec.Key,
+		Value: value,
+	}
+	if ttl != 0 {
+		entry.ExpiresAt = uint64(time.Now().Add(ttl).Unix())
 	}
 
-	if err := store.Transaction(trans); err != nil {
-		return err
+	if idx >= 0 {
+		entries[idx] = entry
+	} else {
+		entries = append(entries, entry)
+	}
+
+	if err := writeStoreFile(p, entries); err != nil {
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
 	return autoSync()

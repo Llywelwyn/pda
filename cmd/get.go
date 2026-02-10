@@ -32,7 +32,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
 )
 
@@ -73,24 +72,27 @@ For example:
 func get(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
-	var v []byte
-	trans := TransactionArgs{
-		key:      args[0],
-		readonly: true,
-		sync:     false,
-		transact: func(tx *badger.Txn, k []byte) error {
-			item, err := tx.Get(k)
-			if err != nil {
-				return err
-			}
-			v, err = item.ValueCopy(nil)
-			return err
-		},
-	}
-
-	if err := store.Transaction(trans); err != nil {
+	spec, err := store.parseKey(args[0], true)
+	if err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
+	p, err := store.storePath(spec.DB)
+	if err != nil {
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
+	}
+	entries, err := readStoreFile(p)
+	if err != nil {
+		return fmt.Errorf("cannot get '%s': %v", args[0], err)
+	}
+	idx := findEntry(entries, spec.Key)
+	if idx < 0 {
+		keys := make([]string, len(entries))
+		for i, e := range entries {
+			keys[i] = e.Key
+		}
+		return fmt.Errorf("cannot get '%s': %v", args[0], suggestKey(spec.Key, keys))
+	}
+	v := entries[idx].Value
 
 	binary, err := cmd.Flags().GetBool("include-binary")
 	if err != nil {

@@ -32,7 +32,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/agnivade/levenshtein"
-	"github.com/dgraph-io/badger/v4"
 	gap "github.com/muesli/go-app-paths"
 	"golang.org/x/term"
 )
@@ -49,46 +48,6 @@ func (err errNotFound) Error() string {
 }
 
 type Store struct{}
-
-type TransactionArgs struct {
-	key      string
-	readonly bool
-	sync     bool
-	transact func(tx *badger.Txn, key []byte) error
-}
-
-func (s *Store) Transaction(args TransactionArgs) error {
-	spec, err := s.parseKey(args.key, true)
-	if err != nil {
-		return err
-	}
-
-	db, err := s.open(spec.DB)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	if args.sync {
-		err = db.Sync()
-		if err != nil {
-			return err
-		}
-	}
-
-	tx := db.NewTransaction(!args.readonly)
-	defer tx.Discard()
-
-	if err := args.transact(tx, []byte(spec.Key)); err != nil {
-		return err
-	}
-
-	if args.readonly {
-		return nil
-	}
-
-	return tx.Commit()
-}
 
 func (s *Store) Print(pf string, includeBinary bool, vs ...[]byte) {
 	s.PrintTo(os.Stdout, pf, includeBinary, vs...)
@@ -118,20 +77,39 @@ func (s *Store) formatBytes(includeBinary bool, v []byte) string {
 	return string(v)
 }
 
+func (s *Store) storePath(name string) (string, error) {
+	if name == "" {
+		name = config.Store.DefaultStoreName
+	}
+	dir, err := s.path()
+	if err != nil {
+		return "", err
+	}
+	target := filepath.Join(dir, name+".ndjson")
+	if err := ensureSubpath(dir, target); err != nil {
+		return "", err
+	}
+	return target, nil
+}
+
 func (s *Store) AllStores() ([]string, error) {
-	path, err := s.path()
+	dir, err := s.path()
 	if err != nil {
 		return nil, err
 	}
-	dirs, err := os.ReadDir(path)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	var stores []string
-	for _, e := range dirs {
-		if e.IsDir() {
-			stores = append(stores, e.Name())
+	for _, e := range entries {
+		if e.IsDir() || filepath.Ext(e.Name()) != ".ndjson" {
+			continue
 		}
+		stores = append(stores, strings.TrimSuffix(e.Name(), ".ndjson"))
 	}
 	return stores, nil
 }
@@ -141,12 +119,12 @@ func (s *Store) FindStore(k string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path, err := s.path(n)
+	p, err := s.storePath(n)
 	if err != nil {
 		return "", err
 	}
-	info, statErr := os.Stat(path)
-	if strings.TrimSpace(n) == "" || os.IsNotExist(statErr) || (statErr == nil && !info.IsDir()) {
+	_, statErr := os.Stat(p)
+	if strings.TrimSpace(n) == "" || os.IsNotExist(statErr) {
 		suggestions, err := s.suggestStores(n)
 		if err != nil {
 			return "", err
@@ -156,7 +134,7 @@ func (s *Store) FindStore(k string) (string, error) {
 	if statErr != nil {
 		return "", statErr
 	}
-	return path, nil
+	return p, nil
 }
 
 func (s *Store) parseKey(raw string, defaults bool) (KeySpec, error) {
@@ -180,27 +158,12 @@ func (s *Store) parseDB(v string, defaults bool) (string, error) {
 	return strings.ToLower(db), nil
 }
 
-func (s *Store) open(name string) (*badger.DB, error) {
-	if name == "" {
-		name = config.Store.DefaultStoreName
-	}
-	path, err := s.path(name)
-	if err != nil {
-		return nil, err
-	}
-	return badger.Open(badger.DefaultOptions(path).WithLoggingLevel(badger.ERROR))
-}
-
-func (s *Store) path(args ...string) (string, error) {
+func (s *Store) path() (string, error) {
 	if override := os.Getenv("PDA_DATA"); override != "" {
 		if err := os.MkdirAll(override, 0o750); err != nil {
 			return "", err
 		}
-		target := filepath.Join(append([]string{override}, args...)...)
-		if err := ensureSubpath(override, target); err != nil {
-			return "", err
-		}
-		return target, nil
+		return override, nil
 	}
 	scope := gap.NewVendorScope(gap.User, "pda", "stores")
 	dir, err := scope.DataPath("")
@@ -210,11 +173,7 @@ func (s *Store) path(args ...string) (string, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", err
 	}
-	target := filepath.Join(append([]string{dir}, args...)...)
-	if err := ensureSubpath(dir, target); err != nil {
-		return "", err
-	}
-	return target, nil
+	return dir, nil
 }
 
 func (s *Store) suggestStores(target string) ([]string, error) {
@@ -234,6 +193,19 @@ func (s *Store) suggestStores(target string) ([]string, error) {
 		}
 	}
 	return suggestions, nil
+}
+
+func suggestKey(target string, keys []string) error {
+	minThreshold := 1
+	maxThreshold := 4
+	threshold := min(max(len(target)/3, minThreshold), maxThreshold)
+	var suggestions []string
+	for _, k := range keys {
+		if levenshtein.ComputeDistance(target, k) <= threshold {
+			suggestions = append(suggestions, k)
+		}
+	}
+	return errNotFound{suggestions}
 }
 
 func ensureSubpath(base, target string) error {
@@ -278,22 +250,17 @@ func formatExpiry(expiresAt uint64) string {
 // Keys returns all keys for the provided store name (or default if empty).
 // Keys are returned in lowercase to mirror stored key format.
 func (s *Store) Keys(dbName string) ([]string, error) {
-	db, err := s.open(dbName)
+	p, err := s.storePath(dbName)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
-
-	tx := db.NewTransaction(false)
-	defer tx.Discard()
-
-	it := tx.NewIterator(badger.DefaultIteratorOptions)
-	defer it.Close()
-
-	var keys []string
-	for it.Rewind(); it.Valid(); it.Next() {
-		item := it.Item()
-		keys = append(keys, string(item.Key()))
+	entries, err := readStoreFile(p)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, len(entries))
+	for i, e := range entries {
+		keys[i] = e.Key
 	}
 	return keys, nil
 }

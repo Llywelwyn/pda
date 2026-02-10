@@ -24,14 +24,12 @@ package cmd
 
 import (
 	"bufio"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
@@ -78,11 +76,10 @@ func restore(cmd *cobra.Command, args []string) error {
 		defer closer.Close()
 	}
 
-	db, err := store.open(dbName)
+	p, err := store.storePath(dbName)
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
-	defer db.Close()
 
 	decoder := json.NewDecoder(bufio.NewReaderSize(reader, 8*1024*1024))
 
@@ -92,9 +89,15 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
 
-	restored, err := restoreEntries(decoder, db, restoreOpts{
+	drop, err := cmd.Flags().GetBool("drop")
+	if err != nil {
+		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
+	}
+
+	restored, err := restoreEntries(decoder, p, restoreOpts{
 		matchers:        matchers,
 		promptOverwrite: promptOverwrite,
+		drop:            drop,
 	})
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
@@ -123,87 +126,71 @@ func restoreInput(cmd *cobra.Command) (io.Reader, io.Closer, error) {
 	return f, f, nil
 }
 
-func decodeEntryValue(entry dumpEntry) ([]byte, error) {
-	switch entry.Encoding {
-	case "", "text":
-		return []byte(entry.Value), nil
-	case "base64":
-		b, err := base64.StdEncoding.DecodeString(entry.Value)
-		if err != nil {
-			return nil, err
-		}
-		return b, nil
-	default:
-		return nil, fmt.Errorf("unsupported encoding %q", entry.Encoding)
-	}
-}
-
 type restoreOpts struct {
 	matchers        []glob.Glob
 	promptOverwrite bool
+	drop            bool
 }
 
-func restoreEntries(decoder *json.Decoder, db *badger.DB, opts restoreOpts) (int, error) {
-	wb := db.NewWriteBatch()
-	defer wb.Cancel()
+func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (int, error) {
+	var existing []Entry
+	if !opts.drop {
+		var err error
+		existing, err = readStoreFile(storePath)
+		if err != nil {
+			return 0, err
+		}
+	}
 
 	entryNo := 0
 	restored := 0
 
 	for {
-		var entry dumpEntry
-		if err := decoder.Decode(&entry); err != nil {
+		var je jsonEntry
+		if err := decoder.Decode(&je); err != nil {
 			if err == io.EOF {
 				break
 			}
 			return 0, fmt.Errorf("entry %d: %w", entryNo+1, err)
 		}
 		entryNo++
-		if entry.Key == "" {
+		if je.Key == "" {
 			return 0, fmt.Errorf("entry %d: missing key", entryNo)
 		}
-		if !globMatch(opts.matchers, entry.Key) {
+		if !globMatch(opts.matchers, je.Key) {
 			continue
 		}
 
-		if opts.promptOverwrite {
-			exists, err := keyExistsInDB(db, entry.Key)
-			if err != nil {
-				return 0, fmt.Errorf("entry %d: %v", entryNo, err)
-			}
-			if exists {
-				fmt.Printf("overwrite '%s'? (y/n)\n", entry.Key)
-				var confirm string
-				if _, err := fmt.Scanln(&confirm); err != nil {
-					return 0, fmt.Errorf("entry %d: %v", entryNo, err)
-				}
-				if strings.ToLower(confirm) != "y" {
-					continue
-				}
-			}
-		}
-
-		value, err := decodeEntryValue(entry)
+		entry, err := decodeJsonEntry(je)
 		if err != nil {
 			return 0, fmt.Errorf("entry %d: %w", entryNo, err)
 		}
 
-		writeEntry := badger.NewEntry([]byte(entry.Key), value)
-		if entry.ExpiresAt != nil {
-			if *entry.ExpiresAt < 0 {
-				return 0, fmt.Errorf("entry %d: expires_at must be >= 0", entryNo)
+		idx := findEntry(existing, entry.Key)
+
+		if opts.promptOverwrite && idx >= 0 {
+			fmt.Printf("overwrite '%s'? (y/n)\n", entry.Key)
+			var confirm string
+			if _, err := fmt.Scanln(&confirm); err != nil {
+				return 0, fmt.Errorf("entry %d: %v", entryNo, err)
 			}
-			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
+			if strings.ToLower(confirm) != "y" {
+				continue
+			}
 		}
 
-		if err := wb.SetEntry(writeEntry); err != nil {
-			return 0, fmt.Errorf("entry %d: %w", entryNo, err)
+		if idx >= 0 {
+			existing[idx] = entry
+		} else {
+			existing = append(existing, entry)
 		}
 		restored++
 	}
 
-	if err := wb.Flush(); err != nil {
-		return 0, err
+	if restored > 0 || opts.drop {
+		if err := writeStoreFile(storePath, existing); err != nil {
+			return 0, err
+		}
 	}
 	return restored, nil
 }
@@ -213,21 +200,6 @@ func init() {
 	restoreCmd.Flags().StringSliceP("glob", "g", nil, "Restore keys matching glob pattern (repeatable)")
 	restoreCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	restoreCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting existing keys")
+	restoreCmd.Flags().Bool("drop", false, "Drop existing entries before restoring (full replace)")
 	rootCmd.AddCommand(restoreCmd)
-}
-
-func keyExistsInDB(db *badger.DB, key string) (bool, error) {
-	var exists bool
-	err := db.View(func(tx *badger.Txn) error {
-		_, err := tx.Get([]byte(key))
-		if err == nil {
-			exists = true
-			return nil
-		}
-		if err == badger.ErrKeyNotFound {
-			return nil
-		}
-		return err
-	})
-	return exists, err
 }

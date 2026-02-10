@@ -23,13 +23,15 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
+	"unicode/utf8"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
@@ -43,11 +45,11 @@ func (e *formatEnum) String() string { return string(*e) }
 
 func (e *formatEnum) Set(v string) error {
 	switch v {
-	case "table", "tsv", "csv", "html", "markdown":
+	case "table", "tsv", "csv", "html", "markdown", "ndjson":
 		*e = formatEnum(v)
 		return nil
 	default:
-		return fmt.Errorf("must be one of \"table\", \"tsv\", \"csv\", \"html\", or \"markdown\"")
+		return fmt.Errorf("must be one of \"table\", \"tsv\", \"csv\", \"html\", \"markdown\", or \"ndjson\"")
 	}
 }
 
@@ -60,6 +62,7 @@ var (
 	listTTL      bool
 	listHeader   bool
 	listFormat   formatEnum = "table"
+	listEncoding string
 )
 
 type columnKind int
@@ -126,8 +129,52 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
-	showValues := !listNoValues
+	dbName := targetDB[1:] // strip leading '@'
+	p, err := store.storePath(dbName)
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	}
+	entries, err := readStoreFile(p)
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	}
+
+	// Filter by glob
+	var filtered []Entry
+	for _, e := range entries {
+		if globMatch(matchers, e.Key) {
+			filtered = append(filtered, e)
+		}
+	}
+
+	if len(matchers) > 0 && len(filtered) == 0 {
+		return fmt.Errorf("cannot ls '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
+	}
+
 	output := cmd.OutOrStdout()
+
+	// NDJSON format: emit JSON lines directly
+	if listFormat.String() == "ndjson" {
+		enc := listEncoding
+		if enc == "" {
+			enc = "auto"
+		}
+		for _, e := range filtered {
+			je, err := encodeJsonEntryWithEncoding(e, enc)
+			if err != nil {
+				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+			}
+			data, err := json.Marshal(je)
+			if err != nil {
+				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+			}
+			fmt.Fprintln(output, string(data))
+		}
+		return nil
+	}
+
+	// Table-based formats
+	showValues := !listNoValues
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
 	tw.SetStyle(table.StyleDefault)
@@ -141,60 +188,23 @@ func list(cmd *cobra.Command, args []string) error {
 		tw.AppendHeader(headerRow(columns))
 	}
 
-	var matchedCount int
-	trans := TransactionArgs{
-		key:      targetDB,
-		readonly: true,
-		sync:     true,
-		transact: func(tx *badger.Txn, k []byte) error {
-			opts := badger.DefaultIteratorOptions
-			opts.PrefetchSize = 10
-			opts.PrefetchValues = showValues
-			it := tx.NewIterator(opts)
-			defer it.Close()
-			var valueBuf []byte
-			for it.Rewind(); it.Valid(); it.Next() {
-				item := it.Item()
-				key := string(item.KeyCopy(nil))
-				if !globMatch(matchers, key) {
-					continue
-				}
-				matchedCount++
-
-				var valueStr string
-				if showValues {
-					if err := item.Value(func(v []byte) error {
-						valueBuf = append(valueBuf[:0], v...)
-						return nil
-					}); err != nil {
-						return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
-					}
-					valueStr = store.FormatBytes(listBinary, valueBuf)
-				}
-
-				row := make(table.Row, 0, len(columns))
-				for _, col := range columns {
-					switch col {
-					case columnKey:
-						row = append(row, key)
-					case columnValue:
-						row = append(row, valueStr)
-					case columnTTL:
-						row = append(row, formatExpiry(item.ExpiresAt()))
-					}
-				}
-				tw.AppendRow(row)
+	for _, e := range filtered {
+		var valueStr string
+		if showValues {
+			valueStr = store.FormatBytes(listBinary, e.Value)
+		}
+		row := make(table.Row, 0, len(columns))
+		for _, col := range columns {
+			switch col {
+			case columnKey:
+				row = append(row, e.Key)
+			case columnValue:
+				row = append(row, valueStr)
+			case columnTTL:
+				row = append(row, formatExpiry(e.ExpiresAt))
 			}
-			return nil
-		},
-	}
-
-	if err := store.Transaction(trans); err != nil {
-		return err
-	}
-
-	if len(matchers) > 0 && matchedCount == 0 {
-		return fmt.Errorf("cannot ls '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
+		}
+		tw.AppendRow(row)
 	}
 
 	applyColumnWidths(tw, columns, output)
@@ -300,14 +310,42 @@ func renderTable(tw table.Writer) {
 	}
 }
 
+// encodeJsonEntryWithEncoding encodes an Entry to jsonEntry respecting the encoding mode.
+func encodeJsonEntryWithEncoding(e Entry, mode string) (jsonEntry, error) {
+	switch mode {
+	case "base64":
+		je := jsonEntry{Key: e.Key, Encoding: "base64"}
+		je.Value = base64.StdEncoding.EncodeToString(e.Value)
+		if e.ExpiresAt > 0 {
+			ts := int64(e.ExpiresAt)
+			je.ExpiresAt = &ts
+		}
+		return je, nil
+	case "text":
+		if !utf8.Valid(e.Value) {
+			return jsonEntry{}, fmt.Errorf("key %q contains non-UTF8 data; use --encoding=auto or base64", e.Key)
+		}
+		je := jsonEntry{Key: e.Key, Encoding: "text"}
+		je.Value = string(e.Value)
+		if e.ExpiresAt > 0 {
+			ts := int64(e.ExpiresAt)
+			je.ExpiresAt = &ts
+		}
+		return je, nil
+	default: // "auto"
+		return encodeJsonEntry(e), nil
+	}
+}
+
 func init() {
 	listCmd.Flags().BoolVarP(&listBinary, "binary", "b", false, "include binary data in text output")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
 	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
 	listCmd.Flags().BoolVarP(&listTTL, "ttl", "t", false, "append a TTL column when entries expire")
 	listCmd.Flags().BoolVar(&listHeader, "header", false, "include header row")
-	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html)")
+	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
 	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
 	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
+	listCmd.Flags().StringVarP(&listEncoding, "encoding", "e", "auto", "value encoding for ndjson format: auto, base64, or text")
 	rootCmd.AddCommand(listCmd)
 }

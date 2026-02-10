@@ -80,7 +80,7 @@ func delStore(cmd *cobra.Command, args []string) error {
 }
 
 func executeDeletion(path string) error {
-	if err := os.RemoveAll(path); err != nil {
+	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("cannot delete-store '%s': %v", path, err)
 	}
 	return nil

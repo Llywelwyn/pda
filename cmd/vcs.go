@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -68,29 +66,31 @@ func writeGitignore(repoDir string) error {
 	return nil
 }
 
+// snapshotDB copies a store's .ndjson file into the VCS directory.
 func snapshotDB(store *Store, repoDir, db string) error {
 	targetDir := filepath.Join(repoDir, storeDirName)
 	if err := os.MkdirAll(targetDir, 0o750); err != nil {
 		return err
 	}
-	target := filepath.Join(targetDir, fmt.Sprintf("%s.ndjson", db))
-	f, err := os.Create(target)
+
+	srcPath, err := store.storePath(db)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	opts := DumpOptions{
-		Encoding: "auto",
-	}
-	if err := dumpDatabase(store, db, f, opts); err != nil {
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
-	return f.Sync()
+	target := filepath.Join(targetDir, db+".ndjson")
+	return os.WriteFile(target, data, 0o640)
 }
 
-// exportAllStores writes every Badger store to ndjson files under repoDir/stores
+// exportAllStores copies every store's .ndjson file to repoDir/stores
 // and removes stale snapshot files for deleted stores.
 func exportAllStores(store *Store, repoDir string) error {
 	stores, err := store.AllStores()
@@ -288,6 +288,8 @@ func currentBranch(dir string) (string, error) {
 	return branch, nil
 }
 
+// restoreAllSnapshots copies .ndjson files from VCS snapshot dir into store paths,
+// and removes local stores that are not in the snapshot.
 func restoreAllSnapshots(store *Store, repoDir string) error {
 	targetDir := filepath.Join(repoDir, storeDirName)
 	entries, err := os.ReadDir(targetDir)
@@ -310,12 +312,18 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 		dbName := strings.TrimSuffix(e.Name(), ".ndjson")
 		snapshotDBs[dbName] = struct{}{}
 
-		dbPath, err := store.FindStore(dbName)
-		if err == nil {
-			_ = os.RemoveAll(dbPath)
+		srcPath := filepath.Join(targetDir, e.Name())
+		data, err := os.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("restore %q: %w", dbName, err)
 		}
 
-		if err := restoreSnapshot(store, filepath.Join(targetDir, e.Name()), dbName); err != nil {
+		dstPath, err := store.storePath(dbName)
+		if err != nil {
+			return fmt.Errorf("restore %q: %w", dbName, err)
+		}
+
+		if err := os.WriteFile(dstPath, data, 0o640); err != nil {
 			return fmt.Errorf("restore %q: %w", dbName, err)
 		}
 	}
@@ -328,11 +336,11 @@ func restoreAllSnapshots(store *Store, repoDir string) error {
 		if _, ok := snapshotDBs[db]; ok {
 			continue
 		}
-		dbPath, err := store.FindStore(db)
+		p, err := store.storePath(db)
 		if err != nil {
 			return err
 		}
-		if err := os.RemoveAll(dbPath); err != nil {
+		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("remove store '%s': %w", db, err)
 		}
 	}
@@ -346,32 +354,13 @@ func wipeAllStores(store *Store) error {
 		return err
 	}
 	for _, db := range dbs {
-		path, err := store.FindStore(db)
+		p, err := store.storePath(db)
 		if err != nil {
 			return err
 		}
-		if err := os.RemoveAll(path); err != nil {
+		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("remove store '%s': %w", db, err)
 		}
 	}
 	return nil
 }
-
-func restoreSnapshot(store *Store, path string, dbName string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	db, err := store.open(dbName)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	decoder := json.NewDecoder(bufio.NewReader(f))
-	_, err = restoreEntries(decoder, db, restoreOpts{})
-	return err
-}
-
