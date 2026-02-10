@@ -106,42 +106,13 @@ func loadConfig() (Config, error) {
 		return cfg, err
 	}
 
-	md, err := toml.DecodeFile(path, &cfg)
+	_, err = toml.DecodeFile(path, &cfg)
 	if err != nil {
 		return cfg, fmt.Errorf("parse %s: %w", path, err)
 	}
 
-	if !md.IsDefined("display_ascii_art") {
-		cfg.DisplayAsciiArt = defaultConfig().DisplayAsciiArt
-
-	}
-
-	if !md.IsDefined("key", "always_prompt_delete") {
-		cfg.Key.AlwaysPromptDelete = defaultConfig().Key.AlwaysPromptDelete
-	}
-
-	if !md.IsDefined("store", "default_store_name") || cfg.Store.DefaultStoreName == "" {
+	if cfg.Store.DefaultStoreName == "" {
 		cfg.Store.DefaultStoreName = defaultConfig().Store.DefaultStoreName
-
-	}
-	if !md.IsDefined("store", "always_prompt_delete") {
-		cfg.Store.AlwaysPromptDelete = defaultConfig().Store.AlwaysPromptDelete
-	}
-
-	if !md.IsDefined("key", "always_prompt_overwrite") {
-		cfg.Key.AlwaysPromptOverwrite = defaultConfig().Key.AlwaysPromptOverwrite
-	}
-
-	if !md.IsDefined("git", "auto_fetch") {
-		cfg.Git.AutoFetch = defaultConfig().Git.AutoFetch
-	}
-
-	if !md.IsDefined("git", "auto_commit") {
-		cfg.Git.AutoCommit = defaultConfig().Git.AutoCommit
-	}
-
-	if !md.IsDefined("git", "auto_push") {
-		cfg.Git.AutoPush = defaultConfig().Git.AutoPush
 	}
 
 	return cfg, nil
