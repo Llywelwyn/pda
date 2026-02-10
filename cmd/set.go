@@ -76,10 +76,6 @@ func set(cmd *cobra.Command, args []string) error {
 		value = bytes
 	}
 
-	secret, err := cmd.Flags().GetBool("secret")
-	if err != nil {
-		return fmt.Errorf("cannot set '%s': %v", args[0], err)
-	}
 	ttl, err := cmd.Flags().GetDuration("ttl")
 	if err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
@@ -108,9 +104,6 @@ func set(cmd *cobra.Command, args []string) error {
 		sync:     false,
 		transact: func(tx *badger.Txn, k []byte) error {
 			entry := badger.NewEntry(k, value)
-			if secret {
-				entry = entry.WithMeta(metaSecret)
-			}
 			if ttl != 0 {
 				entry = entry.WithTTL(ttl)
 			}
@@ -127,7 +120,6 @@ func set(cmd *cobra.Command, args []string) error {
 
 func init() {
 	rootCmd.AddCommand(setCmd)
-	setCmd.Flags().Bool("secret", false, "Mark the stored value as a secret")
 	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
 	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
 }

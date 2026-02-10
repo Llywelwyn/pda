@@ -20,7 +20,6 @@ Aliases:
 Flags:
   -h, --help           help for set
   -i, --interactive    Prompt before overwriting an existing key
-      --secret         Mark the stored value as a secret
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
 Set a key to a given value or stdin. Optionally specify a store.
 	
@@ -42,5 +41,4 @@ Aliases:
 Flags:
   -h, --help           help for set
   -i, --interactive    Prompt before overwriting an existing key
-      --secret         Mark the stored value as a secret
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)

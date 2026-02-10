@@ -17,7 +17,6 @@ Flags:
   -h, --help              help for list
       --no-keys           suppress the key column
       --no-values         suppress the value column
-  -S, --secret            display values marked as secret
   -t, --ttl               append a TTL column when entries expire
 List the contents of a store
 
@@ -36,5 +35,4 @@ Flags:
   -h, --help              help for list
       --no-keys           suppress the key column
       --no-values         suppress the value column
-  -S, --secret            display values marked as secret
   -t, --ttl               append a TTL column when entries expire

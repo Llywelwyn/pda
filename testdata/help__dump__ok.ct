@@ -13,7 +13,6 @@ Flags:
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for export
-      --secret            Include entries marked as secret
 Dump all key/value pairs as NDJSON
 
 Usage:
@@ -27,4 +26,3 @@ Flags:
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for export
-      --secret            Include entries marked as secret

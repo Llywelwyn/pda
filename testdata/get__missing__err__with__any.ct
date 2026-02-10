@@ -8,7 +8,7 @@ $ pda get foobar --secret --> FAIL
 Error: cannot get 'foobar': Key not found
 Error: cannot get 'foobar': Key not found
 Error: cannot get 'foobar': Key not found
+Error: unknown flag: --secret
 Error: cannot get 'foobar': Key not found
-Error: cannot get 'foobar': Key not found
-Error: cannot get 'foobar': Key not found
-Error: cannot get 'foobar': Key not found
+Error: unknown flag: --secret
+Error: unknown flag: --secret

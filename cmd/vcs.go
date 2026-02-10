@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dgraph-io/badger/v4"
 	gap "github.com/muesli/go-app-paths"
 )
 
@@ -63,7 +62,7 @@ func writeGitignore(repoDir string) error {
 		if err := runGit(repoDir, "add", ".gitignore"); err != nil {
 			return err
 		}
-		return runGit(repoDir, "commit", "--allow-empty", "-m", "generated gitignore")
+		return runGit(repoDir, "commit", "-m", "generated gitignore")
 	}
 	fmt.Println("Existing .gitignore found.")
 	return nil
@@ -82,8 +81,7 @@ func snapshotDB(store *Store, repoDir, db string) error {
 	defer f.Close()
 
 	opts := DumpOptions{
-		Encoding:      "auto",
-		IncludeSecret: false,
+		Encoding: "auto",
 	}
 	if err := dumpDatabase(store, db, f, opts); err != nil {
 		return err
@@ -373,60 +371,7 @@ func restoreSnapshot(store *Store, path string, dbName string) error {
 	defer db.Close()
 
 	decoder := json.NewDecoder(bufio.NewReader(f))
-	wb := db.NewWriteBatch()
-	defer wb.Cancel()
-
-	entryNo := 0
-	for {
-		var entry dumpEntry
-		if err := decoder.Decode(&entry); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return fmt.Errorf("entry %d: %w", entryNo+1, err)
-		}
-		entryNo++
-		if entry.Key == "" {
-			return fmt.Errorf("entry %d: missing key", entryNo)
-		}
-
-		value, err := decodeEntryValue(entry)
-		if err != nil {
-			return fmt.Errorf("entry %d: %w", entryNo, err)
-		}
-
-		entryMeta := byte(0x0)
-		if entry.Secret {
-			entryMeta = metaSecret
-		}
-
-		writeEntry := badger.NewEntry([]byte(entry.Key), value).WithMeta(entryMeta)
-		if entry.ExpiresAt != nil {
-			if *entry.ExpiresAt < 0 {
-				return fmt.Errorf("entry %d: expires_at must be >= 0", entryNo)
-			}
-			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
-		}
-
-		if err := wb.SetEntry(writeEntry); err != nil {
-			return fmt.Errorf("entry %d: %w", entryNo, err)
-		}
-	}
-
-	if err := wb.Flush(); err != nil {
-		return err
-	}
-	return nil
+	_, err = restoreEntries(decoder, db, restoreOpts{})
+	return err
 }
 
-// hasMergeConflicts returns true if there are files with unresolved merge
-// conflicts in the working tree.
-func hasMergeConflicts(dir string) (bool, error) {
-	cmd := exec.Command("git", "diff", "--name-only", "--diff-filter=U")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		return false, err
-	}
-	return len(bytes.TrimSpace(out)) > 0, nil
-}

@@ -32,6 +32,7 @@ import (
 	"strings"
 
 	"github.com/dgraph-io/badger/v4"
+	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
 
@@ -85,82 +86,21 @@ func restore(cmd *cobra.Command, args []string) error {
 
 	decoder := json.NewDecoder(bufio.NewReaderSize(reader, 8*1024*1024))
 
-	wb := db.NewWriteBatch()
-	defer wb.Cancel()
-
 	interactive, err := cmd.Flags().GetBool("interactive")
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
 
-	entryNo := 0
-	var restored int
-	var matched bool
-
-	for {
-		var entry dumpEntry
-		if err := decoder.Decode(&entry); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return fmt.Errorf("cannot restore '%s': entry %d: %w", displayTarget, entryNo+1, err)
-		}
-		entryNo++
-		if entry.Key == "" {
-			return fmt.Errorf("cannot restore '%s': entry %d: missing key", displayTarget, entryNo)
-		}
-		if !globMatch(matchers, entry.Key) {
-			continue
-		}
-
-		if promptOverwrite {
-			exists, err := keyExistsInDB(db, entry.Key)
-			if err != nil {
-				return fmt.Errorf("cannot restore '%s': entry %d: %v", displayTarget, entryNo, err)
-			}
-			if exists {
-				fmt.Printf("overwrite '%s'? (y/n)\n", entry.Key)
-				var confirm string
-				if _, err := fmt.Scanln(&confirm); err != nil {
-					return fmt.Errorf("cannot restore '%s': entry %d: %v", displayTarget, entryNo, err)
-				}
-				if strings.ToLower(confirm) != "y" {
-					continue
-				}
-			}
-		}
-
-		value, err := decodeEntryValue(entry)
-		if err != nil {
-			return fmt.Errorf("cannot restore '%s': entry %d: %w", displayTarget, entryNo, err)
-		}
-
-		entryMeta := byte(0x0)
-		if entry.Secret {
-			entryMeta = metaSecret
-		}
-
-		writeEntry := badger.NewEntry([]byte(entry.Key), value).WithMeta(entryMeta)
-		if entry.ExpiresAt != nil {
-			if *entry.ExpiresAt < 0 {
-				return fmt.Errorf("cannot restore '%s': entry %d: expires_at must be >= 0", displayTarget, entryNo)
-			}
-			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
-		}
-
-		if err := wb.SetEntry(writeEntry); err != nil {
-			return fmt.Errorf("cannot restore '%s': entry %d: %w", displayTarget, entryNo, err)
-		}
-		restored++
-		matched = true
-	}
-
-	if err := wb.Flush(); err != nil {
+	restored, err := restoreEntries(decoder, db, restoreOpts{
+		matchers:        matchers,
+		promptOverwrite: promptOverwrite,
+	})
+	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 
-	if len(matchers) > 0 && !matched {
+	if len(matchers) > 0 && restored == 0 {
 		return fmt.Errorf("cannot restore '%s': No matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
 	}
 
@@ -196,6 +136,76 @@ func decodeEntryValue(entry dumpEntry) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupported encoding %q", entry.Encoding)
 	}
+}
+
+type restoreOpts struct {
+	matchers        []glob.Glob
+	promptOverwrite bool
+}
+
+func restoreEntries(decoder *json.Decoder, db *badger.DB, opts restoreOpts) (int, error) {
+	wb := db.NewWriteBatch()
+	defer wb.Cancel()
+
+	entryNo := 0
+	restored := 0
+
+	for {
+		var entry dumpEntry
+		if err := decoder.Decode(&entry); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return 0, fmt.Errorf("entry %d: %w", entryNo+1, err)
+		}
+		entryNo++
+		if entry.Key == "" {
+			return 0, fmt.Errorf("entry %d: missing key", entryNo)
+		}
+		if !globMatch(opts.matchers, entry.Key) {
+			continue
+		}
+
+		if opts.promptOverwrite {
+			exists, err := keyExistsInDB(db, entry.Key)
+			if err != nil {
+				return 0, fmt.Errorf("entry %d: %v", entryNo, err)
+			}
+			if exists {
+				fmt.Printf("overwrite '%s'? (y/n)\n", entry.Key)
+				var confirm string
+				if _, err := fmt.Scanln(&confirm); err != nil {
+					return 0, fmt.Errorf("entry %d: %v", entryNo, err)
+				}
+				if strings.ToLower(confirm) != "y" {
+					continue
+				}
+			}
+		}
+
+		value, err := decodeEntryValue(entry)
+		if err != nil {
+			return 0, fmt.Errorf("entry %d: %w", entryNo, err)
+		}
+
+		writeEntry := badger.NewEntry([]byte(entry.Key), value)
+		if entry.ExpiresAt != nil {
+			if *entry.ExpiresAt < 0 {
+				return 0, fmt.Errorf("entry %d: expires_at must be >= 0", entryNo)
+			}
+			writeEntry.ExpiresAt = uint64(*entry.ExpiresAt)
+		}
+
+		if err := wb.SetEntry(writeEntry); err != nil {
+			return 0, fmt.Errorf("entry %d: %w", entryNo, err)
+		}
+		restored++
+	}
+
+	if err := wb.Flush(); err != nil {
+		return 0, err
+	}
+	return restored, nil
 }
 
 func init() {

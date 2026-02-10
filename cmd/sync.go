@@ -64,35 +64,36 @@ func sync(manual bool) error {
 		}
 		remoteAhead, behind, err := repoAheadBehind(repoDir, remoteInfo.Ref)
 		if err != nil {
-			return err
-		}
-		ahead = remoteAhead
-		if behind > 0 {
-			if ahead > 0 {
-				return fmt.Errorf("repo diverged from remote (ahead %d, behind %d); resolve manually", ahead, behind)
-			}
-			fmt.Printf("remote has %d commit(s) not present locally; discard local changes and pull? (y/n)\n", behind)
-			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot continue sync: %w", err)
-			}
-			if strings.ToLower(confirm) != "y" {
-				return fmt.Errorf("aborted sync")
-			}
-			dirty, err := repoHasChanges(repoDir)
-			if err != nil {
-				return err
-			}
-			if dirty {
-				stashMsg := fmt.Sprintf("pda sync: %s", time.Now().UTC().Format(time.RFC3339))
-				if err := runGit(repoDir, "stash", "push", "-u", "-m", stashMsg); err != nil {
+			ahead = 1 // ref doesn't exist yet; just push
+		} else {
+			ahead = remoteAhead
+			if behind > 0 {
+				if ahead > 0 {
+					return fmt.Errorf("repo diverged from remote (ahead %d, behind %d); resolve manually", ahead, behind)
+				}
+				fmt.Printf("remote has %d commit(s) not present locally; discard local changes and pull? (y/n)\n", behind)
+				var confirm string
+				if _, err := fmt.Scanln(&confirm); err != nil {
+					return fmt.Errorf("cannot continue sync: %w", err)
+				}
+				if strings.ToLower(confirm) != "y" {
+					return fmt.Errorf("aborted sync")
+				}
+				dirty, err := repoHasChanges(repoDir)
+				if err != nil {
 					return err
 				}
+				if dirty {
+					stashMsg := fmt.Sprintf("pda sync: %s", time.Now().UTC().Format(time.RFC3339))
+					if err := runGit(repoDir, "stash", "push", "-u", "-m", stashMsg); err != nil {
+						return err
+					}
+				}
+				if err := pullRemote(repoDir, remoteInfo); err != nil {
+					return err
+				}
+				return restoreAllSnapshots(store, repoDir)
 			}
-			if err := pullRemote(repoDir, remoteInfo); err != nil {
-				return err
-			}
-			return restoreAllSnapshots(store, repoDir)
 		}
 	}
 
@@ -108,7 +109,9 @@ func sync(manual bool) error {
 	}
 	madeCommit := false
 	if !changed {
-		fmt.Println("no changes to commit")
+		if manual {
+			fmt.Println("no changes to commit")
+		}
 	} else {
 		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
 		if err := runGit(repoDir, "commit", "-m", msg); err != nil {
@@ -117,10 +120,15 @@ func sync(manual bool) error {
 		madeCommit = true
 	}
 	if manual || config.Git.AutoPush {
-		if remoteInfo.Ref != "" && (madeCommit || ahead > 0) {
+		if remoteInfo.Ref == "" {
+			if manual {
+				fmt.Println("no remote configured; skipping push")
+			}
+		} else if madeCommit || ahead > 0 {
 			return pushRemote(repoDir, remoteInfo)
+		} else if manual {
+			fmt.Println("nothing to push")
 		}
-		fmt.Println("no remote configured; skipping push")
 	}
 	return nil
 }

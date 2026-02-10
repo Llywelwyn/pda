@@ -55,7 +55,6 @@ func (e *formatEnum) Type() string { return "format" }
 
 var (
 	listBinary   bool
-	listSecret   bool
 	listNoKeys   bool
 	listNoValues bool
 	listTTL      bool
@@ -142,7 +141,6 @@ func list(cmd *cobra.Command, args []string) error {
 		tw.AppendHeader(headerRow(columns))
 	}
 
-	placeholder := "**********"
 	var matchedCount int
 	trans := TransactionArgs{
 		key:      targetDB,
@@ -162,11 +160,9 @@ func list(cmd *cobra.Command, args []string) error {
 					continue
 				}
 				matchedCount++
-				meta := item.UserMeta()
-				isSecret := meta&metaSecret != 0
 
 				var valueStr string
-				if showValues && (!isSecret || listSecret) {
+				if showValues {
 					if err := item.Value(func(v []byte) error {
 						valueBuf = append(valueBuf[:0], v...)
 						return nil
@@ -182,11 +178,7 @@ func list(cmd *cobra.Command, args []string) error {
 					case columnKey:
 						row = append(row, key)
 					case columnValue:
-						if isSecret && !listSecret {
-							row = append(row, placeholder)
-						} else {
-							row = append(row, valueStr)
-						}
+						row = append(row, valueStr)
 					case columnTTL:
 						row = append(row, formatExpiry(item.ExpiresAt()))
 					}
@@ -310,7 +302,6 @@ func renderTable(tw table.Writer) {
 
 func init() {
 	listCmd.Flags().BoolVarP(&listBinary, "binary", "b", false, "include binary data in text output")
-	listCmd.Flags().BoolVarP(&listSecret, "secret", "S", false, "display values marked as secret")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
 	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
 	listCmd.Flags().BoolVarP(&listTTL, "ttl", "t", false, "append a TTL column when entries expire")

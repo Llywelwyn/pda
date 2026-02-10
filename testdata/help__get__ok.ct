@@ -20,7 +20,6 @@ Flags:
   -b, --include-binary   include binary data in text output
       --no-template      directly output template syntax
   -c, --run              execute the result as a shell command
-      --secret           display values marked as secret
 Get the value of a key. Optionally specify a store.
 
 {{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
@@ -41,4 +40,3 @@ Flags:
   -b, --include-binary   include binary data in text output
       --no-template      directly output template syntax
   -c, --run              execute the result as a shell command
-      --secret           display values marked as secret

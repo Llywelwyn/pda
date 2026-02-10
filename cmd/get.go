@@ -74,7 +74,6 @@ func get(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
 	var v []byte
-	var meta byte
 	trans := TransactionArgs{
 		key:      args[0],
 		readonly: true,
@@ -84,7 +83,6 @@ func get(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
-			meta = item.UserMeta()
 			v, err = item.ValueCopy(nil)
 			return err
 		},
@@ -92,14 +90,6 @@ func get(cmd *cobra.Command, args []string) error {
 
 	if err := store.Transaction(trans); err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
-	}
-
-	includeSecret, err := cmd.Flags().GetBool("secret")
-	if err != nil {
-		return fmt.Errorf("cannot get '%s': %v", args[0], err)
-	}
-	if meta&metaSecret != 0 && !includeSecret {
-		return fmt.Errorf("cannot get '%s': marked as secret, run with --secret", args[0])
 	}
 
 	binary, err := cmd.Flags().GetBool("include-binary")
@@ -238,13 +228,11 @@ var runFlag bool
 
 func init() {
 	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
-	getCmd.Flags().Bool("secret", false, "display values marked as secret")
 	getCmd.Flags().BoolVarP(&runFlag, "run", "c", false, "execute the result as a shell command")
 	getCmd.Flags().Bool("no-template", false, "directly output template syntax")
 	rootCmd.AddCommand(getCmd)
 
 	runCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
-	runCmd.Flags().Bool("secret", false, "display values marked as secret")
 	runCmd.Flags().Bool("no-template", false, "directly output template syntax")
 	rootCmd.AddCommand(runCmd)
 }

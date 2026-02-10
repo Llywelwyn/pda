@@ -1,7 +1,8 @@
 $ pda set foo 1
 $ pda set bar 2
 $ pda ls
- a    ********** 
+ a    echo hello 
+                 
  a1   1          
  a2   2          
  b1   3          

@@ -41,10 +41,6 @@ type errNotFound struct {
 	suggestions []string
 }
 
-const (
-	metaSecret byte = 0x1
-)
-
 func (err errNotFound) Error() string {
 	if len(err.suggestions) == 0 {
 		return "No such key"

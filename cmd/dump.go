@@ -40,7 +40,6 @@ type dumpEntry struct {
 	Key       string `json:"key"`
 	Value     string `json:"value"`
 	Encoding  string `json:"encoding,omitempty"`
-	Secret    bool   `json:"secret,omitempty"`
 	ExpiresAt *int64 `json:"expires_at,omitempty"`
 }
 
@@ -82,10 +81,6 @@ func dump(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot dump '%s': unsupported encoding '%s'", targetDB, mode)
 	}
 
-	includeSecret, err := cmd.Flags().GetBool("secret")
-	if err != nil {
-		return err
-	}
 	globPatterns, err := cmd.Flags().GetStringSlice("glob")
 	if err != nil {
 		return fmt.Errorf("cannot dump '%s': %v", targetDB, err)
@@ -100,17 +95,15 @@ func dump(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := DumpOptions{
-		Encoding:      mode,
-		IncludeSecret: includeSecret,
-		Matchers:      matchers,
-		GlobPatterns:  globPatterns,
+		Encoding:     mode,
+		Matchers:     matchers,
+		GlobPatterns: globPatterns,
 	}
 	return dumpDatabase(store, strings.TrimPrefix(targetDB, "@"), cmd.OutOrStdout(), opts)
 }
 
 func init() {
 	dumpCmd.Flags().StringP("encoding", "e", "auto", "value encoding: auto, base64, or text")
-	dumpCmd.Flags().Bool("secret", false, "Include entries marked as secret")
 	dumpCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
 	dumpCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(dumpCmd)
@@ -132,10 +125,9 @@ func encodeText(entry *dumpEntry, key []byte, v []byte) error {
 
 // DumpOptions controls how a store is dumped to NDJSON.
 type DumpOptions struct {
-	Encoding      string
-	IncludeSecret bool
-	Matchers      []glob.Glob
-	GlobPatterns  []string
+	Encoding     string
+	Matchers     []glob.Glob
+	GlobPatterns []string
 }
 
 // dumpDatabase writes entries from dbName to w as NDJSON.
@@ -159,16 +151,10 @@ func dumpDatabase(store *Store, dbName string, w io.Writer, opts DumpOptions) er
 				if !globMatch(opts.Matchers, string(key)) {
 					continue
 				}
-				meta := item.UserMeta()
-				isSecret := meta&metaSecret != 0
-				if isSecret && !opts.IncludeSecret {
-					continue
-				}
 				expiresAt := item.ExpiresAt()
 				if err := item.Value(func(v []byte) error {
 					entry := dumpEntry{
-						Key:    string(key),
-						Secret: isSecret,
+						Key: string(key),
 					}
 					if expiresAt > 0 {
 						ts := int64(expiresAt)
