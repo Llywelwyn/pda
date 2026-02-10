@@ -48,7 +48,7 @@ var mvCmd = &cobra.Command{
 }
 
 func cp(cmd *cobra.Command, args []string) error {
-	copy = true
+	copyMode = true
 	return mv(cmd, args)
 }
 
@@ -143,7 +143,7 @@ func mv(cmd *cobra.Command, args []string) error {
 		return writeErr
 	}
 
-	if copy {
+	if copyMode {
 		return autoSync()
 	}
 
@@ -162,11 +162,11 @@ func mv(cmd *cobra.Command, args []string) error {
 }
 
 var (
-	copy bool = false
+	copyMode bool = false
 )
 
 func init() {
-	mvCmd.Flags().BoolVar(&copy, "copy", false, "Copy instead of move (keeps source)")
+	mvCmd.Flags().BoolVar(&copyMode, "copy", false, "Copy instead of move (keeps source)")
 	mvCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
 	rootCmd.AddCommand(mvCmd)
 	cpCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
