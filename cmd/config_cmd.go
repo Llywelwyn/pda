@@ -163,7 +163,7 @@ var configSetCmd = &cobra.Command{
 
 		switch f.Kind {
 		case reflect.Bool:
-			switch raw {
+			switch strings.ToLower(raw) {
 			case "true":
 				f.Field.SetBool(true)
 			case "false":
