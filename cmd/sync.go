@@ -34,15 +34,17 @@ var syncCmd = &cobra.Command{
 	Short:        "Manually sync your stores with Git",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return sync(true)
+		msg, _ := cmd.Flags().GetString("message")
+		return sync(true, msg)
 	},
 }
 
 func init() {
+	syncCmd.Flags().StringP("message", "m", "", "Custom commit message (defaults to timestamp)")
 	rootCmd.AddCommand(syncCmd)
 }
 
-func sync(manual bool) error {
+func sync(manual bool, customMsg string) error {
 	repoDir, err := ensureVCSInitialized()
 	if err != nil {
 		return err
@@ -62,7 +64,13 @@ func sync(manual bool) error {
 		return err
 	}
 	if changed {
-		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
+		msg := customMsg
+		if msg == "" {
+			msg = fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
+			if manual {
+				printHint("use -m to set a custom commit message")
+			}
+		}
 		if err := runGit(repoDir, "commit", "-m", msg); err != nil {
 			return err
 		}
@@ -109,6 +117,9 @@ func sync(manual bool) error {
 		}
 	}
 
+	if manual {
+		okf("in sync!")
+	}
 	return nil
 }
 
@@ -119,5 +130,5 @@ func autoSync() error {
 	if _, err := ensureVCSInitialized(); err != nil {
 		return nil
 	}
-	return sync(false)
+	return sync(false, "")
 }
