@@ -17,6 +17,7 @@ Aliases:
 
 Flags:
   -b, --base64        view binary data as base64
+      --exists        exit 0 if the key exists, exit 1 if not (no output)
   -h, --help          help for get
       --no-template   directly output template syntax
   -c, --run           execute the result as a shell command
@@ -37,6 +38,7 @@ Aliases:
 
 Flags:
   -b, --base64        view binary data as base64
+      --exists        exit 0 if the key exists, exit 1 if not (no output)
   -h, --help          help for get
       --no-template   directly output template syntax
   -c, --run           execute the result as a shell command

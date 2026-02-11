@@ -87,6 +87,15 @@ func get(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 	idx := findEntry(entries, spec.Key)
+
+	existsOnly, _ := cmd.Flags().GetBool("exists")
+	if existsOnly {
+		if idx < 0 {
+			os.Exit(1)
+		}
+		return nil
+	}
+
 	if idx < 0 {
 		keys := make([]string, len(entries))
 		for i, e := range entries {
@@ -238,6 +247,7 @@ func init() {
 	getCmd.Flags().BoolP("base64", "b", false, "view binary data as base64")
 	getCmd.Flags().BoolVarP(&runFlag, "run", "c", false, "execute the result as a shell command")
 	getCmd.Flags().Bool("no-template", false, "directly output template syntax")
+	getCmd.Flags().Bool("exists", false, "exit 0 if the key exists, exit 1 if not (no output)")
 	rootCmd.AddCommand(getCmd)
 
 	runCmd.Flags().BoolP("base64", "b", false, "view binary data as base64")

@@ -151,6 +151,9 @@ pda get name
 # Or run it directly.
 pda run name
 # same as: pda get name --run
+
+# Check if a key exists (exit 0 if found, exit 1 if not).
+pda get name --exists
 ```
 
 <p align="center"></p><!-- spacer -->
