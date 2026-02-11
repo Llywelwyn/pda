@@ -31,7 +31,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 
 <p align="center"></p><!-- spacer -->
 
-`pda!` stores key-value pairs natively as [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) files. The `list` command outputs tabular data by default, but also supports [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables, and raw NDJSON. Because every store is in plaintext, Git versioning is pretty easy: auto-committing, pushing, and fetching can be enabled in the config to automatically version changes, or just `pda sync` regularly.
+`pda!` stores key-value pairs natively as [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) files. The `list` command outputs tabular data by default, but also supports [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables, JSON, and raw NDJSON. Because every store is in plaintext, Git versioning is pretty easy: auto-committing, pushing, and fetching can be enabled in the config to automatically version changes, or just `pda sync` regularly.
 
 <p align="center"></p><!-- spacer -->
 
@@ -229,7 +229,11 @@ pda ls --format csv
 # name,Alice,no expiry
 # dogs,four legged mammals,no expiry
 
-# Or TSV, or Markdown, or HTML.
+# Or as a JSON array.
+pda ls --format json
+# [{"key":"name","value":"Alice","encoding":"text"},{"key":"dogs","value":"four legged mammals","encoding":"text"}]
+
+# Or TSV, Markdown, HTML, NDJSON.
 
 # Just the count of entries.
 pda ls --count

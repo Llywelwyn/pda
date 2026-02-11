@@ -11,7 +11,7 @@ Aliases:
 Flags:
   -b, --base64          view binary data as base64
   -c, --count           print only the count of matching entries
-  -o, --format format   output format (table|tsv|csv|markdown|html|ndjson) (default table)
+  -o, --format format   output format (table|tsv|csv|markdown|html|ndjson|json) (default table)
   -f, --full            show full values without truncation
   -h, --help            help for list
   -k, --key strings     filter keys with glob pattern (repeatable)
@@ -31,7 +31,7 @@ Aliases:
 Flags:
   -b, --base64          view binary data as base64
   -c, --count           print only the count of matching entries
-  -o, --format format   output format (table|tsv|csv|markdown|html|ndjson) (default table)
+  -o, --format format   output format (table|tsv|csv|markdown|html|ndjson|json) (default table)
   -f, --full            show full values without truncation
   -h, --help            help for list
   -k, --key strings     filter keys with glob pattern (repeatable)

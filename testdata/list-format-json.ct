@@ -1,0 +1,5 @@
+# JSON array format output via list
+$ pda set a@jf 1
+$ pda set b@jf 2
+$ pda ls jf --format json
+[{"key":"a","value":"1","encoding":"text"},{"key":"b","value":"2","encoding":"text"}]

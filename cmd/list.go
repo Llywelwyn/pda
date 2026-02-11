@@ -46,11 +46,11 @@ func (e *formatEnum) String() string { return string(*e) }
 
 func (e *formatEnum) Set(v string) error {
 	switch v {
-	case "table", "tsv", "csv", "html", "markdown", "ndjson":
+	case "table", "tsv", "csv", "html", "markdown", "ndjson", "json":
 		*e = formatEnum(v)
 		return nil
 	default:
-		return fmt.Errorf("must be one of 'table', 'tsv', 'csv', 'html', 'markdown', or 'ndjson'")
+		return fmt.Errorf("must be one of 'table', 'tsv', 'csv', 'html', 'markdown', 'ndjson', or 'json'")
 	}
 }
 
@@ -193,6 +193,24 @@ func list(cmd *cobra.Command, args []string) error {
 			}
 			fmt.Fprintln(output, string(data))
 		}
+		return nil
+	}
+
+	// JSON format: emit a single JSON array
+	if listFormat.String() == "json" {
+		var entries []jsonEntry
+		for _, e := range filtered {
+			je, err := encodeJsonEntry(e, recipient)
+			if err != nil {
+				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+			}
+			entries = append(entries, je)
+		}
+		data, err := json.Marshal(entries)
+		if err != nil {
+			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+		}
+		fmt.Fprintln(output, string(data))
 		return nil
 	}
 
@@ -485,7 +503,7 @@ func init() {
 	listCmd.Flags().BoolVar(&listNoTTL, "no-ttl", false, "suppress the TTL column")
 	listCmd.Flags().BoolVarP(&listFull, "full", "f", false, "show full values without truncation")
 	listCmd.Flags().BoolVar(&listNoHeader, "no-header", false, "suppress the header row")
-	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
+	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson|json)")
 	listCmd.Flags().StringSliceP("key", "k", nil, "filter keys with glob pattern (repeatable)")
 	listCmd.Flags().StringSliceP("value", "v", nil, "filter values with glob pattern (repeatable)")
 	rootCmd.AddCommand(listCmd)
