@@ -11,6 +11,22 @@ var configCmd = &cobra.Command{
 	Short: "View and modify configuration",
 }
 
+var configListCmd = &cobra.Command{
+	Use:          "list",
+	Aliases:      []string{"ls"},
+	Short:        "List all configuration values",
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := defaultConfig()
+		fields := configFields(&config, &defaults)
+		for _, f := range fields {
+			fmt.Printf("%s = %v\n", f.Key, f.Value)
+		}
+		return nil
+	},
+}
+
 var configPathCmd = &cobra.Command{
 	Use:          "path",
 	Short:        "Print config file path",
@@ -27,6 +43,7 @@ var configPathCmd = &cobra.Command{
 }
 
 func init() {
+	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configPathCmd)
 	rootCmd.AddCommand(configCmd)
 }
