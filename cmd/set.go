@@ -25,6 +25,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -78,10 +79,23 @@ func set(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
+	filePath, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
+	}
+
 	var value []byte
-	if len(args) == 2 {
+	switch {
+	case filePath != "" && len(args) == 2:
+		return fmt.Errorf("cannot set '%s': --file and VALUE argument are mutually exclusive", args[0])
+	case filePath != "":
+		value, err = os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("cannot set '%s': %v", args[0], err)
+		}
+	case len(args) == 2:
 		value = []byte(args[1])
-	} else {
+	default:
 		bytes, err := io.ReadAll(cmd.InOrStdin())
 		if err != nil {
 			return fmt.Errorf("cannot set '%s': %v", args[0], err)
@@ -169,4 +183,5 @@ func init() {
 	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
 	setCmd.Flags().BoolP("encrypt", "e", false, "Encrypt the value at rest using age")
 	setCmd.Flags().Bool("safe", false, "Do not overwrite if the key already exists")
+	setCmd.Flags().StringP("file", "f", "", "Read value from a file")
 }

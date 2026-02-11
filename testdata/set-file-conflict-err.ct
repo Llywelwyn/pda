@@ -1,0 +1,3 @@
+$ fecho myfile contents
+$ pda set key@sfc value --file myfile --> FAIL
+FAIL  cannot set 'key@sfc': --file and VALUE argument are mutually exclusive

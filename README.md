@@ -140,6 +140,10 @@ echo "Alice" | pda set name
 cat dogs.txt | pda set dogs
 pda set kitty < cat.png
 
+# From a file
+pda set dogs --file dogs.txt
+pda set kitty -f cat.png
+
 # --safe to skip if the key already exists.
 pda set name "Alice" --safe
 pda set name "Bob" --safe

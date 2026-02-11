@@ -22,6 +22,7 @@ Aliases:
 
 Flags:
   -e, --encrypt        Encrypt the value at rest using age
+  -f, --file string    Read value from a file
   -h, --help           help for set
   -i, --interactive    Prompt before overwriting an existing key
       --safe           Do not overwrite if the key already exists
@@ -48,6 +49,7 @@ Aliases:
 
 Flags:
   -e, --encrypt        Encrypt the value at rest using age
+  -f, --file string    Read value from a file
   -h, --help           help for set
   -i, --interactive    Prompt before overwriting an existing key
       --safe           Do not overwrite if the key already exists

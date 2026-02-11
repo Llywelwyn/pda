@@ -1,0 +1,4 @@
+$ fecho myfile hello from file
+$ pda set key@sf --file myfile
+$ pda get key@sf
+hello from file
