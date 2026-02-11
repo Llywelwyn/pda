@@ -30,11 +30,12 @@ import (
 )
 
 var cpCmd = &cobra.Command{
-	Use:     "copy FROM[@STORE] TO[@STORE]",
-	Aliases: []string{"cp"},
-	Short:   "Make a copy of a key",
-	Args:    cobra.ExactArgs(2),
-	RunE:    cp,
+	Use:          "copy FROM[@STORE] TO[@STORE]",
+	Aliases:      []string{"cp"},
+	Short:        "Make a copy of a key",
+	Args:         cobra.ExactArgs(2),
+	RunE:         cp,
+	SilenceUsage: true,
 }
 
 var mvCmd = &cobra.Command{
