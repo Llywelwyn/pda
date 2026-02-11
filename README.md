@@ -104,18 +104,7 @@ Additional Commands:
 
 <p align="center"></p><!-- spacer -->
 
-Most commands have short aliases for quick access:
-
-| Command | Alias(es) |
-|---------|-----------|
-| `set` | `s` |
-| `get` | `g` |
-| `list` | `ls` |
-| `remove` | `rm` |
-| `move` | `mv` |
-| `copy` | `cp` |
-| `list-stores` | `ls-stores`, `lss` |
-| `remove-store` | `rm-store`, `rms` |
+Most commands have aliases and flags. `pda help [command]` to see them.
 
 <p align="center"></p><!-- spacer -->
 
