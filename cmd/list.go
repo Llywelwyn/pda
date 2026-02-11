@@ -189,15 +189,13 @@ func list(cmd *cobra.Command, args []string) error {
 	tw.Style().Options.SeparateRows = false
 	tw.Style().Options.SeparateColumns = false
 	tw.Style().Box.PaddingLeft = ""
-	tw.Style().Box.PaddingRight = "  "
+	tw.Style().Box.PaddingRight = " "
 
 	tty := stdoutIsTerminal() && listFormat.String() == "table"
 
 	if !listNoHeader {
-		tw.AppendHeader(headerRow(columns))
-		if tty {
-			tw.Style().Color.Header = text.Colors{text.Bold}
-		}
+		tw.AppendHeader(headerRow(columns, tty))
+		tw.Style().Format.Header = text.FormatDefault
 	}
 	lay := computeLayout(columns, output, filtered)
 
@@ -313,16 +311,22 @@ func summariseValue(s string, maxWidth int, tty bool) string {
 	return text.Trim(first, maxWidth)
 }
 
-func headerRow(columns []columnKind) table.Row {
+func headerRow(columns []columnKind, tty bool) table.Row {
+	h := func(s string) interface{} {
+		if tty {
+			return text.Underline.Sprint(s)
+		}
+		return s
+	}
 	row := make(table.Row, 0, len(columns))
 	for _, col := range columns {
 		switch col {
 		case columnKey:
-			row = append(row, "Key")
+			row = append(row, h("Key"))
 		case columnValue:
-			row = append(row, "Value")
+			row = append(row, h("Value"))
 		case columnTTL:
-			row = append(row, "TTL")
+			row = append(row, h("TTL"))
 		}
 	}
 	return row

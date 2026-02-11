@@ -192,9 +192,9 @@ pda rm kitty -i
 `pda ls` to see what you've got stored.
 ```bash
 pda ls
-# KEY   VALUE                 TTL
-# name  Alice                 no expiry
-# dogs  four legged mammals   no expiry
+# Key  Value                TTL
+# name Alice                no expiry
+# dogs four legged mammals  no expiry
 
 # Or as CSV.
 pda ls --format csv
@@ -210,12 +210,12 @@ pda ls --format csv
 Long values are truncated to fit the terminal. Use `--full`/`-f` to show the complete value.
 ```bash
 pda ls
-# KEY   VALUE                                    TTL
-# note  this is a very long (..30 more chars)    no expiry
+# Key  Value                                   TTL
+# note this is a very long (..30 more chars)   no expiry
 
 pda ls --full
-# KEY   VALUE                                                   TTL
-# note  this is a very long value that keeps on going and going no expiry
+# Key  Value                                                  TTL
+# note this is a very long value that keeps on going and going no expiry
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -554,9 +554,9 @@ pda set session2 "xyz" --ttl 54m10s
 `list` shows expiration in the TTL column by default.
 ```bash
 pda ls
-# KEY        VALUE  TTL
-# session    123    in 59m30s
-# session2   xyz    in 51m40s
+# Key       Value TTL
+# session   123   in 59m30s
+# session2  xyz   in 51m40s
 ```
 
 `export` and `import` persist the expiry date. Expirations will continue ticking down regardless of if they're actively in a store or not - the expiry is just a timestamp, not a timer.
@@ -644,8 +644,8 @@ pda set api-key "oops"
 If the identity file is missing, encrypted values are inaccessible but not lost. Keys are still visible, and the ciphertext is preserved through reads and writes.
 ```bash
 pda ls
-# KEY      VALUE                           TTL
-# api-key  locked (identity file missing)  no expiry
+# Key     Value                          TTL
+# api-key locked (identity file missing) no expiry
 
 pda get api-key
 # FAIL  cannot get 'api-key': secret is locked (identity file missing)
