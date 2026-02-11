@@ -36,6 +36,7 @@ Git commands:
 
 Additional Commands:
   completion   Generate the autocompletion script for the specified shell
+  doctor       Check environment health
   help         Help about any command
   version      Display pda! version
 
@@ -79,6 +80,7 @@ Git commands:
 
 Additional Commands:
   completion   Generate the autocompletion script for the specified shell
+  doctor       Check environment health
   help         Help about any command
   version      Display pda! version
 
