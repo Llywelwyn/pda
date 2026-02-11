@@ -125,7 +125,7 @@ func del(cmd *cobra.Command, args []string) error {
 func init() {
 	delCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
 	delCmd.Flags().StringSliceP("glob", "g", nil, "Delete keys matching glob pattern (repeatable)")
-	delCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
+	delCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(delCmd)
 }
 

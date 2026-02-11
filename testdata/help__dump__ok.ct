@@ -10,7 +10,7 @@ Aliases:
 
 Flags:
   -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
+      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
   -h, --help              help for export
 Export store as NDJSON (alias for list --format ndjson)
 
@@ -22,5 +22,5 @@ Aliases:
 
 Flags:
   -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
+      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
   -h, --help              help for export

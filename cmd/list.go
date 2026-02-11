@@ -307,6 +307,6 @@ func init() {
 	listCmd.Flags().BoolVar(&listHeader, "header", false, "include header row")
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
 	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
-	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
+	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
 	rootCmd.AddCommand(listCmd)
 }

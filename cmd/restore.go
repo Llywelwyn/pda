@@ -198,7 +198,7 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 func init() {
 	restoreCmd.Flags().StringP("file", "f", "", "Path to an NDJSON dump (defaults to stdin)")
 	restoreCmd.Flags().StringSliceP("glob", "g", nil, "Restore keys matching glob pattern (repeatable)")
-	restoreCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
+	restoreCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
 	restoreCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting existing keys")
 	restoreCmd.Flags().Bool("drop", false, "Drop existing entries before restoring (full replace)")
 	rootCmd.AddCommand(restoreCmd)

@@ -12,7 +12,7 @@ Flags:
   -b, --binary            include binary data in text output
   -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
   -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
+      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
       --header            include header row
   -h, --help              help for list
       --no-keys           suppress the key column
@@ -30,7 +30,7 @@ Flags:
   -b, --binary            include binary data in text output
   -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
   -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
+      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
       --header            include header row
   -h, --help              help for list
       --no-keys           suppress the key column

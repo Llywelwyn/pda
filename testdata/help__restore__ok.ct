@@ -12,7 +12,7 @@ Flags:
       --drop              Drop existing entries before restoring (full replace)
   -f, --file string       Path to an NDJSON dump (defaults to stdin)
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
+      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
   -h, --help              help for import
   -i, --interactive       Prompt before overwriting existing keys
 Restore key/value pairs from an NDJSON dump
@@ -27,6 +27,6 @@ Flags:
       --drop              Drop existing entries before restoring (full replace)
   -f, --file string       Path to an NDJSON dump (defaults to stdin)
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
+      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
   -h, --help              help for import
   -i, --interactive       Prompt before overwriting existing keys
