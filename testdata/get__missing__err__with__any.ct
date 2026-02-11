@@ -5,10 +5,10 @@ $ pda get foobar --include-binary --run --secret --> FAIL
 $ pda get foobar --run --> FAIL
 $ pda get foobar --run --secret --> FAIL
 $ pda get foobar --secret --> FAIL
-Error: cannot get 'foobar': Key not found
-Error: cannot get 'foobar': Key not found
-Error: cannot get 'foobar': Key not found
+Error: cannot get 'foobar': No such key
+Error: cannot get 'foobar': No such key
+Error: cannot get 'foobar': No such key
 Error: unknown flag: --secret
-Error: cannot get 'foobar': Key not found
+Error: cannot get 'foobar': No such key
 Error: unknown flag: --secret
 Error: unknown flag: --secret

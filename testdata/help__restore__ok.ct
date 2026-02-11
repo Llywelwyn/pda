@@ -9,6 +9,7 @@ Aliases:
   import, restore
 
 Flags:
+      --drop              Drop existing entries before restoring (full replace)
   -f, --file string       Path to an NDJSON dump (defaults to stdin)
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
@@ -23,6 +24,7 @@ Aliases:
   import, restore
 
 Flags:
+      --drop              Drop existing entries before restoring (full replace)
   -f, --file string       Path to an NDJSON dump (defaults to stdin)
   -g, --glob strings      Restore keys matching glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")

@@ -1,7 +1,7 @@
 $ pda help set
 $ pda set --help
 Set a key to a given value or stdin. Optionally specify a store.
-	
+
 PDA supports parsing Go templates. Actions are delimited with {{ }}.
 
 For example:
@@ -22,7 +22,7 @@ Flags:
   -i, --interactive    Prompt before overwriting an existing key
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
 Set a key to a given value or stdin. Optionally specify a store.
-	
+
 PDA supports parsing Go templates. Actions are delimited with {{ }}.
 
 For example:

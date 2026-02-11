@@ -10,6 +10,6 @@ $ pda get a1
 $ pda get a2
 2
 $ pda get b1 --> FAIL
-Error: cannot get 'b1': Key not found
+Error: cannot get 'b1': No such key. Did you mean 'a1'?
 $ pda restore --glob c* --file dumpfile --> FAIL
 Error: cannot restore '@default': No matches for pattern 'c*'

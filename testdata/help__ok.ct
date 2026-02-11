@@ -22,7 +22,7 @@ Key commands:
   set          Set a key to a given value
 
 Store commands:
-  export       Dump all key/value pairs as NDJSON
+  export       Export store as NDJSON (alias for list --format ndjson)
   import       Restore key/value pairs from an NDJSON dump
   list-stores  List all stores
   remove-store Delete a store
@@ -63,7 +63,7 @@ Key commands:
   set          Set a key to a given value
 
 Store commands:
-  export       Dump all key/value pairs as NDJSON
+  export       Export store as NDJSON (alias for list --format ndjson)
   import       Restore key/value pairs from an NDJSON dump
   list-stores  List all stores
   remove-store Delete a store
