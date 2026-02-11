@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"strings"
 
-	"filippo.io/age"
 	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
@@ -98,19 +97,13 @@ func del(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	identity, _ := loadIdentity()
-	var recipient *age.X25519Recipient
-	if identity != nil {
-		recipient = identity.Recipient()
-	}
-
 	for _, dbName := range storeOrder {
 		st := byStore[dbName]
 		p, err := store.storePath(dbName)
 		if err != nil {
 			return err
 		}
-		entries, err := readStoreFile(p, identity)
+		entries, err := readStoreFile(p, nil)
 		if err != nil {
 			return err
 		}
@@ -121,7 +114,7 @@ func del(cmd *cobra.Command, args []string) error {
 			}
 			entries = append(entries[:idx], entries[idx+1:]...)
 		}
-		if err := writeStoreFile(p, entries, recipient); err != nil {
+		if err := writeStoreFile(p, entries, nil); err != nil {
 			return err
 		}
 	}
