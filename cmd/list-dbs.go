@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// delCmd represents the set command
+// listStoresCmd represents the list-stores command
 var listStoresCmd = &cobra.Command{
 	Use:          "list-stores",
 	Short:        "List all stores",

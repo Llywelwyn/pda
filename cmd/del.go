@@ -30,7 +30,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// delCmd represents the set command
+// delCmd represents the remove command
 var delCmd = &cobra.Command{
 	Use:          "remove KEY[@STORE] [KEY[@STORE] ...]",
 	Short:        "Delete one or more keys",
