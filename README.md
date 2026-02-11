@@ -745,7 +745,7 @@ pda doctor
 #   ok  Non-default config:
 #       ├── display_ascii_art: false
 #       └── git.auto_commit: true
-#   ok  Data: /home/user/.local/share/pda/stores
+#   ok  Data: /home/user/.local/share/pda
 #   ok  Identity: /home/user/.config/pda/identity.txt
 #   ok  Git initialised on main
 #   ok  Git remote configured
@@ -792,12 +792,12 @@ PDA_CONFIG=/tmp/config/ pda set key value
 
 <p align="center"></p><!-- spacer -->
 
-Data is stored in your user data directory under `pda/stores/`.
+Data is stored in your user data directory under `pda/`.
 
 Usually:
-- linux: `~/.local/share/pda/stores/`
-- macOS: `~/Library/Application Support/pda/stores/`
-- windows: `%LOCALAPPDATA%/pda/stores/`
+- linux: `~/.local/share/pda/`
+- macOS: `~/Library/Application Support/pda/`
+- windows: `%LOCALAPPDATA%/pda/`
 
 `PDA_DATA` overrides the default storage location.
 ```bash

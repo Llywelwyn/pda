@@ -190,7 +190,7 @@ func (s *Store) path() (string, error) {
 		}
 		return override, nil
 	}
-	scope := gap.NewVendorScope(gap.User, "pda", "stores")
+	scope := gap.NewScope(gap.User, "pda")
 	dir, err := scope.DataPath("")
 	if err != nil {
 		return "", err

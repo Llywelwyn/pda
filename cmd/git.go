@@ -34,9 +34,8 @@ var gitCmd = &cobra.Command{
 	Short: "Run any arbitrary command. Use with caution.",
 	Long: `Run any arbitrary command. Use with caution.
 
-The Git repository lives directly in the stores directory
-("PDA_DATA/pda/stores"). Store files (*.ndjson) are tracked
-by Git as-is.
+The Git repository lives directly in the data directory
+("PDA_DATA"). Store files (*.ndjson) are tracked by Git as-is.
 
 If you manually modify files without using the built-in
 commands, you may desync your repository.
