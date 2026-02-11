@@ -11,13 +11,14 @@ Aliases:
 Flags:
   -b, --base64            view binary data as base64
   -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
+  -f, --full              show full values without truncation
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-      --header            include header row
   -h, --help              help for list
+      --no-header         suppress the header row
       --no-keys           suppress the key column
+      --no-ttl            suppress the TTL column
       --no-values         suppress the value column
-  -t, --ttl               append a TTL column when entries expire
 List the contents of a store
 
 Usage:
@@ -29,10 +30,11 @@ Aliases:
 Flags:
   -b, --base64            view binary data as base64
   -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
+  -f, --full              show full values without truncation
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-      --header            include header row
   -h, --help              help for list
+      --no-header         suppress the header row
       --no-keys           suppress the key column
+      --no-ttl            suppress the TTL column
       --no-values         suppress the value column
-  -t, --ttl               append a TTL column when entries expire

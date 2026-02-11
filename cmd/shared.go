@@ -262,14 +262,14 @@ func validateDBName(name string) error {
 
 func formatExpiry(expiresAt uint64) string {
 	if expiresAt == 0 {
-		return "never"
+		return "no expiry"
 	}
 	expiry := time.Unix(int64(expiresAt), 0).UTC()
 	remaining := time.Until(expiry)
 	if remaining <= 0 {
-		return fmt.Sprintf("%s (expired)", expiry.Format(time.RFC3339))
+		return "expired"
 	}
-	return fmt.Sprintf("%s (in %s)", expiry.Format(time.RFC3339), remaining.Round(time.Second))
+	return fmt.Sprintf("in %s", remaining.Round(time.Second))
 }
 
 // Keys returns all keys for the provided store name (or default if empty).

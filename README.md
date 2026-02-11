@@ -192,15 +192,30 @@ pda rm kitty -i
 `pda ls` to see what you've got stored.
 ```bash
 pda ls
-# name    Alice
-# dogs    four legged mammals
+# KEY   VALUE                 TTL
+# name  Alice                 no expiry
+# dogs  four legged mammals   no expiry
 
 # Or as CSV.
 pda ls --format csv
-# name,Alice
-# dogs,four legged mammals
+# Key,Value,TTL
+# name,Alice,no expiry
+# dogs,four legged mammals,no expiry
 
 # Or TSV, or Markdown, or HTML.
+```
+
+<p align="center"></p><!-- spacer -->
+
+Long values are truncated to fit the terminal. Use `--full`/`-f` to show the complete value.
+```bash
+pda ls
+# KEY   VALUE                                    TTL
+# note  this is a very long (..30 more chars)    no expiry
+
+pda ls --full
+# KEY   VALUE                                                   TTL
+# note  this is a very long value that keeps on going and going no expiry
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -536,11 +551,12 @@ pda set session2 "xyz" --ttl 54m10s
 
 <p align="center"></p><!-- spacer -->
 
-`list --ttl` shows expiration date in list output.
+`list` shows expiration in the TTL column by default.
 ```bash
-pda ls --ttl
-# session    123    2025-11-21T15:30:00Z (in 59m30s)
-# session2   xyz    2025-11-21T15:21:40Z (in 51m40s)
+pda ls
+# KEY        VALUE  TTL
+# session    123    in 59m30s
+# session2   xyz    in 51m40s
 ```
 
 `export` and `import` persist the expiry date. Expirations will continue ticking down regardless of if they're actively in a store or not - the expiry is just a timestamp, not a timer.
@@ -628,7 +644,8 @@ pda set api-key "oops"
 If the identity file is missing, encrypted values are inaccessible but not lost. Keys are still visible, and the ciphertext is preserved through reads and writes.
 ```bash
 pda ls
-# api-key    locked (identity file missing)
+# KEY      VALUE                           TTL
+# api-key  locked (identity file missing)  no expiry
 
 pda get api-key
 # FAIL  cannot get 'api-key': secret is locked (identity file missing)

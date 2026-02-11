@@ -29,6 +29,8 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"filippo.io/age"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -58,9 +60,12 @@ var (
 	listBase64   bool
 	listNoKeys   bool
 	listNoValues bool
-	listTTL      bool
-	listHeader bool
-	listFormat formatEnum = "table"
+	listNoTTL    bool
+	listFull     bool
+	listNoHeader bool
+	listFormat   formatEnum = "table"
+
+	dimStyle = text.Colors{text.Faint, text.Italic}
 )
 
 type columnKind int
@@ -99,8 +104,8 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	if listNoKeys && listNoValues && !listTTL {
-		return withHint(fmt.Errorf("cannot ls '%s': no columns selected", targetDB), "disable --no-keys/--no-values or pass --ttl")
+	if listNoKeys && listNoValues && listNoTTL {
+		return withHint(fmt.Errorf("cannot ls '%s': no columns selected", targetDB), "disable --no-keys, --no-values, or --no-ttl")
 	}
 
 	var columns []columnKind
@@ -110,7 +115,7 @@ func list(cmd *cobra.Command, args []string) error {
 	if !listNoValues {
 		columns = append(columns, columnValue)
 	}
-	if listTTL {
+	if !listNoTTL {
 		columns = append(columns, columnTTL)
 	}
 
@@ -183,37 +188,129 @@ func list(cmd *cobra.Command, args []string) error {
 	tw.Style().Options.DrawBorder = false
 	tw.Style().Options.SeparateRows = false
 	tw.Style().Options.SeparateColumns = false
+	tw.Style().Box.PaddingLeft = ""
+	tw.Style().Box.PaddingRight = "  "
 
-	if listHeader {
+	tty := stdoutIsTerminal() && listFormat.String() == "table"
+
+	if !listNoHeader {
 		tw.AppendHeader(headerRow(columns))
+		if tty {
+			tw.Style().Color.Header = text.Colors{text.Bold}
+		}
 	}
+	lay := computeLayout(columns, output, filtered)
 
 	for _, e := range filtered {
 		var valueStr string
+		dimValue := false
 		if showValues {
 			if e.Locked {
 				valueStr = "locked (identity file missing)"
+				dimValue = true
 			} else {
 				valueStr = store.FormatBytes(listBase64, e.Value)
+				if !utf8.Valid(e.Value) && !listBase64 {
+					dimValue = true
+				}
+			}
+			if !listFull {
+				valueStr = summariseValue(valueStr, lay.value, tty)
 			}
 		}
 		row := make(table.Row, 0, len(columns))
 		for _, col := range columns {
 			switch col {
 			case columnKey:
-				row = append(row, e.Key)
+				if tty {
+					row = append(row, text.Bold.Sprint(e.Key))
+				} else {
+					row = append(row, e.Key)
+				}
 			case columnValue:
-				row = append(row, valueStr)
+				if tty && dimValue {
+					row = append(row, dimStyle.Sprint(valueStr))
+				} else {
+					row = append(row, valueStr)
+				}
 			case columnTTL:
-				row = append(row, formatExpiry(e.ExpiresAt))
+				ttlStr := formatExpiry(e.ExpiresAt)
+			if tty && e.ExpiresAt == 0 {
+				ttlStr = dimStyle.Sprint(ttlStr)
+			}
+			row = append(row, ttlStr)
 			}
 		}
 		tw.AppendRow(row)
 	}
 
-	applyColumnWidths(tw, columns, output)
+	applyColumnWidths(tw, columns, output, lay, listFull)
 	renderTable(tw)
 	return nil
+}
+
+// summariseValue flattens a value to its first line and, when maxWidth > 0,
+// truncates to fit. In both cases it appends "(..N more chars)" showing the
+// total number of omitted characters.
+func summariseValue(s string, maxWidth int, tty bool) string {
+	first := s
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		first = s[:i]
+	}
+
+	totalRunes := utf8.RuneCountInString(s)
+	firstRunes := utf8.RuneCountInString(first)
+
+	// Nothing omitted and fits (or no width constraint).
+	if firstRunes == totalRunes && (maxWidth <= 0 || firstRunes <= maxWidth) {
+		return first
+	}
+
+	// How many runes of first can we show?
+	showRunes := firstRunes
+	if maxWidth > 0 && showRunes > maxWidth {
+		showRunes = maxWidth
+	}
+
+	style := func(s string) string {
+		if tty {
+			return dimStyle.Sprint(s)
+		}
+		return s
+	}
+
+	// Iteratively make room for the suffix (at most two passes since
+	// the digit count can change by one at a boundary like 9→10).
+	for range 2 {
+		omitted := totalRunes - showRunes
+		if omitted <= 0 {
+			return first
+		}
+		suffix := fmt.Sprintf(" (..%d more chars)", omitted)
+		suffixRunes := utf8.RuneCountInString(suffix)
+		if maxWidth <= 0 {
+			return first + style(suffix)
+		}
+		if showRunes+suffixRunes <= maxWidth {
+			runes := []rune(first)
+			if showRunes < len(runes) {
+				first = string(runes[:showRunes])
+			}
+			return first + style(suffix)
+		}
+		avail := maxWidth - suffixRunes
+		if avail <= 0 {
+			// Suffix alone exceeds maxWidth; fall through to hard trim.
+			break
+		}
+		showRunes = avail
+	}
+
+	// Column too narrow for the suffix — just truncate with an ellipsis.
+	if maxWidth >= 2 {
+		return text.Trim(first, maxWidth-1) + style("…")
+	}
+	return text.Trim(first, maxWidth)
 }
 
 func headerRow(columns []columnKind) table.Row {
@@ -231,51 +328,95 @@ func headerRow(columns []columnKind) table.Row {
 	return row
 }
 
-func applyColumnWidths(tw table.Writer, columns []columnKind, out io.Writer) {
+const (
+	keyColumnWidthCap = 30
+	ttlColumnWidthCap = 20
+)
+
+// columnLayout holds the resolved max widths for each column kind.
+type columnLayout struct {
+	key, value, ttl int
+}
+
+// computeLayout derives column widths from the terminal size and actual
+// content widths of the key/TTL columns (capped at fixed maximums). This
+// avoids reserving 30+40 chars for key+TTL when the real content is narrower.
+func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnLayout {
+	var lay columnLayout
+	termWidth := detectTerminalWidth(out)
+
+	// Scan entries for actual max key/TTL content widths.
+	for _, e := range entries {
+		if w := utf8.RuneCountInString(e.Key); w > lay.key {
+			lay.key = w
+		}
+		if w := utf8.RuneCountInString(formatExpiry(e.ExpiresAt)); w > lay.ttl {
+			lay.ttl = w
+		}
+	}
+	if lay.key > keyColumnWidthCap {
+		lay.key = keyColumnWidthCap
+	}
+	if lay.ttl > ttlColumnWidthCap {
+		lay.ttl = ttlColumnWidthCap
+	}
+
+	if termWidth <= 0 {
+		return lay
+	}
+
+	padding := len(columns) * 2
+	available := termWidth - padding
+	if available < len(columns) {
+		return lay
+	}
+
+	// Give the value column whatever is left after key and TTL.
+	lay.value = available
+	for _, col := range columns {
+		switch col {
+		case columnKey:
+			lay.value -= lay.key
+		case columnTTL:
+			lay.value -= lay.ttl
+		}
+	}
+	if lay.value < 10 {
+		lay.value = 10
+	}
+	return lay
+}
+
+func applyColumnWidths(tw table.Writer, columns []columnKind, out io.Writer, lay columnLayout, full bool) {
 	termWidth := detectTerminalWidth(out)
 	if termWidth <= 0 {
 		return
 	}
 	tw.SetAllowedRowLength(termWidth)
 
-	// Padding per column: go-pretty's default is one space each side.
-	padding := len(columns) * 2
-	available := termWidth - padding
-	if available < len(columns) {
-		return
-	}
-
-	// Give key and TTL columns a fixed budget; value gets the rest.
-	const keyWidth = 30
-	const ttlWidth = 40
-	valueWidth := available
-	for _, col := range columns {
-		switch col {
-		case columnKey:
-			valueWidth -= keyWidth
-		case columnTTL:
-			valueWidth -= ttlWidth
-		}
-	}
-	if valueWidth < 10 {
-		valueWidth = 10
-	}
-
 	var configs []table.ColumnConfig
 	for i, col := range columns {
 		var maxW int
+		var enforcer func(string, int) string
 		switch col {
 		case columnKey:
-			maxW = keyWidth
+			maxW = lay.key
+			enforcer = text.Trim
 		case columnValue:
-			maxW = valueWidth
+			maxW = lay.value
+			if full {
+				enforcer = text.WrapText
+			}
+			// When !full, values are already pre-truncated by
+			// summariseValue — no enforcer needed.
 		case columnTTL:
-			maxW = ttlWidth
+			maxW = lay.ttl
+			enforcer = text.Trim
 		}
 		configs = append(configs, table.ColumnConfig{
 			Number:           i + 1,
 			WidthMax:         maxW,
-			WidthMaxEnforcer: text.WrapText,
+			WidthMaxEnforcer: enforcer,
 		})
 	}
 	tw.SetColumnConfigs(configs)
@@ -318,8 +459,9 @@ func init() {
 	listCmd.Flags().BoolVarP(&listBase64, "base64", "b", false, "view binary data as base64")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
 	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
-	listCmd.Flags().BoolVarP(&listTTL, "ttl", "t", false, "append a TTL column when entries expire")
-	listCmd.Flags().BoolVar(&listHeader, "header", false, "include header row")
+	listCmd.Flags().BoolVar(&listNoTTL, "no-ttl", false, "suppress the TTL column")
+	listCmd.Flags().BoolVarP(&listFull, "full", "f", false, "show full values without truncation")
+	listCmd.Flags().BoolVar(&listNoHeader, "no-header", false, "suppress the header row")
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
 	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
 	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))

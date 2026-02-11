@@ -2,9 +2,11 @@ $ pda set a1@lg 1
 $ pda set a2@lg 2
 $ pda set b1@lg 3
 $ pda ls lg --glob a* --format tsv
-a1	1
-a2	2
+Key	Value	TTL
+a1	1	no expiry
+a2	2	no expiry
 $ pda ls lg --glob b* --format tsv
-b1	3
+Key	Value	TTL
+b1	3	no expiry
 $ pda ls lg --glob c* --> FAIL
 FAIL  cannot ls '@lg': no matches for pattern 'c*'
