@@ -566,7 +566,7 @@ pda ls
 
 Save binary data.
 ```bash
-pda set logo < logo.png```
+pda set logo < logo.png
 ```
 
 <p align="center"></p><!-- spacer -->
