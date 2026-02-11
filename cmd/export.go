@@ -40,6 +40,7 @@ var exportCmd = &cobra.Command{
 
 func init() {
 	exportCmd.Flags().StringSliceP("key", "k", nil, "filter keys with glob pattern (repeatable)")
+	exportCmd.Flags().StringSliceP("store", "s", nil, "filter stores with glob pattern (repeatable)")
 	exportCmd.Flags().StringSliceP("value", "v", nil, "filter values with glob pattern (repeatable)")
 	rootCmd.AddCommand(exportCmd)
 }

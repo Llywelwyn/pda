@@ -2,8 +2,8 @@
 $ pda set a@lsalpha 1
 $ pda set b@lsbeta 2
 $ pda ls lsalpha --format tsv
-Key	Value	TTL
-a	1	no expiry
+Key	Store	Value	TTL
+a	lsalpha	1	no expiry
 $ pda ls lsbeta --format tsv
-Key	Value	TTL
-b	2	no expiry
+Key	Store	Value	TTL
+b	lsbeta	2	no expiry

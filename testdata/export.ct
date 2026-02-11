@@ -2,5 +2,5 @@
 $ pda set a@exp 1
 $ pda set b@exp 2
 $ pda export exp
-{"key":"a","value":"1","encoding":"text"}
-{"key":"b","value":"2","encoding":"text"}
+{"key":"a","value":"1","encoding":"text","store":"exp"}
+{"key":"b","value":"2","encoding":"text","store":"exp"}

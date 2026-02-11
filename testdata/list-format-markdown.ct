@@ -2,7 +2,7 @@
 $ pda set a@md 1
 $ pda set b@md 2
 $ pda ls md --format markdown
-| Key | Value | TTL |
-| --- | --- | --- |
-| a | 1 | no expiry |
-| b | 2 | no expiry |
+| Key | Store | Value | TTL |
+| --- | --- | --- | --- |
+| a | md | 1 | no expiry |
+| b | md | 2 | no expiry |

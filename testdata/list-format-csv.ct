@@ -2,6 +2,6 @@
 $ pda set a@csv 1
 $ pda set b@csv 2
 $ pda ls csv --format csv
-Key,Value,TTL
-a,1,no expiry
-b,2,no expiry
+Key,Store,Value,TTL
+a,csv,1,no expiry
+b,csv,2,no expiry

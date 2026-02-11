@@ -6,5 +6,5 @@ bar
 $ pda get x@ms2
 y
 $ pda ls ms2 --format tsv
-Key	Value	TTL
-x	y	no expiry
+Key	Store	Value	TTL
+x	ms2	y	no expiry

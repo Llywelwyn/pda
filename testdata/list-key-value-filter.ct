@@ -2,10 +2,10 @@ $ pda set dburl@kv postgres://localhost:5432
 $ pda set apiurl@kv https://api.example.com
 $ pda set dbpass@kv s3cret
 $ pda ls kv -k "db*" -v "**localhost**" --format tsv
-Key	Value	TTL
-dburl	postgres://localhost:5432	no expiry
+Key	Store	Value	TTL
+dburl	kv	postgres://localhost:5432	no expiry
 $ pda ls kv -k "*url*" -v "**example**" --format tsv
-Key	Value	TTL
-apiurl	https://api.example.com	no expiry
+Key	Store	Value	TTL
+apiurl	kv	https://api.example.com	no expiry
 $ pda ls kv -k "db*" -v "**nomatch**" --> FAIL
 FAIL  cannot ls '@kv': no matches for key pattern 'db*' and value pattern '**nomatch**'

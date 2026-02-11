@@ -46,15 +46,16 @@ var restoreCmd = &cobra.Command{
 
 func restore(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	dbName := config.Store.DefaultStoreName
-	if len(args) == 1 {
+	explicitStore := len(args) == 1
+	targetDB := config.Store.DefaultStoreName
+	if explicitStore {
 		parsed, err := store.parseDB(args[0], false)
 		if err != nil {
 			return fmt.Errorf("cannot restore '%s': %v", args[0], err)
 		}
-		dbName = parsed
+		targetDB = parsed
 	}
-	displayTarget := "@" + dbName
+	displayTarget := "@" + targetDB
 
 	keyPatterns, err := cmd.Flags().GetStringSlice("key")
 	if err != nil {
@@ -65,17 +66,21 @@ func restore(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 
+	storePatterns, err := cmd.Flags().GetStringSlice("store")
+	if err != nil {
+		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
+	}
+	storeMatchers, err := compileGlobMatchers(storePatterns)
+	if err != nil {
+		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
+	}
+
 	reader, closer, err := restoreInput(cmd)
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 	if closer != nil {
 		defer closer.Close()
-	}
-
-	p, err := store.storePath(dbName)
-	if err != nil {
-		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 
 	decoder := json.NewDecoder(bufio.NewReaderSize(reader, 8*1024*1024))
@@ -101,7 +106,6 @@ func restore(cmd *cobra.Command, args []string) error {
 	if promptOverwrite {
 		filePath, _ := cmd.Flags().GetString("file")
 		if strings.TrimSpace(filePath) == "" {
-			// Data comes from stdin — open /dev/tty for interactive prompts.
 			tty, err := os.Open("/dev/tty")
 			if err != nil {
 				return fmt.Errorf("cannot restore '%s': --interactive requires --file (-f) when reading from stdin on this platform", displayTarget)
@@ -111,24 +115,58 @@ func restore(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	restored, err := restoreEntries(decoder, p, restoreOpts{
+	opts := restoreOpts{
 		matchers:        matchers,
+		storeMatchers:   storeMatchers,
 		promptOverwrite: promptOverwrite,
 		drop:            drop,
 		identity:        identity,
 		recipient:       recipient,
 		promptReader:    promptReader,
-	})
-	if err != nil {
-		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 
-	if len(matchers) > 0 && restored == 0 {
-		return fmt.Errorf("cannot restore '%s': no matches for key pattern %s", displayTarget, formatGlobPatterns(keyPatterns))
+	// When a specific store is given, all entries go there (original behaviour).
+	// Otherwise, route entries to their original store via the "store" field.
+	if explicitStore {
+		p, err := store.storePath(targetDB)
+		if err != nil {
+			return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
+		}
+		restored, err := restoreEntries(decoder, map[string]string{targetDB: p}, targetDB, opts)
+		if err != nil {
+			return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
+		}
+		if err := reportRestoreFilters(displayTarget, restored, matchers, keyPatterns, storeMatchers, storePatterns); err != nil {
+			return err
+		}
+		okf("restored %d entries into @%s", restored, targetDB)
+	} else {
+		restored, err := restoreEntries(decoder, nil, targetDB, opts)
+		if err != nil {
+			return fmt.Errorf("cannot restore: %v", err)
+		}
+		if err := reportRestoreFilters(displayTarget, restored, matchers, keyPatterns, storeMatchers, storePatterns); err != nil {
+			return err
+		}
+		okf("restored %d entries", restored)
 	}
 
-	okf("restored %d entries into @%s", restored, dbName)
 	return autoSync()
+}
+
+func reportRestoreFilters(displayTarget string, restored int, matchers []glob.Glob, keyPatterns []string, storeMatchers []glob.Glob, storePatterns []string) error {
+	hasFilters := len(matchers) > 0 || len(storeMatchers) > 0
+	if hasFilters && restored == 0 {
+		var parts []string
+		if len(matchers) > 0 {
+			parts = append(parts, fmt.Sprintf("key pattern %s", formatGlobPatterns(keyPatterns)))
+		}
+		if len(storeMatchers) > 0 {
+			parts = append(parts, fmt.Sprintf("store pattern %s", formatGlobPatterns(storePatterns)))
+		}
+		return fmt.Errorf("cannot restore '%s': no matches for %s", displayTarget, strings.Join(parts, " and "))
+	}
+	return nil
 }
 
 func restoreInput(cmd *cobra.Command) (io.Reader, io.Closer, error) {
@@ -148,6 +186,7 @@ func restoreInput(cmd *cobra.Command) (io.Reader, io.Closer, error) {
 
 type restoreOpts struct {
 	matchers        []glob.Glob
+	storeMatchers   []glob.Glob
 	promptOverwrite bool
 	drop            bool
 	identity        *age.X25519Identity
@@ -155,14 +194,49 @@ type restoreOpts struct {
 	promptReader    io.Reader
 }
 
-func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (int, error) {
-	var existing []Entry
-	if !opts.drop {
-		var err error
-		existing, err = readStoreFile(storePath, opts.identity)
-		if err != nil {
-			return 0, err
+// restoreEntries decodes NDJSON entries and writes them to store files.
+// storePaths maps store names to file paths. If nil, entries are routed to
+// their original store (from the "store" field), falling back to defaultDB.
+func restoreEntries(decoder *json.Decoder, storePaths map[string]string, defaultDB string, opts restoreOpts) (int, error) {
+	s := &Store{}
+
+	// Per-store accumulator.
+	type storeAcc struct {
+		path    string
+		entries []Entry
+		loaded  bool
+	}
+	stores := make(map[string]*storeAcc)
+
+	getStore := func(dbName string) (*storeAcc, error) {
+		if acc, ok := stores[dbName]; ok {
+			return acc, nil
 		}
+		var p string
+		if storePaths != nil {
+			var ok bool
+			p, ok = storePaths[dbName]
+			if !ok {
+				return nil, fmt.Errorf("unexpected store '%s'", dbName)
+			}
+		} else {
+			var err error
+			p, err = s.storePath(dbName)
+			if err != nil {
+				return nil, err
+			}
+		}
+		acc := &storeAcc{path: p}
+		if !opts.drop {
+			existing, err := readStoreFile(p, opts.identity)
+			if err != nil {
+				return nil, err
+			}
+			acc.entries = existing
+		}
+		acc.loaded = true
+		stores[dbName] = acc
+		return acc, nil
 	}
 
 	entryNo := 0
@@ -183,13 +257,27 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 		if !globMatch(opts.matchers, je.Key) {
 			continue
 		}
+		if !globMatch(opts.storeMatchers, je.Store) {
+			continue
+		}
+
+		// Determine target store.
+		targetDB := defaultDB
+		if storePaths == nil && je.Store != "" {
+			targetDB = je.Store
+		}
 
 		entry, err := decodeJsonEntry(je, opts.identity)
 		if err != nil {
 			return 0, fmt.Errorf("entry %d: %w", entryNo, err)
 		}
 
-		idx := findEntry(existing, entry.Key)
+		acc, err := getStore(targetDB)
+		if err != nil {
+			return 0, fmt.Errorf("entry %d: %v", entryNo, err)
+		}
+
+		idx := findEntry(acc.entries, entry.Key)
 
 		if opts.promptOverwrite && idx >= 0 {
 			promptf("overwrite '%s'? (y/n)", entry.Key)
@@ -210,16 +298,18 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 		}
 
 		if idx >= 0 {
-			existing[idx] = entry
+			acc.entries[idx] = entry
 		} else {
-			existing = append(existing, entry)
+			acc.entries = append(acc.entries, entry)
 		}
 		restored++
 	}
 
-	if restored > 0 || opts.drop {
-		if err := writeStoreFile(storePath, existing, opts.recipient); err != nil {
-			return 0, err
+	for _, acc := range stores {
+		if restored > 0 || opts.drop {
+			if err := writeStoreFile(acc.path, acc.entries, opts.recipient); err != nil {
+				return 0, err
+			}
 		}
 	}
 	return restored, nil
@@ -228,6 +318,7 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 func init() {
 	restoreCmd.Flags().StringP("file", "f", "", "path to an NDJSON dump (defaults to stdin)")
 	restoreCmd.Flags().StringSliceP("key", "k", nil, "restore keys matching glob pattern (repeatable)")
+	restoreCmd.Flags().StringSliceP("store", "s", nil, "restore entries from stores matching glob pattern (repeatable)")
 	restoreCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting existing keys")
 	restoreCmd.Flags().Bool("drop", false, "drop existing entries before restoring (full replace)")
 	rootCmd.AddCommand(restoreCmd)

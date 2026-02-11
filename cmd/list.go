@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -63,6 +64,7 @@ var (
 	listNoValues bool
 	listNoTTL    bool
 	listFull     bool
+	listAll      bool
 	listNoHeader bool
 	listFormat   formatEnum = "table"
 
@@ -75,11 +77,22 @@ const (
 	columnKey columnKind = iota
 	columnValue
 	columnTTL
+	columnStore
 )
 
 var listCmd = &cobra.Command{
-	Use:          "list [STORE]",
-	Short:        "List the contents of a store",
+	Use:   "list [STORE]",
+	Short: "List the contents of all stores",
+	Long: `List the contents of all stores.
+
+By default, list shows entries from every store. Pass a store name as a
+positional argument to narrow to a single store, or use --store/-s with a
+glob pattern to filter by store name.
+
+The Store column is always shown so entries can be distinguished across
+stores. Use --key/-k and --value/-v to filter by key or value glob, and
+--store/-s to filter by store name. All filters are repeatable and OR'd
+within the same flag.`,
 	Aliases:      []string{"ls"},
 	Args:         cobra.MaximumNArgs(1),
 	RunE:         list,
@@ -88,8 +101,22 @@ var listCmd = &cobra.Command{
 
 func list(cmd *cobra.Command, args []string) error {
 	store := &Store{}
-	targetDB := "@" + config.Store.DefaultStoreName
-	if len(args) == 1 {
+
+	storePatterns, err := cmd.Flags().GetStringSlice("store")
+	if err != nil {
+		return fmt.Errorf("cannot ls: %v", err)
+	}
+	if len(storePatterns) > 0 && len(args) > 0 {
+		return fmt.Errorf("cannot use --store with a store argument")
+	}
+
+	allStores := len(args) == 0 && (config.Store.ListAllStores || listAll)
+	var targetDB string
+	if allStores {
+		targetDB = "all"
+	} else if len(args) == 0 {
+		targetDB = "@" + config.Store.DefaultStoreName
+	} else {
 		rawArg := args[0]
 		dbName, err := store.parseDB(rawArg, false)
 		if err != nil {
@@ -113,6 +140,7 @@ func list(cmd *cobra.Command, args []string) error {
 	if !listNoKeys {
 		columns = append(columns, columnKey)
 	}
+	columns = append(columns, columnStore)
 	if !listNoValues {
 		columns = append(columns, columnValue)
 	}
@@ -138,26 +166,62 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
+	storeMatchers, err := compileGlobMatchers(storePatterns)
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	}
+
 	identity, _ := loadIdentity()
 	var recipient *age.X25519Recipient
 	if identity != nil {
 		recipient = identity.Recipient()
 	}
 
-	dbName := targetDB[1:] // strip leading '@'
-	p, err := store.storePath(dbName)
-	if err != nil {
-		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
-	}
-	entries, err := readStoreFile(p, identity)
-	if err != nil {
-		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	var entries []Entry
+	if allStores {
+		storeNames, err := store.AllStores()
+		if err != nil {
+			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+		}
+		for _, name := range storeNames {
+			p, err := store.storePath(name)
+			if err != nil {
+				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+			}
+			storeEntries, err := readStoreFile(p, identity)
+			if err != nil {
+				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+			}
+			for i := range storeEntries {
+				storeEntries[i].StoreName = name
+			}
+			entries = append(entries, storeEntries...)
+		}
+		slices.SortFunc(entries, func(a, b Entry) int {
+			if c := strings.Compare(a.Key, b.Key); c != 0 {
+				return c
+			}
+			return strings.Compare(a.StoreName, b.StoreName)
+		})
+	} else {
+		dbName := targetDB[1:] // strip leading '@'
+		p, err := store.storePath(dbName)
+		if err != nil {
+			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+		}
+		entries, err = readStoreFile(p, identity)
+		if err != nil {
+			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+		}
+		for i := range entries {
+			entries[i].StoreName = dbName
+		}
 	}
 
-	// Filter by key glob and value regex
+	// Filter by key glob, value regex, and store glob
 	var filtered []Entry
 	for _, e := range entries {
-		if globMatch(matchers, e.Key) && valueMatch(valueMatchers, e) {
+		if globMatch(matchers, e.Key) && valueMatch(valueMatchers, e) && globMatch(storeMatchers, e.StoreName) {
 			filtered = append(filtered, e)
 		}
 	}
@@ -167,15 +231,19 @@ func list(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if (len(matchers) > 0 || len(valueMatchers) > 0) && len(filtered) == 0 {
-		switch {
-		case len(matchers) > 0 && len(valueMatchers) > 0:
-			return fmt.Errorf("cannot ls '%s': no matches for key pattern %s and value pattern %s", targetDB, formatGlobPatterns(keyPatterns), formatValuePatterns(valuePatterns))
-		case len(valueMatchers) > 0:
-			return fmt.Errorf("cannot ls '%s': no matches for value pattern %s", targetDB, formatValuePatterns(valuePatterns))
-		default:
-			return fmt.Errorf("cannot ls '%s': no matches for key pattern %s", targetDB, formatGlobPatterns(keyPatterns))
+	hasFilters := len(matchers) > 0 || len(valueMatchers) > 0 || len(storeMatchers) > 0
+	if hasFilters && len(filtered) == 0 {
+		var parts []string
+		if len(matchers) > 0 {
+			parts = append(parts, fmt.Sprintf("key pattern %s", formatGlobPatterns(keyPatterns)))
 		}
+		if len(valueMatchers) > 0 {
+			parts = append(parts, fmt.Sprintf("value pattern %s", formatValuePatterns(valuePatterns)))
+		}
+		if len(storeMatchers) > 0 {
+			parts = append(parts, fmt.Sprintf("store pattern %s", formatGlobPatterns(storePatterns)))
+		}
+		return fmt.Errorf("cannot ls '%s': no matches for %s", targetDB, strings.Join(parts, " and "))
 	}
 
 	output := cmd.OutOrStdout()
@@ -187,6 +255,7 @@ func list(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 			}
+			je.Store = e.StoreName
 			data, err := json.Marshal(je)
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
@@ -198,15 +267,16 @@ func list(cmd *cobra.Command, args []string) error {
 
 	// JSON format: emit a single JSON array
 	if listFormat.String() == "json" {
-		var entries []jsonEntry
+		var jsonEntries []jsonEntry
 		for _, e := range filtered {
 			je, err := encodeJsonEntry(e, recipient)
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 			}
-			entries = append(entries, je)
+			je.Store = e.StoreName
+			jsonEntries = append(jsonEntries, je)
 		}
-		data, err := json.Marshal(entries)
+		data, err := json.Marshal(jsonEntries)
 		if err != nil {
 			return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 		}
@@ -266,6 +336,12 @@ func list(cmd *cobra.Command, args []string) error {
 					row = append(row, dimStyle.Sprint(valueStr))
 				} else {
 					row = append(row, valueStr)
+				}
+			case columnStore:
+				if tty {
+					row = append(row, dimStyle.Sprint(e.StoreName))
+				} else {
+					row = append(row, e.StoreName)
 				}
 			case columnTTL:
 				ttlStr := formatExpiry(e.ExpiresAt)
@@ -359,6 +435,8 @@ func headerRow(columns []columnKind, tty bool) table.Row {
 		switch col {
 		case columnKey:
 			row = append(row, h("Key"))
+		case columnStore:
+			row = append(row, h("Store"))
 		case columnValue:
 			row = append(row, h("Value"))
 		case columnTTL:
@@ -369,13 +447,14 @@ func headerRow(columns []columnKind, tty bool) table.Row {
 }
 
 const (
-	keyColumnWidthCap = 30
-	ttlColumnWidthCap = 20
+	keyColumnWidthCap   = 30
+	storeColumnWidthCap = 20
+	ttlColumnWidthCap   = 20
 )
 
 // columnLayout holds the resolved max widths for each column kind.
 type columnLayout struct {
-	key, value, ttl int
+	key, store, value, ttl int
 }
 
 // computeLayout derives column widths from the terminal size and actual
@@ -385,10 +464,13 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 	var lay columnLayout
 	termWidth := detectTerminalWidth(out)
 
-	// Scan entries for actual max key/TTL content widths.
+	// Scan entries for actual max key/store/TTL content widths.
 	for _, e := range entries {
 		if w := utf8.RuneCountInString(e.Key); w > lay.key {
 			lay.key = w
+		}
+		if w := utf8.RuneCountInString(e.StoreName); w > lay.store {
+			lay.store = w
 		}
 		if w := utf8.RuneCountInString(formatExpiry(e.ExpiresAt)); w > lay.ttl {
 			lay.ttl = w
@@ -396,6 +478,9 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 	}
 	if lay.key > keyColumnWidthCap {
 		lay.key = keyColumnWidthCap
+	}
+	if lay.store > storeColumnWidthCap {
+		lay.store = storeColumnWidthCap
 	}
 	if lay.ttl > ttlColumnWidthCap {
 		lay.ttl = ttlColumnWidthCap
@@ -417,6 +502,8 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 		switch col {
 		case columnKey:
 			lay.value -= lay.key
+		case columnStore:
+			lay.value -= lay.store
 		case columnTTL:
 			lay.value -= lay.ttl
 		}
@@ -441,6 +528,9 @@ func applyColumnWidths(tw table.Writer, columns []columnKind, out io.Writer, lay
 		switch col {
 		case columnKey:
 			maxW = lay.key
+			enforcer = text.Trim
+		case columnStore:
+			maxW = lay.store
 			enforcer = text.Trim
 		case columnValue:
 			maxW = lay.value
@@ -496,6 +586,7 @@ func renderTable(tw table.Writer) {
 }
 
 func init() {
+	listCmd.Flags().BoolVarP(&listAll, "all", "a", false, "list across all stores")
 	listCmd.Flags().BoolVarP(&listBase64, "base64", "b", false, "view binary data as base64")
 	listCmd.Flags().BoolVarP(&listCount, "count", "c", false, "print only the count of matching entries")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
@@ -505,6 +596,7 @@ func init() {
 	listCmd.Flags().BoolVar(&listNoHeader, "no-header", false, "suppress the header row")
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson|json)")
 	listCmd.Flags().StringSliceP("key", "k", nil, "filter keys with glob pattern (repeatable)")
+	listCmd.Flags().StringSliceP("store", "s", nil, "filter stores with glob pattern (repeatable)")
 	listCmd.Flags().StringSliceP("value", "v", nil, "filter values with glob pattern (repeatable)")
 	rootCmd.AddCommand(listCmd)
 }

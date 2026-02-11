@@ -2,10 +2,10 @@
 $ pda set foo@rdd 1
 $ pda set bar@rdd 2
 $ pda ls rdd --format tsv
-Key	Value	TTL
-bar	2	no expiry
-foo	1	no expiry
-$ pda rm foo@rdd --key "*@rdd"
+Key	Store	Value	TTL
+bar	rdd	2	no expiry
+foo	rdd	1	no expiry
+$ pda rm foo@rdd --key "*@rdd" -y
 $ pda get bar@rdd --> FAIL
 FAIL  cannot get 'bar@rdd': no such key
 $ pda get foo@rdd --> FAIL

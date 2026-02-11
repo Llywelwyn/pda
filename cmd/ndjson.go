@@ -43,6 +43,7 @@ type Entry struct {
 	ExpiresAt uint64 // Unix timestamp; 0 = never expires
 	Secret    bool   // encrypted on disk
 	Locked    bool   // secret but no identity available to decrypt
+	StoreName string // populated by list --all
 }
 
 // jsonEntry is the NDJSON on-disk format.
@@ -51,6 +52,7 @@ type jsonEntry struct {
 	Value     string `json:"value"`
 	Encoding  string `json:"encoding,omitempty"`
 	ExpiresAt *int64 `json:"expires_at,omitempty"`
+	Store     string `json:"store,omitempty"`
 }
 
 // readStoreFile reads all non-expired entries from an NDJSON file.

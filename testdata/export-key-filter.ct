@@ -2,7 +2,7 @@ $ pda set a1@ekf 1
 $ pda set a2@ekf 2
 $ pda set b1@ekf 3
 $ pda export ekf --key "a*"
-{"key":"a1","value":"1","encoding":"text"}
-{"key":"a2","value":"2","encoding":"text"}
+{"key":"a1","value":"1","encoding":"text","store":"ekf"}
+{"key":"a2","value":"2","encoding":"text","store":"ekf"}
 $ pda export ekf --key "c*" --> FAIL
 FAIL  cannot ls '@ekf': no matches for key pattern 'c*'

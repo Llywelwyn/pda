@@ -1,5 +1,5 @@
 # --no-ttl suppresses the TTL column
 $ pda set a@nt 1
 $ pda ls nt --format tsv --no-ttl
-Key	Value
-a	1
+Key	Store	Value
+a	nt	1

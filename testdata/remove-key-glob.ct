@@ -1,7 +1,7 @@
 $ pda set a1@rkg 1
 $ pda set a2@rkg 2
 $ pda set b1@rkg 3
-$ pda rm --key "a*@rkg"
+$ pda rm --key "a*@rkg" -y
 $ pda get a1@rkg --> FAIL
 FAIL  cannot get 'a1@rkg': no such key
 hint  did you mean 'b1'?

@@ -2,5 +2,5 @@
 $ pda set a@nj 1
 $ pda set b@nj 2
 $ pda ls nj --format ndjson
-{"key":"a","value":"1","encoding":"text"}
-{"key":"b","value":"2","encoding":"text"}
+{"key":"a","value":"1","encoding":"text","store":"nj"}
+{"key":"b","value":"2","encoding":"text","store":"nj"}

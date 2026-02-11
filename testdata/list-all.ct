@@ -1,0 +1,29 @@
+# List defaults to all stores
+$ pda set lax@laa 1
+$ pda set lax@lab 2
+$ pda ls --key "lax" --format tsv
+Key	Store	Value	TTL
+lax	laa	1	no expiry
+lax	lab	2	no expiry
+$ pda ls --key "lax" --count
+2
+$ pda ls --key "lax" --format json
+[{"key":"lax","value":"1","encoding":"text","store":"laa"},{"key":"lax","value":"2","encoding":"text","store":"lab"}]
+# Positional arg narrows to one store
+$ pda ls laa --key "lax" --format tsv
+Key	Store	Value	TTL
+lax	laa	1	no expiry
+# --store glob filter
+$ pda ls --store "la?" --key "lax" --format tsv
+Key	Store	Value	TTL
+lax	laa	1	no expiry
+lax	lab	2	no expiry
+$ pda ls --store "laa" --key "lax" --format tsv
+Key	Store	Value	TTL
+lax	laa	1	no expiry
+# --store cannot be combined with positional arg
+$ pda ls --store "laa" laa --> FAIL
+FAIL  cannot use --store with a store argument
+# --store no matches
+$ pda ls --store "nonexistent" --key "lax" --> FAIL
+FAIL  cannot ls 'all': no matches for key pattern 'lax' and store pattern 'nonexistent'

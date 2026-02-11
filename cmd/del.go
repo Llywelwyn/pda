@@ -55,12 +55,21 @@ func del(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	valuePatterns, err := cmd.Flags().GetStringSlice("value")
+	if err != nil {
+		return err
+	}
+	storePatterns, err := cmd.Flags().GetStringSlice("store")
+	if err != nil {
+		return err
+	}
 
-	if len(args) == 0 && len(keyPatterns) == 0 {
+	hasFilters := len(keyPatterns) > 0 || len(valuePatterns) > 0 || len(storePatterns) > 0
+	if len(args) == 0 && !hasFilters {
 		return fmt.Errorf("cannot remove: no keys provided")
 	}
 
-	targets, err := resolveDeleteTargets(store, args, keyPatterns)
+	targets, err := resolveDeleteTargets(store, args, keyPatterns, valuePatterns, storePatterns)
 	if err != nil {
 		return err
 	}
@@ -75,8 +84,9 @@ func del(cmd *cobra.Command, args []string) error {
 	}
 	byStore := make(map[string]*storeTargets)
 	var storeOrder []string
+	promptGlob := hasFilters && config.Key.AlwaysPromptGlobDelete
 	for _, target := range targets {
-		if !yes && (interactive || config.Key.AlwaysPromptDelete) {
+		if !yes && (interactive || config.Key.AlwaysPromptDelete || promptGlob) {
 			var confirm string
 			promptf("remove '%s'? (y/n)", target.display)
 			if err := scanln(&confirm); err != nil {
@@ -126,6 +136,8 @@ func init() {
 	delCmd.Flags().BoolP("interactive", "i", false, "prompt yes/no for each deletion")
 	delCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
 	delCmd.Flags().StringSliceP("key", "k", nil, "delete keys matching glob pattern (repeatable)")
+	delCmd.Flags().StringSliceP("store", "s", nil, "target stores matching glob pattern (repeatable)")
+	delCmd.Flags().StringSliceP("value", "v", nil, "delete entries matching value glob pattern (repeatable)")
 	rootCmd.AddCommand(delCmd)
 }
 
@@ -152,7 +164,7 @@ func keyExists(store *Store, arg string) (bool, error) {
 	return findEntry(entries, spec.Key) >= 0, nil
 }
 
-func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string) ([]resolvedTarget, error) {
+func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string, valuePatterns []string, storePatterns []string) ([]resolvedTarget, error) {
 	targetSet := make(map[string]struct{})
 	var targets []resolvedTarget
 
@@ -185,14 +197,30 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 		addTarget(spec)
 	}
 
-	if len(globPatterns) == 0 {
+	if len(globPatterns) == 0 && len(valuePatterns) == 0 && len(storePatterns) == 0 {
 		return targets, nil
+	}
+
+	// Resolve --store patterns into a list of target stores.
+	storeMatchers, err := compileGlobMatchers(storePatterns)
+	if err != nil {
+		return nil, fmt.Errorf("cannot remove: %v", err)
+	}
+
+	valueMatchers, err := compileValueMatchers(valuePatterns)
+	if err != nil {
+		return nil, fmt.Errorf("cannot remove: %v", err)
 	}
 
 	type compiledPattern struct {
 		rawArg  string
 		db      string
 		matcher glob.Glob
+	}
+
+	// When --store or --value is given without --key, match all keys.
+	if len(globPatterns) == 0 {
+		globPatterns = []string{"**"}
 	}
 
 	var compiled []compiledPattern
@@ -206,37 +234,50 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 		if err != nil {
 			return nil, fmt.Errorf("cannot remove '%s': %v", raw, err)
 		}
-		compiled = append(compiled, compiledPattern{
-			rawArg:  raw,
-			db:      spec.DB,
-			matcher: m,
-		})
+		if len(storeMatchers) > 0 && !strings.Contains(raw, "@") {
+			// --store given and pattern has no explicit @STORE: expand across matching stores.
+			allStores, err := store.AllStores()
+			if err != nil {
+				return nil, fmt.Errorf("cannot remove: %v", err)
+			}
+			for _, s := range allStores {
+				if globMatch(storeMatchers, s) {
+					compiled = append(compiled, compiledPattern{rawArg: raw, db: s, matcher: m})
+				}
+			}
+		} else {
+			compiled = append(compiled, compiledPattern{rawArg: raw, db: spec.DB, matcher: m})
+		}
 	}
 
-	keysByDB := make(map[string][]string)
-	getKeys := func(db string) ([]string, error) {
-		if keys, ok := keysByDB[db]; ok {
-			return keys, nil
+	entriesByDB := make(map[string][]Entry)
+	getEntries := func(db string) ([]Entry, error) {
+		if entries, ok := entriesByDB[db]; ok {
+			return entries, nil
 		}
-		keys, err := store.Keys(db)
+		p, err := store.storePath(db)
 		if err != nil {
 			return nil, err
 		}
-		keysByDB[db] = keys
-		return keys, nil
+		entries, err := readStoreFile(p, nil)
+		if err != nil {
+			return nil, err
+		}
+		entriesByDB[db] = entries
+		return entries, nil
 	}
 
 	for _, p := range compiled {
-		keys, err := getKeys(p.db)
+		entries, err := getEntries(p.db)
 		if err != nil {
 			return nil, fmt.Errorf("cannot remove '%s': %v", p.rawArg, err)
 		}
-		for _, k := range keys {
-			if p.matcher.Match(k) {
+		for _, e := range entries {
+			if p.matcher.Match(e.Key) && valueMatch(valueMatchers, e) {
 				addTarget(KeySpec{
-					Raw:    k,
-					RawKey: k,
-					Key:    k,
+					Raw:    e.Key,
+					RawKey: e.Key,
+					Key:    e.Key,
 					DB:     p.db,
 				})
 			}

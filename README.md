@@ -81,7 +81,7 @@ Key commands:
   copy         Make a copy of a key
   get          Get the value of a key
   identity     Show or create the age encryption identity
-  list         List the contents of a store
+  list         List the contents of all stores
   move         Move a key
   remove       Delete one or more keys
   run          Get the value of a key and execute it
@@ -219,22 +219,28 @@ pda rm kitty -y
 
 <p align="center"></p><!-- spacer -->
 
-`pda ls` to see what you've got stored.
+`pda ls` to see what you've got stored. By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `store.list_all_stores` can be set to false to list `store.default_store_name` by default.
 ```bash
 pda ls
-# Key  Value                TTL
-# name Alice                no expiry
-# dogs four legged mammals  no expiry
+# Key  Store    Value                TTL
+# dogs default  four legged mammals  no expiry
+# name default  Alice                no expiry
+
+# Narrow to a single store.
+pda ls @default
+
+# Or filter stores by glob pattern.
+pda ls --store "prod*"
 
 # Or as CSV.
 pda ls --format csv
-# Key,Value,TTL
-# name,Alice,no expiry
-# dogs,four legged mammals,no expiry
+# Key,Store,Value,TTL
+# dogs,default,four legged mammals,no expiry
+# name,default,Alice,no expiry
 
 # Or as a JSON array.
 pda ls --format json
-# [{"key":"name","value":"Alice","encoding":"text"},{"key":"dogs","value":"four legged mammals","encoding":"text"}]
+# [{"key":"dogs","value":"four legged mammals","encoding":"text","store":"default"},{"key":"name","value":"Alice","encoding":"text","store":"default"}]
 
 # Or TSV, Markdown, HTML, NDJSON.
 
@@ -273,18 +279,24 @@ pda export --value "**https**"
 
 <p align="center"></p><!-- spacer -->
 
-`pda import` to import it all back. By default, import merges into the existing store — existing keys are updated and new keys are added.
+`pda import` to import it all back. By default, each entry is routed to the store it came from (via the `"store"` field in the NDJSON). If no `"store"` field is present, entries go to the default store. Pass a store name as a positional argument to force all entries into one store. Existing keys are updated and new keys are added.
 ```bash
-# Import with an argument.
+# Entries are routed to their original stores.
 pda import -f my_backup
-#   ok  restored 2 entries into @default
+#   ok  restored 5 entries
+
+# Force all entries into a specific store by passing a store name.
+pda import mystore -f my_backup
+#   ok  restored 5 entries into @mystore
 
 # Or from stdin.
 pda import < my_backup
-#   ok  restored 2 entries into @default
 
 # Import only matching keys.
 pda import --key "a*" -f my_backup
+
+# Import only entries from matching stores.
+pda import --store "prod*" -f my_backup
 
 # Full replace — drop all existing entries before importing.
 pda import --drop -f my_backup
@@ -476,9 +488,9 @@ pda get hello --no-template
 
 ### Filtering
 
-`--key`/`-k` and `--value`/`-v` can be used as filters with glob support. `gobwas/glob` is used for matching. Both flags are repeatable, with results matching one-or-more of the keys and one-or-more of the values passed. If a `--key` and `--value` are passed, results must match both of them. If multiple are passed, results must match at least one `--key` and `--value` pattern.
+`--key`/`-k`, `--value`/`-v`, and `--store`/`-s` can be used as filters with glob support. `gobwas/glob` is used for matching. All three flags are repeatable, with results matching one-or-more of the patterns passed per flag. When multiple flags are combined, results must satisfy all of them (AND across flags, OR within the same flag).
 
-`--key` and `--value` filters work with `list`, `remove`, `export`, and `import` commands.
+`--key`, `--value`, and `--store` filters work with `list`, `export`, `import`, and `remove`. `--value` is not available on `import` or `remove`.
 
 <p align="center"></p><!-- spacer -->
 
@@ -772,10 +784,12 @@ display_ascii_art = true
 
 [key]
 always_prompt_delete = false
+always_prompt_glob_delete = true
 always_prompt_overwrite = false
 
 [store]
 default_store_name = "default"
+list_all_stores = true
 always_prompt_delete = true
 always_prompt_overwrite = true
 

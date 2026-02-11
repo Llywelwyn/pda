@@ -39,12 +39,14 @@ type Config struct {
 }
 
 type KeyConfig struct {
-	AlwaysPromptDelete    bool `toml:"always_prompt_delete"`
-	AlwaysPromptOverwrite bool `toml:"always_prompt_overwrite"`
+	AlwaysPromptDelete     bool `toml:"always_prompt_delete"`
+	AlwaysPromptGlobDelete bool `toml:"always_prompt_glob_delete"`
+	AlwaysPromptOverwrite  bool `toml:"always_prompt_overwrite"`
 }
 
 type StoreConfig struct {
 	DefaultStoreName      string `toml:"default_store_name"`
+	ListAllStores         bool   `toml:"list_all_stores"`
 	AlwaysPromptDelete    bool   `toml:"always_prompt_delete"`
 	AlwaysPromptOverwrite bool   `toml:"always_prompt_overwrite"`
 }
@@ -77,11 +79,13 @@ func defaultConfig() Config {
 	return Config{
 		DisplayAsciiArt: true,
 		Key: KeyConfig{
-			AlwaysPromptDelete:    false,
-			AlwaysPromptOverwrite: false,
+			AlwaysPromptDelete:     false,
+			AlwaysPromptGlobDelete: true,
+			AlwaysPromptOverwrite:  false,
 		},
 		Store: StoreConfig{
 			DefaultStoreName:      "default",
+			ListAllStores:         true,
 			AlwaysPromptDelete:    true,
 			AlwaysPromptOverwrite: true,
 		},

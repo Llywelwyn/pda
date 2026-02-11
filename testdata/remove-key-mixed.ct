@@ -1,7 +1,7 @@
 $ pda set foo@rkm 1
 $ pda set bar1@rkm 2
 $ pda set bar2@rkm 3
-$ pda rm foo@rkm --key "bar*@rkm"
+$ pda rm foo@rkm --key "bar*@rkm" -y
 $ pda get foo@rkm --> FAIL
 FAIL  cannot get 'foo@rkm': no such key
 $ pda get bar1@rkm --> FAIL

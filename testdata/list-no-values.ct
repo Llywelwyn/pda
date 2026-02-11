@@ -1,5 +1,5 @@
 # --no-values suppresses the value column
 $ pda set a@nv 1
 $ pda ls nv --format tsv --no-values
-Key	TTL
-a	no expiry
+Key	Store	TTL
+a	nv	no expiry

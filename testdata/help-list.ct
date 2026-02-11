@@ -1,6 +1,15 @@
 $ pda help list
 $ pda list --help
-List the contents of a store
+List the contents of all stores.
+
+By default, list shows entries from every store. Pass a store name as a
+positional argument to narrow to a single store, or use --store/-s with a
+glob pattern to filter by store name.
+
+The Store column is always shown so entries can be distinguished across
+stores. Use --key/-k and --value/-v to filter by key or value glob, and
+--store/-s to filter by store name. All filters are repeatable and OR'd
+within the same flag.
 
 Usage:
   pda list [STORE] [flags]
@@ -9,6 +18,7 @@ Aliases:
   list, ls
 
 Flags:
+  -a, --all             list across all stores
   -b, --base64          view binary data as base64
   -c, --count           print only the count of matching entries
   -o, --format format   output format (table|tsv|csv|markdown|html|ndjson|json) (default table)
@@ -19,8 +29,18 @@ Flags:
       --no-keys         suppress the key column
       --no-ttl          suppress the TTL column
       --no-values       suppress the value column
+  -s, --store strings   filter stores with glob pattern (repeatable)
   -v, --value strings   filter values with glob pattern (repeatable)
-List the contents of a store
+List the contents of all stores.
+
+By default, list shows entries from every store. Pass a store name as a
+positional argument to narrow to a single store, or use --store/-s with a
+glob pattern to filter by store name.
+
+The Store column is always shown so entries can be distinguished across
+stores. Use --key/-k and --value/-v to filter by key or value glob, and
+--store/-s to filter by store name. All filters are repeatable and OR'd
+within the same flag.
 
 Usage:
   pda list [STORE] [flags]
@@ -29,6 +49,7 @@ Aliases:
   list, ls
 
 Flags:
+  -a, --all             list across all stores
   -b, --base64          view binary data as base64
   -c, --count           print only the count of matching entries
   -o, --format format   output format (table|tsv|csv|markdown|html|ndjson|json) (default table)
@@ -39,4 +60,5 @@ Flags:
       --no-keys         suppress the key column
       --no-ttl          suppress the TTL column
       --no-values       suppress the value column
+  -s, --store strings   filter stores with glob pattern (repeatable)
   -v, --value strings   filter values with glob pattern (repeatable)
