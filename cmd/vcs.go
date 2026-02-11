@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -11,12 +10,8 @@ import (
 	"strings"
 )
 
-func vcsRepoRoot() (string, error) {
-	return (&Store{}).path()
-}
-
 func ensureVCSInitialized() (string, error) {
-	repoDir, err := vcsRepoRoot()
+	repoDir, err := (&Store{}).path()
 	if err != nil {
 		return "", err
 	}
@@ -118,16 +113,6 @@ func repoAheadBehind(dir, ref string) (int, int, error) {
 	return ahead, behind, nil
 }
 
-func repoHasChanges(dir string) (bool, error) {
-	cmd := exec.Command("git", "status", "--porcelain")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		return false, err
-	}
-	return len(bytes.TrimSpace(out)) > 0, nil
-}
-
 func repoHasStagedChanges(dir string) (bool, error) {
 	cmd := exec.Command("git", "diff", "--cached", "--quiet")
 	cmd.Dir = dir
@@ -143,26 +128,16 @@ func repoHasStagedChanges(dir string) (bool, error) {
 
 func pullRemote(dir string, info gitRemoteInfo) error {
 	if info.HasUpstream {
-		return runGit(dir, "pull", "--ff-only")
+		return runGit(dir, "pull", "--rebase")
 	}
-	if info.Remote != "" && info.Branch != "" {
-		fmt.Printf("running: git pull --ff-only %s %s\n", info.Remote, info.Branch)
-		return runGit(dir, "pull", "--ff-only", info.Remote, info.Branch)
-	}
-	fmt.Println("no remote configured; skipping pull")
-	return nil
+	return runGit(dir, "pull", "--rebase", info.Remote, info.Branch)
 }
 
 func pushRemote(dir string, info gitRemoteInfo) error {
 	if info.HasUpstream {
 		return runGit(dir, "push")
 	}
-	if info.Remote != "" && info.Branch != "" {
-		fmt.Printf("running: git push -u %s %s\n", info.Remote, info.Branch)
-		return runGit(dir, "push", "-u", info.Remote, info.Branch)
-	}
-	fmt.Println("no remote configured; skipping push")
-	return nil
+	return runGit(dir, "push", "-u", info.Remote, info.Branch)
 }
 
 func repoHasUpstream(dir string) (bool, error) {

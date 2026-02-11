@@ -45,11 +45,11 @@ func init() {
 }
 
 func vcsInit(cmd *cobra.Command, args []string) error {
-	repoDir, err := vcsRepoRoot()
+	store := &Store{}
+	repoDir, err := store.path()
 	if err != nil {
 		return err
 	}
-	store := &Store{}
 
 	clean, err := cmd.Flags().GetBool("clean")
 	if err != nil {

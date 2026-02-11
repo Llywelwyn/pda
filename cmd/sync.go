@@ -24,7 +24,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -54,45 +53,7 @@ func sync(manual bool) error {
 		return err
 	}
 
-	var ahead int
-	if remoteInfo.Ref != "" {
-		if manual || config.Git.AutoFetch {
-			if err := runGit(repoDir, "fetch", "--prune"); err != nil {
-				return err
-			}
-		}
-		remoteAhead, behind, err := repoAheadBehind(repoDir, remoteInfo.Ref)
-		if err != nil {
-			ahead = 1 // ref doesn't exist yet; just push
-		} else {
-			ahead = remoteAhead
-			if behind > 0 {
-				if ahead > 0 {
-					return fmt.Errorf("repo diverged from remote (ahead %d, behind %d); resolve manually", ahead, behind)
-				}
-				fmt.Printf("remote has %d commit(s) not present locally; discard local changes and pull? (y/n)\n", behind)
-				var confirm string
-				if _, err := fmt.Scanln(&confirm); err != nil {
-					return fmt.Errorf("cannot continue sync: %w", err)
-				}
-				if strings.ToLower(confirm) != "y" {
-					return fmt.Errorf("aborted sync")
-				}
-				dirty, err := repoHasChanges(repoDir)
-				if err != nil {
-					return err
-				}
-				if dirty {
-					stashMsg := fmt.Sprintf("pda sync: %s", time.Now().UTC().Format(time.RFC3339))
-					if err := runGit(repoDir, "stash", "push", "-u", "-m", stashMsg); err != nil {
-						return err
-					}
-				}
-				return pullRemote(repoDir, remoteInfo)
-			}
-		}
-	}
-
+	// Commit local changes first so nothing is lost.
 	if err := runGit(repoDir, "add", "-A"); err != nil {
 		return err
 	}
@@ -100,34 +61,62 @@ func sync(manual bool) error {
 	if err != nil {
 		return err
 	}
-	madeCommit := false
-	if !changed {
-		if manual {
-			fmt.Println("no changes to commit")
-		}
-	} else {
+	if changed {
 		msg := fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
 		if err := runGit(repoDir, "commit", "-m", msg); err != nil {
 			return err
 		}
-		madeCommit = true
+	} else if manual {
+		fmt.Println("no changes to commit")
 	}
+
+	if remoteInfo.Ref == "" {
+		if manual {
+			fmt.Println("no remote configured; skipping push")
+		}
+		return nil
+	}
+
+	// Fetch remote state.
+	if manual || config.Git.AutoFetch {
+		if err := runGit(repoDir, "fetch", "--prune"); err != nil {
+			return err
+		}
+	}
+
+	// Rebase local commits onto remote if behind.
+	ahead, behind, err := repoAheadBehind(repoDir, remoteInfo.Ref)
+	if err != nil {
+		// Remote ref doesn't exist yet (first push).
+		ahead = 1
+	} else if behind > 0 {
+		if err := pullRemote(repoDir, remoteInfo); err != nil {
+			return err
+		}
+		ahead, _, err = repoAheadBehind(repoDir, remoteInfo.Ref)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Push if ahead.
 	if manual || config.Git.AutoPush {
-		if remoteInfo.Ref == "" {
-			if manual {
-				fmt.Println("no remote configured; skipping push")
-			}
-		} else if madeCommit || ahead > 0 {
+		if ahead > 0 {
 			return pushRemote(repoDir, remoteInfo)
-		} else if manual {
+		}
+		if manual {
 			fmt.Println("nothing to push")
 		}
 	}
+
 	return nil
 }
 
 func autoSync() error {
 	if !config.Git.AutoCommit {
+		return nil
+	}
+	if _, err := ensureVCSInitialized(); err != nil {
 		return nil
 	}
 	return sync(false)
