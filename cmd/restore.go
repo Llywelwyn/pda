@@ -97,12 +97,27 @@ func restore(cmd *cobra.Command, args []string) error {
 		recipient = identity.Recipient()
 	}
 
+	var promptReader io.Reader
+	if promptOverwrite {
+		filePath, _ := cmd.Flags().GetString("file")
+		if strings.TrimSpace(filePath) == "" {
+			// Data comes from stdin — open /dev/tty for interactive prompts.
+			tty, err := os.Open("/dev/tty")
+			if err != nil {
+				return fmt.Errorf("cannot restore '%s': --interactive requires --file (-f) when reading from stdin on this platform", displayTarget)
+			}
+			defer tty.Close()
+			promptReader = tty
+		}
+	}
+
 	restored, err := restoreEntries(decoder, p, restoreOpts{
 		matchers:        matchers,
 		promptOverwrite: promptOverwrite,
 		drop:            drop,
 		identity:        identity,
 		recipient:       recipient,
+		promptReader:    promptReader,
 	})
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
@@ -137,6 +152,7 @@ type restoreOpts struct {
 	drop            bool
 	identity        *age.X25519Identity
 	recipient       *age.X25519Recipient
+	promptReader    io.Reader
 }
 
 func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (int, error) {
@@ -178,8 +194,15 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 		if opts.promptOverwrite && idx >= 0 {
 			promptf("overwrite '%s'? (y/n)", entry.Key)
 			var confirm string
-			if err := scanln(&confirm); err != nil {
-				return 0, fmt.Errorf("entry %d: %v", entryNo, err)
+			if opts.promptReader != nil {
+				fmt.Fprintf(os.Stdout, "%s  ", keyword("2", "==>", stdoutIsTerminal()))
+				if _, err := fmt.Fscanln(opts.promptReader, &confirm); err != nil {
+					return 0, fmt.Errorf("entry %d: %v", entryNo, err)
+				}
+			} else {
+				if err := scanln(&confirm); err != nil {
+					return 0, fmt.Errorf("entry %d: %v", entryNo, err)
+				}
 			}
 			if strings.ToLower(confirm) != "y" {
 				continue
