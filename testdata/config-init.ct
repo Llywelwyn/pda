@@ -1,0 +1,10 @@
+# Init creates a config file
+$ pda config init
+
+# Second init fails
+$ pda config init --> FAIL
+FAIL  config file already exists
+hint  use 'pda config edit' or 'pda config init --new'
+
+# Init --new overwrites
+$ pda config init --new
