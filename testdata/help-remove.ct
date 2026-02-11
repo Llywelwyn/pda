@@ -12,6 +12,7 @@ Flags:
   -h, --help          help for remove
   -i, --interactive   Prompt yes/no for each deletion
   -k, --key strings   Delete keys matching glob pattern (repeatable)
+  -y, --yes           Skip all confirmation prompts
 Delete one or more keys
 
 Usage:
@@ -24,3 +25,4 @@ Flags:
   -h, --help          help for remove
   -i, --interactive   Prompt yes/no for each deletion
   -k, --key strings   Delete keys matching glob pattern (repeatable)
+  -y, --yes           Skip all confirmation prompts

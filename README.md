@@ -197,6 +197,9 @@ pda rm kitty --key "?og"
 pda rm kitty -i
 #  ???  remove 'kitty'? (y/n)
 #  ==>  y
+
+# --yes/-y to auto-accept all confirmation prompts.
+pda rm kitty -y
 ```
 
 <p align="center"></p><!-- spacer -->

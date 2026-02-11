@@ -47,6 +47,10 @@ func del(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	yes, err := cmd.Flags().GetBool("yes")
+	if err != nil {
+		return err
+	}
 	keyPatterns, err := cmd.Flags().GetStringSlice("key")
 	if err != nil {
 		return err
@@ -72,7 +76,7 @@ func del(cmd *cobra.Command, args []string) error {
 	byStore := make(map[string]*storeTargets)
 	var storeOrder []string
 	for _, target := range targets {
-		if interactive || config.Key.AlwaysPromptDelete {
+		if !yes && (interactive || config.Key.AlwaysPromptDelete) {
 			var confirm string
 			promptf("remove '%s'? (y/n)", target.display)
 			if err := scanln(&confirm); err != nil {
@@ -120,6 +124,7 @@ func del(cmd *cobra.Command, args []string) error {
 
 func init() {
 	delCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
+	delCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
 	delCmd.Flags().StringSliceP("key", "k", nil, "Delete keys matching glob pattern (repeatable)")
 	rootCmd.AddCommand(delCmd)
 }
