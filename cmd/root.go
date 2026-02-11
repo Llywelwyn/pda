@@ -31,18 +31,20 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pda",
-	Short: "A key-value store tool",
-	Long:  asciiArt,
+	Use:           "pda",
+	Short:         "A key-value store tool",
+	Long:          asciiArt,
+	SilenceErrors: true, // we print errors ourselves
 }
 
 func Execute() {
 	if configErr != nil {
-		fmt.Fprintln(os.Stderr, "failed to load config:", configErr)
+		printError(fmt.Errorf("cannot load config: %v", configErr))
 		os.Exit(1)
 	}
 	err := rootCmd.Execute()
 	if err != nil {
+		printErrorWithHints(err)
 		os.Exit(1)
 	}
 }

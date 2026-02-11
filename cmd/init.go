@@ -61,36 +61,36 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 	if clean {
 		gitDir := filepath.Join(repoDir, ".git")
 		if _, err := os.Stat(gitDir); err == nil {
-			fmt.Printf("remove .git from '%s'? (y/n)\n", repoDir)
+			promptf("remove .git from '%s'? (y/n)", repoDir)
 			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
-				return fmt.Errorf("cannot clean git dir: %w", err)
+			if err := scanln(&confirm); err != nil {
+				return fmt.Errorf("cannot init: %w", err)
 			}
 			if strings.ToLower(confirm) != "y" {
-				return fmt.Errorf("aborted cleaning git dir")
+				return fmt.Errorf("cannot init: aborted")
 			}
 			if err := os.RemoveAll(gitDir); err != nil {
-				return fmt.Errorf("cannot clean git dir: %w", err)
+				return fmt.Errorf("cannot init: %w", err)
 			}
 		}
 
 		if hasRemote {
 			dbs, err := store.AllStores()
 			if err == nil && len(dbs) > 0 {
-				fmt.Printf("remove all existing stores and .gitignore? (required for clone) (y/n)\n")
+				promptf("remove all existing stores and .gitignore, required for clone? (y/n)")
 				var confirm string
-				if _, err := fmt.Scanln(&confirm); err != nil {
-					return fmt.Errorf("cannot clean stores: %w", err)
+				if err := scanln(&confirm); err != nil {
+					return fmt.Errorf("cannot init: %w", err)
 				}
 				if strings.ToLower(confirm) != "y" {
-					return fmt.Errorf("aborted cleaning stores")
+					return fmt.Errorf("cannot init: aborted")
 				}
 				if err := wipeAllStores(store); err != nil {
-					return fmt.Errorf("cannot clean stores: %w", err)
+					return fmt.Errorf("cannot init: %w", err)
 				}
 				gi := filepath.Join(repoDir, ".gitignore")
 				if err := os.Remove(gi); err != nil && !os.IsNotExist(err) {
-					return fmt.Errorf("cannot remove .gitignore: %w", err)
+					return fmt.Errorf("cannot init: %w", err)
 				}
 			}
 		}
@@ -98,7 +98,8 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 
 	gitDir := filepath.Join(repoDir, ".git")
 	if _, err := os.Stat(gitDir); err == nil {
-		fmt.Println("vcs already initialised; use --clean to reinitialise")
+		warnf("vcs already initialised")
+		printHint("use --clean to reinitialise")
 		return nil
 	}
 
@@ -106,11 +107,11 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 		// git clone requires the target directory to be empty
 		entries, err := os.ReadDir(repoDir)
 		if err == nil && len(entries) > 0 {
-			return fmt.Errorf("stores directory is not empty; use --clean with a remote to wipe and clone")
+			return withHint(fmt.Errorf("cannot init: stores directory not empty"), "use --clean with a remote to wipe and clone")
 		}
 
 		remote := args[0]
-		fmt.Printf("running: git clone %s %s\n", remote, repoDir)
+		progressf("git clone %s %s", remote, repoDir)
 		if err := runGit("", "clone", remote, repoDir); err != nil {
 			return err
 		}
@@ -118,7 +119,7 @@ func vcsInit(cmd *cobra.Command, args []string) error {
 		if err := os.MkdirAll(repoDir, 0o750); err != nil {
 			return err
 		}
-		fmt.Printf("running: git init\n")
+		progressf("git init")
 		if err := runGit(repoDir, "init"); err != nil {
 			return err
 		}

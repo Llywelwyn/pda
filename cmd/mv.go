@@ -84,7 +84,7 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	}
 	srcIdx := findEntry(srcEntries, fromSpec.Key)
 	if srcIdx < 0 {
-		return fmt.Errorf("cannot move '%s': No such key", fromSpec.Key)
+		return fmt.Errorf("cannot move '%s': no such key", fromSpec.Key)
 	}
 	srcEntry := srcEntries[srcIdx]
 
@@ -108,8 +108,8 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 
 	if promptOverwrite && dstIdx >= 0 {
 		var confirm string
-		fmt.Printf("overwrite '%s'? (y/n)\n", toSpec.Display())
-		if _, err := fmt.Scanln(&confirm); err != nil {
+		promptf("overwrite '%s'? (y/n)", toSpec.Display())
+		if err := scanln(&confirm); err != nil {
 			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 		}
 		if strings.ToLower(confirm) != "y" {

@@ -116,7 +116,7 @@ func writeStoreFile(path string, entries []Entry) error {
 		je := encodeJsonEntry(e)
 		data, err := json.Marshal(je)
 		if err != nil {
-			return fmt.Errorf("key %q: %w", e.Key, err)
+			return fmt.Errorf("key '%s': %w", e.Key, err)
 		}
 		w.Write(data)
 		w.WriteByte('\n')
@@ -142,10 +142,10 @@ func decodeJsonEntry(je jsonEntry) (Entry, error) {
 		var err error
 		value, err = base64.StdEncoding.DecodeString(je.Value)
 		if err != nil {
-			return Entry{}, fmt.Errorf("decode base64 for %q: %w", je.Key, err)
+			return Entry{}, fmt.Errorf("decode base64 for '%s': %w", je.Key, err)
 		}
 	default:
-		return Entry{}, fmt.Errorf("unsupported encoding %q for %q", je.Encoding, je.Key)
+		return Entry{}, fmt.Errorf("unsupported encoding '%s' for '%s'", je.Encoding, je.Key)
 	}
 	var expiresAt uint64
 	if je.ExpiresAt != nil {

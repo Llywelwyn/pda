@@ -2,8 +2,8 @@ $ pda set existing keep-me
 $ pda set other also-keep
 $ fecho dumpfile {"key":"new","value":"hello","encoding":"text"}
 $ pda restore --drop --file dumpfile
-Restored 1 entries into @default
+  ok  restored 1 entries into @default
 $ pda get new
 hello
 $ pda get existing --> FAIL
-Error: cannot get 'existing': No such key
+FAIL  cannot get 'existing': no such key

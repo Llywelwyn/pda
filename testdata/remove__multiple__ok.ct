@@ -2,6 +2,7 @@ $ pda set a 1
 $ pda set b 2
 $ pda rm a b
 $ pda get a --> FAIL
-Error: cannot get 'a': No such key
+FAIL  cannot get 'a': no such key
 $ pda get b --> FAIL
-Error: cannot get 'b': No such key. Did you mean 'b1'?
+FAIL  cannot get 'b': no such key
+hint  did you mean 'b1'?

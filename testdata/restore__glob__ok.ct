@@ -4,12 +4,13 @@ $ pda set b1 3
 $ fecho dumpfile {"key":"a1","value":"1","encoding":"text"} {"key":"a2","value":"2","encoding":"text"} {"key":"b1","value":"3","encoding":"text"}
 $ pda rm a1 a2 b1
 $ pda restore --glob a* --file dumpfile
-Restored 2 entries into @default
+  ok  restored 2 entries into @default
 $ pda get a1
 1
 $ pda get a2
 2
 $ pda get b1 --> FAIL
-Error: cannot get 'b1': No such key. Did you mean 'a1'?
+FAIL  cannot get 'b1': no such key
+hint  did you mean 'a1'?
 $ pda restore --glob c* --file dumpfile --> FAIL
-Error: cannot restore '@default': No matches for pattern 'c*'
+FAIL  cannot restore '@default': no matches for pattern 'c*'

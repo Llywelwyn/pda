@@ -47,7 +47,7 @@ func (e *formatEnum) Set(v string) error {
 		*e = formatEnum(v)
 		return nil
 	default:
-		return fmt.Errorf("must be one of \"table\", \"tsv\", \"csv\", \"html\", \"markdown\", or \"ndjson\"")
+		return fmt.Errorf("must be one of 'table', 'tsv', 'csv', 'html', 'markdown', or 'ndjson'")
 	}
 }
 
@@ -91,7 +91,7 @@ func list(cmd *cobra.Command, args []string) error {
 		if _, err := store.FindStore(dbName); err != nil {
 			var notFound errNotFound
 			if errors.As(err, &notFound) {
-				return fmt.Errorf("cannot ls '%s': No such store", args[0])
+				return fmt.Errorf("cannot ls '%s': %w", args[0], err)
 			}
 			return fmt.Errorf("cannot ls '%s': %v", args[0], err)
 		}
@@ -99,7 +99,7 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	if listNoKeys && listNoValues && !listTTL {
-		return fmt.Errorf("cannot ls '%s': no columns selected; disable --no-keys/--no-values or pass --ttl", targetDB)
+		return withHint(fmt.Errorf("cannot ls '%s': no columns selected", targetDB), "disable --no-keys/--no-values or pass --ttl")
 	}
 
 	var columns []columnKind
@@ -145,7 +145,7 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && len(filtered) == 0 {
-		return fmt.Errorf("cannot ls '%s': No matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
+		return fmt.Errorf("cannot ls '%s': no matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
 	}
 
 	output := cmd.OutOrStdout()

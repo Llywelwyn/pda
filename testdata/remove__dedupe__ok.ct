@@ -10,6 +10,6 @@ $ pda ls
  foo  1
 $ pda rm foo --glob "*"
 $ pda get bar --> FAIL
-Error: cannot get 'bar': No such key
+FAIL  cannot get 'bar': no such key
 $ pda get foo --> FAIL
-Error: cannot get 'foo': No such key
+FAIL  cannot get 'foo': no such key

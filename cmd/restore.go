@@ -104,10 +104,10 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && restored == 0 {
-		return fmt.Errorf("cannot restore '%s': No matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
+		return fmt.Errorf("cannot restore '%s': no matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
 	}
 
-	fmt.Fprintf(cmd.ErrOrStderr(), "Restored %d entries into @%s\n", restored, dbName)
+	okf("restored %d entries into @%s", restored, dbName)
 	return autoSync()
 }
 
@@ -169,9 +169,9 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 		idx := findEntry(existing, entry.Key)
 
 		if opts.promptOverwrite && idx >= 0 {
-			fmt.Printf("overwrite '%s'? (y/n)\n", entry.Key)
+			promptf("overwrite '%s'? (y/n)", entry.Key)
 			var confirm string
-			if _, err := fmt.Scanln(&confirm); err != nil {
+			if err := scanln(&confirm); err != nil {
 				return 0, fmt.Errorf("entry %d: %v", entryNo, err)
 			}
 			if strings.ToLower(confirm) != "y" {

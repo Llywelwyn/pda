@@ -37,14 +37,12 @@ import (
 )
 
 type errNotFound struct {
+	what        string // "key" or "store"
 	suggestions []string
 }
 
 func (err errNotFound) Error() string {
-	if len(err.suggestions) == 0 {
-		return "No such key"
-	}
-	return fmt.Sprintf("No such key. Did you mean '%s'?", strings.Join(err.suggestions, ", "))
+	return fmt.Sprintf("no such %s", err.what)
 }
 
 type Store struct{}
@@ -129,7 +127,7 @@ func (s *Store) FindStore(k string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "", errNotFound{suggestions}
+		return "", errNotFound{what: "store", suggestions: suggestions}
 	}
 	if statErr != nil {
 		return "", statErr
@@ -205,7 +203,7 @@ func suggestKey(target string, keys []string) error {
 			suggestions = append(suggestions, k)
 		}
 	}
-	return errNotFound{suggestions}
+	return errNotFound{what: "key", suggestions: suggestions}
 }
 
 func ensureSubpath(base, target string) error {

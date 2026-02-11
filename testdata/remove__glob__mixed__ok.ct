@@ -3,8 +3,8 @@ $ pda set bar1 2
 $ pda set bar2 3
 $ pda rm foo --glob bar*
 $ pda get foo --> FAIL
-Error: cannot get 'foo': No such key
+FAIL  cannot get 'foo': no such key
 $ pda get bar1 --> FAIL
-Error: cannot get 'bar1': No such key
+FAIL  cannot get 'bar1': no such key
 $ pda get bar2 --> FAIL
-Error: cannot get 'bar2': No such key
+FAIL  cannot get 'bar2': no such key

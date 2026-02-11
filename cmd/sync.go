@@ -67,12 +67,12 @@ func sync(manual bool) error {
 			return err
 		}
 	} else if manual {
-		fmt.Println("no changes to commit")
+		okf("no changes to commit")
 	}
 
 	if remoteInfo.Ref == "" {
 		if manual {
-			fmt.Println("no remote configured; skipping push")
+			warnf("no remote configured, skipping push")
 		}
 		return nil
 	}
@@ -105,7 +105,7 @@ func sync(manual bool) error {
 			return pushRemote(repoDir, remoteInfo)
 		}
 		if manual {
-			fmt.Println("nothing to push")
+			okf("nothing to push")
 		}
 	}
 

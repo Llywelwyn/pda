@@ -66,7 +66,7 @@ func del(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(targets) == 0 {
-		return fmt.Errorf("cannot remove: No such key")
+		return fmt.Errorf("cannot remove: no such key")
 	}
 
 	// Group targets by store for batch deletes.
@@ -78,9 +78,8 @@ func del(cmd *cobra.Command, args []string) error {
 	for _, target := range targets {
 		if interactive || config.Key.AlwaysPromptDelete {
 			var confirm string
-			message := fmt.Sprintf("remove %q: are you sure? (y/n)", target.display)
-			fmt.Println(message)
-			if _, err := fmt.Scanln(&confirm); err != nil {
+			promptf("remove '%s'? (y/n)", target.display)
+			if err := scanln(&confirm); err != nil {
 				return fmt.Errorf("cannot remove '%s': %v", target.full, err)
 			}
 			if strings.ToLower(confirm) != "y" {
@@ -111,7 +110,7 @@ func del(cmd *cobra.Command, args []string) error {
 		for _, t := range st.targets {
 			idx := findEntry(entries, t.key)
 			if idx < 0 {
-				return fmt.Errorf("cannot remove '%s': No such key", t.full)
+				return fmt.Errorf("cannot remove '%s': no such key", t.full)
 			}
 			entries = append(entries[:idx], entries[idx+1:]...)
 		}

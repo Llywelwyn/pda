@@ -93,9 +93,9 @@ func set(cmd *cobra.Command, args []string) error {
 	idx := findEntry(entries, spec.Key)
 
 	if promptOverwrite && idx >= 0 {
-		fmt.Printf("overwrite '%s'? (y/n)\n", spec.Display())
+		promptf("overwrite '%s'? (y/n)", spec.Display())
 		var confirm string
-		if _, err := fmt.Scanln(&confirm); err != nil {
+		if err := scanln(&confirm); err != nil {
 			return fmt.Errorf("cannot set '%s': %v", args[0], err)
 		}
 		if strings.ToLower(confirm) != "y" {

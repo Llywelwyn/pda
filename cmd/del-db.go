@@ -45,29 +45,28 @@ func delStore(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	dbName, err := store.parseDB(args[0], false)
 	if err != nil {
-		return fmt.Errorf("cannot delete-store '%s': %v", args[0], err)
+		return fmt.Errorf("cannot delete store '%s': %v", args[0], err)
 	}
 	var notFound errNotFound
 	path, err := store.FindStore(dbName)
 	if errors.As(err, &notFound) {
-		return fmt.Errorf("cannot delete-store '%s': %v", dbName, err)
+		return fmt.Errorf("cannot delete store '%s': %w", dbName, err)
 	}
 	if err != nil {
-		return fmt.Errorf("cannot delete-store '%s': %v", dbName, err)
+		return fmt.Errorf("cannot delete store '%s': %v", dbName, err)
 	}
 
 	interactive, err := cmd.Flags().GetBool("interactive")
 	if err != nil {
-		return fmt.Errorf("cannot delete-store '%s': %v", dbName, err)
+		return fmt.Errorf("cannot delete store '%s': %v", dbName, err)
 	}
 
 	if interactive || config.Store.AlwaysPromptDelete {
-		message := fmt.Sprintf("delete-store '%s': are you sure? (y/n)", args[0])
-		fmt.Println(message)
+		promptf("delete store '%s'? (y/n)", args[0])
 
 		var confirm string
-		if _, err := fmt.Scanln(&confirm); err != nil {
-			return fmt.Errorf("cannot delete-store '%s': %v", dbName, err)
+		if err := scanln(&confirm); err != nil {
+			return fmt.Errorf("cannot delete store '%s': %v", dbName, err)
 		}
 		if strings.ToLower(confirm) != "y" {
 			return nil
@@ -81,7 +80,7 @@ func delStore(cmd *cobra.Command, args []string) error {
 
 func executeDeletion(path string) error {
 	if err := os.Remove(path); err != nil {
-		return fmt.Errorf("cannot delete-store '%s': %v", path, err)
+		return fmt.Errorf("cannot delete store '%s': %v", path, err)
 	}
 	return nil
 }

@@ -90,7 +90,7 @@ func get(cmd *cobra.Command, args []string) error {
 		for i, e := range entries {
 			keys[i] = e.Key
 		}
-		return fmt.Errorf("cannot get '%s': %v", args[0], suggestKey(spec.Key, keys))
+		return fmt.Errorf("cannot get '%s': %w", args[0], suggestKey(spec.Key, keys))
 	}
 	v := entries[idx].Value
 
@@ -128,7 +128,7 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 	for _, s := range substitutions {
 		parts := strings.SplitN(s, "=", 2)
 		if len(parts) != 2 || parts[0] == "" {
-			fmt.Fprintf(os.Stderr, "invalid substitutions %q (expected KEY=VALUE)\n", s)
+			warnf("invalid substitution '%s', expected KEY=VALUE", s)
 			continue
 		}
 		key := parts[0]
@@ -159,13 +159,13 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 			if slices.Contains(allowed, s) {
 				return s, nil
 			}
-			return "", fmt.Errorf("invalid value %q (allowed: %v)", s, allowed)
+			return "", fmt.Errorf("invalid value '%s', allowed: %v", s, allowed)
 		},
 		"int": func(v any) (int, error) {
 			s := fmt.Sprint(v)
 			i, err := strconv.Atoi(s)
 			if err != nil {
-				return 0, fmt.Errorf("failed to convert to int: %w", err)
+				return 0, fmt.Errorf("cannot convert to int: %w", err)
 			}
 			return i, nil
 		},

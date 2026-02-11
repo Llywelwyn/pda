@@ -3,8 +3,9 @@ $ pda set a2 2
 $ pda set b1 3
 $ pda rm --glob a*
 $ pda get a1 --> FAIL
-Error: cannot get 'a1': No such key. Did you mean 'b1'?
+FAIL  cannot get 'a1': no such key
+hint  did you mean 'b1'?
 $ pda get a2 --> FAIL
-Error: cannot get 'a2': No such key
+FAIL  cannot get 'a2': no such key
 $ pda get b1
 3

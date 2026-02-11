@@ -17,7 +17,7 @@ func ensureVCSInitialized() (string, error) {
 	}
 	if _, err := os.Stat(filepath.Join(repoDir, ".git")); err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("vcs repository not initialised; run 'pda init' first")
+			return "", withHint(fmt.Errorf("vcs not initialised"), "run 'pda init' first")
 		}
 		return "", err
 	}
@@ -43,7 +43,7 @@ func writeGitignore(repoDir string) error {
 		}
 		return runGit(repoDir, "commit", "-m", "generated gitignore")
 	}
-	fmt.Println("Existing .gitignore found.")
+	okf("existing .gitignore found")
 	return nil
 }
 
@@ -195,7 +195,7 @@ func wipeAllStores(store *Store) error {
 			return err
 		}
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("remove store '%s': %w", db, err)
+			return fmt.Errorf("cannot remove store '%s': %w", db, err)
 		}
 	}
 	return nil

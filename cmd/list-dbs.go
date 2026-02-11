@@ -41,7 +41,7 @@ func listStores(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 	dbs, err := store.AllStores()
 	if err != nil {
-		return fmt.Errorf("cannot list-stores: %v", err)
+		return fmt.Errorf("cannot list stores: %v", err)
 	}
 	for _, db := range dbs {
 		fmt.Println("@" + db)
