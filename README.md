@@ -180,7 +180,8 @@ pda rm kitty --glob ?og
 
 # Opt in to a confirmation prompt with --interactive/-i (or always_prompt_delete in config).
 pda rm kitty -i
-# remove "kitty": are you sure? (y/n)
+#  ???  remove 'kitty'? (y/n)
+#  ==>  y
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -215,11 +216,11 @@ pda export --glob a*
 ```bash
 # Import with an argument.
 pda import -f my_backup
-# Restored 2 entries into @default.
+#   ok  restored 2 entries into @default
 
 # Or from stdin.
 pda import < my_backup
-# Restored 2 entries into @default.
+#   ok  restored 2 entries into @default
 
 # Import only matching keys.
 pda import --glob a* -f my_backup
@@ -329,7 +330,7 @@ pda get greeting NAME="Bob"
 ```bash
 pda set file "{{ require .FILE }}"
 pda get file
-# Error: required value missing or empty
+# FAIL  cannot get 'file': ...required value is missing or empty
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -349,7 +350,7 @@ pda set level "Log level: {{ enum .LEVEL "info" "warn" "error" }}"
 pda get level LEVEL=info
 # Log level: info
 pda get level LEVEL=debug
-# Error: invalid value "debug" (allowed: [info warn error])
+# FAIL  cannot get 'level': ...invalid value 'debug', allowed: [info warn error]
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -493,7 +494,10 @@ pda ls --no-keys
 # cogwheel
 
 pda rm cat --glob "{mouse,[cd]og}**"
-# remove: 'cat', 'mouse trap', 'dog house', 'cogwheel': are you sure? [y/n]
+#  ???  remove 'cat'? (y/n)
+#  ==>  y
+#  ???  remove 'mouse trap'? (y/n)
+# ...
 ```
 
 <p align="center"></p><!-- spacer -->
