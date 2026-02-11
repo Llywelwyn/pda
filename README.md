@@ -23,7 +23,6 @@
 - search and filtering with [globs](https://github.com/Llywelwyn/pda#globs),
 - Git-backed [version control](https://github.com/Llywelwyn/pda#git),
 - plaintext exports in multiple formats,
-- [secrets](https://github.com/Llywelwyn/pda#secrets),
 - support for [binary data](https://github.com/Llywelwyn/pda#binary),
 - [time-to-live](https://github.com/Llywelwyn/pda#ttl) support,
 
@@ -31,7 +30,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 
 <p align="center"></p><!-- spacer -->
 
-`pda!` canonically stores key-value pairs in [badger](https://github.com/dgraph-io/badger) stores for the sake of speed, but supports exporting everything out to a handful of different plaintext formats too, including but not limited to [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON), and [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables. `pda!` uses newline-delimited JSON for version control; a full snapshot of every existing key-value pair across all stores can be manually requested with the snapshot command, or auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
+`pda!` stores key-value pairs natively as [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) files. The `list` command supports multiple output formats including [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML_element#Tables) tables, while `export` dumps the raw NDJSON. Since stores are already NDJSON files, Git version control works directly on them — auto-commit can be enabled in the config to automatically generate a descriptive commit for every change made.
 
 <p align="center"></p><!-- spacer -->
 
@@ -53,7 +52,6 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [Git-backed version control](https://github.com/Llywelwyn/pda#git)
 - [Templates](https://github.com/Llywelwyn/pda#templates)
 - [Globs](https://github.com/Llywelwyn/pda#globs)
-- [Secrets](https://github.com/Llywelwyn/pda#secrets)
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
 - [Environment](https://github.com/Llywelwyn/pda#environment)
@@ -85,7 +83,7 @@ Key commands:
   set          Set a key to a given value
 
 Store commands:
-  export       Dump all key/value pairs as NDJSON
+  export       Export store as NDJSON (alias for list --format ndjson)
   import       Restore key/value pairs from an NDJSON dump
   list-stores  List all stores
   remove-store Delete a store
@@ -169,25 +167,20 @@ pda mv name name2 --copy
 `pda rm` to delete one or more keys.
 ```bash
 pda rm kitty
-# remove  "kitty": are you sure? [y/n]
-# y
-
-# Or skip the prompt.
-pda rm kitty --force
 
 # Remove multiple keys, within the same or different stores.
 pda rm kitty dog@animals
-# remove "kitty", "dog@animals": are you sure? [y/n]
-# y
 
 # Mix exact keys with globs.
 pda set cog "cogs"
 pda set dog "doggy"
 pda set kitty "cat"
 pda rm kitty --glob ?og
-# remove "kitty", "cog", "dog": are you sure? [y/n]
-# y
 # Default glob separators: "/-_.@: " (space included). Override with --glob-sep.
+
+# Opt in to a confirmation prompt with --interactive/-i (or always_prompt_delete in config).
+pda rm kitty -i
+# remove "kitty": are you sure? (y/n)
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -208,28 +201,28 @@ pda ls --format csv
 
 <p align="center"></p><!-- spacer -->
 
-`pda dump` to export everything as NDJSON.
+`pda export` to export everything as NDJSON.
 ```bash
-pda dump > my_backup
+pda export > my_backup
 
-# Dump only matching keys.
-pda dump --glob a*
+# Export only matching keys.
+pda export --glob a*
 ```
 
 <p align="center"></p><!-- spacer -->
 
-`pda restore` to import it all back.
+`pda import` to import it all back.
 ```bash
-# Restore with an argument.
-pda restore -f my_backup
+# Import with an argument.
+pda import -f my_backup
 # Restored 2 entries into @default.
 
 # Or from stdin.
-pda restore < my_backup
+pda import < my_backup
 # Restored 2 entries into @default.
 
-# Restore only matching keys.
-pda restore --glob a* -f my_backup
+# Import only matching keys.
+pda import --glob a* -f my_backup
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -249,14 +242,14 @@ pda ls @birthdays
 # alice    11/11/1998
 # bob      05/12/1980
 
-# Dump it.
-pda dump birthdays > friends_birthdays
+# Export it.
+pda export birthdays > friends_birthdays
 
-# Restore it.
-pda restore birthdays < friends_birthdays
+# Import it.
+pda import birthdays < friends_birthdays
 
 # Delete it.
-pda rm-store birthdays --force
+pda rm-store birthdays
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -288,7 +281,7 @@ If you're ahead of your Git repo, syncing will add your changes, commit them, an
 pda sync
 ```
 
-`pda!` supports some automation via its config. There are options for `git.auto_commit`, `git.auto_fetch`, and `git.auto_push`. Any of these operations will slow down `pda!` because it means exporting and versioning with every change, but it does effectively guarantee never managing to desync oneself and requiring manual fixes, and reduces the frequency with which one will need to manually run the sync command.
+`pda!` supports some automation via its config. There are options for `git.auto_commit`, `git.auto_fetch`, and `git.auto_push`. Any of these operations will slow down `pda!` because it means versioning with every change, but it does effectively guarantee never managing to desync oneself and requiring manual fixes, and reduces the frequency with which one will need to manually run the sync command.
 
 Auto-commit will commit changes immediately to the local Git repository any time `pda!` data is changed. Auto-fetch will fetch before committing any changes, but incurs a significant slowdown in operations simply due to the time a fetch takes. Auto-push will automatically push committed changes to the remote repository, if one is set.
 
@@ -523,48 +516,6 @@ pda ls --glob "*%*" --glob-sep "%"
 
 <p align="center"></p><!-- spacer -->
 
-### Secrets
-
-Mark sensitive values with `secret` to stop accidents.
-```bash
-# Store a secret
-pda set password "hunter2" --secret
-```
-
-<p align="center"></p><!-- spacer -->
-
-`secret` is used for revealing secrets too.
-```bash
-pda get password
-# Error: "password" is marked secret; re-run with --secret to display it
-pda get password --secret
-# hunter2
-```
-
-<p align="center"></p><!-- spacer -->
-
-`list` censors secrets.
-```bash
-pda ls
-# password    ************
-
-pda ls --secret
-# password    hunter2
-```
-
-<p align="center"></p><!-- spacer -->
-
-`dump` excludes secrets unless allowed.
-```bash
-pda dump
-# nil
-
-pda dump --secret
-# {"key":"password","value":"hunter2","encoding":"text"}
-```
-
-<p align="center"></p><!-- spacer -->
-
 ### TTL
 
 `ttl` sets an expiration time. Expired keys get marked for garbage collection and will be deleted on the next-run of the store. They wont be accessible.
@@ -585,7 +536,7 @@ pda ls --ttl
 # session2   xyz    2025-11-21T15:21:40Z (in 51m40s)
 ```
 
-`dump` and `restore` persists the expiry date. Expirations will continue ticking down regardless of if they're actively in a store or not - the expiry is just a timestamp, not a timer.
+`export` and `import` persist the expiry date. Expirations will continue ticking down regardless of if they're actively in a store or not - the expiry is just a timestamp, not a timer.
 
 <p align="center"></p><!-- spacer -->
 
@@ -618,9 +569,9 @@ pda get logo --include-binary
 
 <p align="center"></p><!-- spacer -->
 
-`dump` encodes binary data as base64.
+`export` encodes binary data as base64.
 ```bash
-pda dump
+pda export
 # {"key":"logo","value":"89504E470D0A1A0A0000000D4948445200000001000000010802000000","encoding":"base64"}
 ```
 
