@@ -100,7 +100,7 @@ func get(cmd *cobra.Command, args []string) error {
 	}
 	v := entry.Value
 
-	binary, err := cmd.Flags().GetBool("include-binary")
+	binary, err := cmd.Flags().GetBool("base64")
 	if err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
@@ -235,12 +235,12 @@ func run(cmd *cobra.Command, args []string) error {
 var runFlag bool
 
 func init() {
-	getCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
+	getCmd.Flags().BoolP("base64", "b", false, "view binary data as base64")
 	getCmd.Flags().BoolVarP(&runFlag, "run", "c", false, "execute the result as a shell command")
 	getCmd.Flags().Bool("no-template", false, "directly output template syntax")
 	rootCmd.AddCommand(getCmd)
 
-	runCmd.Flags().BoolP("include-binary", "b", false, "include binary data in text output")
+	runCmd.Flags().BoolP("base64", "b", false, "view binary data as base64")
 	runCmd.Flags().Bool("no-template", false, "directly output template syntax")
 	rootCmd.AddCommand(runCmd)
 }

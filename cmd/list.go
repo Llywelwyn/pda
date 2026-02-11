@@ -55,7 +55,7 @@ func (e *formatEnum) Set(v string) error {
 func (e *formatEnum) Type() string { return "format" }
 
 var (
-	listBinary   bool
+	listBase64   bool
 	listNoKeys   bool
 	listNoValues bool
 	listTTL      bool
@@ -194,7 +194,7 @@ func list(cmd *cobra.Command, args []string) error {
 			if e.Locked {
 				valueStr = "locked (identity file missing)"
 			} else {
-				valueStr = store.FormatBytes(listBinary, e.Value)
+				valueStr = store.FormatBytes(listBase64, e.Value)
 			}
 		}
 		row := make(table.Row, 0, len(columns))
@@ -315,7 +315,7 @@ func renderTable(tw table.Writer) {
 }
 
 func init() {
-	listCmd.Flags().BoolVarP(&listBinary, "binary", "b", false, "include binary data in text output")
+	listCmd.Flags().BoolVarP(&listBase64, "base64", "b", false, "view binary data as base64")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
 	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
 	listCmd.Flags().BoolVarP(&listTTL, "ttl", "t", false, "append a TTL column when entries expire")

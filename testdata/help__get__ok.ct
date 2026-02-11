@@ -16,10 +16,10 @@ Aliases:
   get, g
 
 Flags:
-  -h, --help             help for get
-  -b, --include-binary   include binary data in text output
-      --no-template      directly output template syntax
-  -c, --run              execute the result as a shell command
+  -b, --base64        view binary data as base64
+  -h, --help          help for get
+      --no-template   directly output template syntax
+  -c, --run           execute the result as a shell command
 Get the value of a key. Optionally specify a store.
 
 {{ .TEMPLATES }} can be filled by passing TEMPLATE=VALUE as an
@@ -36,7 +36,7 @@ Aliases:
   get, g
 
 Flags:
-  -h, --help             help for get
-  -b, --include-binary   include binary data in text output
-      --no-template      directly output template syntax
-  -c, --run              execute the result as a shell command
+  -b, --base64        view binary data as base64
+  -h, --help          help for get
+      --no-template   directly output template syntax
+  -c, --run           execute the result as a shell command

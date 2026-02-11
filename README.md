@@ -563,15 +563,15 @@ pda get logo > output.png
 
 <p align="center"></p><!-- spacer -->
 
-`list` and `get` will omit binary data whenever it's a human reading it. If it's being piped somewhere or ran outside of a TTY, it'll output the whole data.
+`list` and `get` will show a summary for binary data on a TTY. If it's being piped somewhere or ran outside of a TTY, it'll output the raw bytes.
 
-`include-binary` to show the full binary data regardless.
+`--base64`/`-b` to view binary data as base64 on a TTY.
 ```bash
 pda get logo
-# (omitted binary data)
+# (binary: 4.2 KB, image/png)
 
-pda get logo --include-binary
-# 89504E470D0A1A0A0000000D4948445200000001000000010802000000
+pda get logo --base64
+# iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADklEQVQI12...
 ```
 
 <p align="center"></p><!-- spacer -->

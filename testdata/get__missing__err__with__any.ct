@@ -1,7 +1,7 @@
 $ pda get foobar --> FAIL
-$ pda get foobar --include-binary --> FAIL
-$ pda get foobar --include-binary --run --> FAIL
-$ pda get foobar --include-binary --run --secret --> FAIL
+$ pda get foobar --base64 --> FAIL
+$ pda get foobar --base64 --run --> FAIL
+$ pda get foobar --base64 --run --secret --> FAIL
 $ pda get foobar --run --> FAIL
 $ pda get foobar --run --secret --> FAIL
 $ pda get foobar --secret --> FAIL

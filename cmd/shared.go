@@ -23,8 +23,10 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,12 +69,37 @@ func (s *Store) FormatBytes(includeBinary bool, v []byte) string {
 	return s.formatBytes(includeBinary, v)
 }
 
-func (s *Store) formatBytes(includeBinary bool, v []byte) string {
-	tty := term.IsTerminal(int(os.Stdout.Fd()))
-	if tty && !includeBinary && !utf8.Valid(v) {
-		return "(omitted binary data)"
+func (s *Store) formatBytes(base64Flag bool, v []byte) string {
+	if !utf8.Valid(v) {
+		tty := term.IsTerminal(int(os.Stdout.Fd()))
+		if !tty {
+			return string(v)
+		}
+		if base64Flag {
+			return base64.StdEncoding.EncodeToString(v)
+		}
+		mime := http.DetectContentType(v)
+		return fmt.Sprintf("(binary: %s, %s)", formatSize(len(v)), mime)
 	}
 	return string(v)
+}
+
+func formatSize(n int) string {
+	const (
+		kb = 1024
+		mb = 1024 * kb
+		gb = 1024 * mb
+	)
+	switch {
+	case n < kb:
+		return fmt.Sprintf("%d B", n)
+	case n < mb:
+		return fmt.Sprintf("%.1f KB", float64(n)/float64(kb))
+	case n < gb:
+		return fmt.Sprintf("%.1f MB", float64(n)/float64(mb))
+	default:
+		return fmt.Sprintf("%.1f GB", float64(n)/float64(gb))
+	}
 }
 
 func (s *Store) storePath(name string) (string, error) {
