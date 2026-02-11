@@ -749,3 +749,18 @@ pda run script
 ```
 
 <p align="center"></p><!-- spacer -->
+
+### Version
+
+`pda!` uses calendar versioning: `YYYY.WW`. ASCII art can be permanently disabled with `display_ascii_art = false` in config.
+
+```bash
+# Display the full version output.
+pda version
+
+# Or just the release.
+pda version --short
+# pda! 2025.47 release
+```
+
+<p align="center"></p><!-- spacer -->
