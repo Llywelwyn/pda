@@ -30,6 +30,7 @@ import (
 	"os"
 	"strings"
 
+	"filippo.io/age"
 	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
@@ -94,10 +95,18 @@ func restore(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 
+	identity, _ := loadIdentity()
+	var recipient *age.X25519Recipient
+	if identity != nil {
+		recipient = identity.Recipient()
+	}
+
 	restored, err := restoreEntries(decoder, p, restoreOpts{
 		matchers:        matchers,
 		promptOverwrite: promptOverwrite,
 		drop:            drop,
+		identity:        identity,
+		recipient:       recipient,
 	})
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
@@ -130,13 +139,15 @@ type restoreOpts struct {
 	matchers        []glob.Glob
 	promptOverwrite bool
 	drop            bool
+	identity        *age.X25519Identity
+	recipient       *age.X25519Recipient
 }
 
 func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (int, error) {
 	var existing []Entry
 	if !opts.drop {
 		var err error
-		existing, err = readStoreFile(storePath)
+		existing, err = readStoreFile(storePath, opts.identity)
 		if err != nil {
 			return 0, err
 		}
@@ -161,7 +172,7 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 			continue
 		}
 
-		entry, err := decodeJsonEntry(je)
+		entry, err := decodeJsonEntry(je, opts.identity)
 		if err != nil {
 			return 0, fmt.Errorf("entry %d: %w", entryNo, err)
 		}
@@ -188,7 +199,7 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 	}
 
 	if restored > 0 || opts.drop {
-		if err := writeStoreFile(storePath, existing); err != nil {
+		if err := writeStoreFile(storePath, existing, opts.recipient); err != nil {
 			return 0, err
 		}
 	}

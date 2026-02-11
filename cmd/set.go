@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"filippo.io/age"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +37,9 @@ var setCmd = &cobra.Command{
 	Use:   "set KEY[@STORE] [VALUE]",
 	Short: "Set a key to a given value",
 	Long: `Set a key to a given value or stdin. Optionally specify a store.
+
+Pass --encrypt to encrypt the value at rest using age. An identity file
+is generated automatically on first use.
 
 PDA supports parsing Go templates. Actions are delimited with {{ }}.
 
@@ -60,6 +64,11 @@ func set(cmd *cobra.Command, args []string) error {
 	}
 	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
 
+	secret, err := cmd.Flags().GetBool("encrypt")
+	if err != nil {
+		return err
+	}
+
 	spec, err := store.parseKey(args[0], true)
 	if err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
@@ -81,16 +90,37 @@ func set(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
+	// Load or create identity depending on --encrypt flag
+	var identity *age.X25519Identity
+	if secret {
+		identity, err = ensureIdentity()
+		if err != nil {
+			return fmt.Errorf("cannot set '%s': %v", args[0], err)
+		}
+	} else {
+		identity, _ = loadIdentity()
+	}
+	var recipient *age.X25519Recipient
+	if identity != nil {
+		recipient = identity.Recipient()
+	}
+
 	p, err := store.storePath(spec.DB)
 	if err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
-	entries, err := readStoreFile(p)
+	entries, err := readStoreFile(p, identity)
 	if err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
 	idx := findEntry(entries, spec.Key)
+
+	// Warn if overwriting an encrypted key without --encrypt
+	if idx >= 0 && entries[idx].Secret && !secret {
+		warnf("overwriting encrypted key '%s' as plaintext", spec.Display())
+		printHint("pass --encrypt to keep it encrypted")
+	}
 
 	if promptOverwrite && idx >= 0 {
 		promptf("overwrite '%s'? (y/n)", spec.Display())
@@ -104,8 +134,9 @@ func set(cmd *cobra.Command, args []string) error {
 	}
 
 	entry := Entry{
-		Key:   spec.Key,
-		Value: value,
+		Key:    spec.Key,
+		Value:  value,
+		Secret: secret,
 	}
 	if ttl != 0 {
 		entry.ExpiresAt = uint64(time.Now().Add(ttl).Unix())
@@ -117,7 +148,7 @@ func set(cmd *cobra.Command, args []string) error {
 		entries = append(entries, entry)
 	}
 
-	if err := writeStoreFile(p, entries); err != nil {
+	if err := writeStoreFile(p, entries, recipient); err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
@@ -128,4 +159,5 @@ func init() {
 	rootCmd.AddCommand(setCmd)
 	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
 	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
+	setCmd.Flags().BoolP("encrypt", "e", false, "Encrypt the value at rest using age")
 }

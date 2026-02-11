@@ -32,6 +32,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"filippo.io/age"
 )
 
 // Entry is the in-memory representation of a stored key-value pair.
@@ -39,6 +41,8 @@ type Entry struct {
 	Key       string
 	Value     []byte
 	ExpiresAt uint64 // Unix timestamp; 0 = never expires
+	Secret    bool   // encrypted on disk
+	Locked    bool   // secret but no identity available to decrypt
 }
 
 // jsonEntry is the NDJSON on-disk format.
@@ -51,7 +55,8 @@ type jsonEntry struct {
 
 // readStoreFile reads all non-expired entries from an NDJSON file.
 // Returns empty slice (not error) if file does not exist.
-func readStoreFile(path string) ([]Entry, error) {
+// If identity is nil, secret entries are returned as locked.
+func readStoreFile(path string, identity *age.X25519Identity) ([]Entry, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -76,7 +81,7 @@ func readStoreFile(path string) ([]Entry, error) {
 		if err := json.Unmarshal(line, &je); err != nil {
 			return nil, fmt.Errorf("line %d: %w", lineNo, err)
 		}
-		entry, err := decodeJsonEntry(je)
+		entry, err := decodeJsonEntry(je, identity)
 		if err != nil {
 			return nil, fmt.Errorf("line %d: %w", lineNo, err)
 		}
@@ -91,7 +96,8 @@ func readStoreFile(path string) ([]Entry, error) {
 
 // writeStoreFile atomically writes entries to an NDJSON file, sorted by key.
 // Expired entries are excluded. Empty entry list writes an empty file.
-func writeStoreFile(path string, entries []Entry) error {
+// If recipient is nil, secret entries are written as-is (locked passthrough).
+func writeStoreFile(path string, entries []Entry, recipient *age.X25519Recipient) error {
 	// Sort by key for deterministic output
 	slices.SortFunc(entries, func(a, b Entry) int {
 		return strings.Compare(a.Key, b.Key)
@@ -113,7 +119,10 @@ func writeStoreFile(path string, entries []Entry) error {
 		if e.ExpiresAt > 0 && e.ExpiresAt <= now {
 			continue
 		}
-		je := encodeJsonEntry(e)
+		je, err := encodeJsonEntry(e, recipient)
+		if err != nil {
+			return fmt.Errorf("key '%s': %w", e.Key, err)
+		}
 		data, err := json.Marshal(je)
 		if err != nil {
 			return fmt.Errorf("key '%s': %w", e.Key, err)
@@ -133,7 +142,28 @@ func writeStoreFile(path string, entries []Entry) error {
 	return os.Rename(tmp, path)
 }
 
-func decodeJsonEntry(je jsonEntry) (Entry, error) {
+func decodeJsonEntry(je jsonEntry, identity *age.X25519Identity) (Entry, error) {
+	var expiresAt uint64
+	if je.ExpiresAt != nil {
+		expiresAt = uint64(*je.ExpiresAt)
+	}
+
+	if je.Encoding == "secret" {
+		ciphertext, err := base64.StdEncoding.DecodeString(je.Value)
+		if err != nil {
+			return Entry{}, fmt.Errorf("decode secret for '%s': %w", je.Key, err)
+		}
+		if identity == nil {
+			return Entry{Key: je.Key, Value: ciphertext, ExpiresAt: expiresAt, Secret: true, Locked: true}, nil
+		}
+		plaintext, err := decrypt(ciphertext, identity)
+		if err != nil {
+			warnf("cannot decrypt '%s': %v", je.Key, err)
+			return Entry{Key: je.Key, Value: ciphertext, ExpiresAt: expiresAt, Secret: true, Locked: true}, nil
+		}
+		return Entry{Key: je.Key, Value: plaintext, ExpiresAt: expiresAt, Secret: true}, nil
+	}
+
 	var value []byte
 	switch je.Encoding {
 	case "", "text":
@@ -147,15 +177,35 @@ func decodeJsonEntry(je jsonEntry) (Entry, error) {
 	default:
 		return Entry{}, fmt.Errorf("unsupported encoding '%s' for '%s'", je.Encoding, je.Key)
 	}
-	var expiresAt uint64
-	if je.ExpiresAt != nil {
-		expiresAt = uint64(*je.ExpiresAt)
-	}
 	return Entry{Key: je.Key, Value: value, ExpiresAt: expiresAt}, nil
 }
 
-func encodeJsonEntry(e Entry) jsonEntry {
+func encodeJsonEntry(e Entry, recipient *age.X25519Recipient) (jsonEntry, error) {
 	je := jsonEntry{Key: e.Key}
+	if e.ExpiresAt > 0 {
+		ts := int64(e.ExpiresAt)
+		je.ExpiresAt = &ts
+	}
+
+	if e.Secret && e.Locked {
+		// Passthrough: Value holds raw ciphertext, re-encode as-is
+		je.Value = base64.StdEncoding.EncodeToString(e.Value)
+		je.Encoding = "secret"
+		return je, nil
+	}
+	if e.Secret {
+		if recipient == nil {
+			return je, fmt.Errorf("no recipient available to encrypt")
+		}
+		ciphertext, err := encrypt(e.Value, recipient)
+		if err != nil {
+			return je, fmt.Errorf("encrypt: %w", err)
+		}
+		je.Value = base64.StdEncoding.EncodeToString(ciphertext)
+		je.Encoding = "secret"
+		return je, nil
+	}
+
 	if utf8.Valid(e.Value) {
 		je.Value = string(e.Value)
 		je.Encoding = "text"
@@ -163,11 +213,7 @@ func encodeJsonEntry(e Entry) jsonEntry {
 		je.Value = base64.StdEncoding.EncodeToString(e.Value)
 		je.Encoding = "base64"
 	}
-	if e.ExpiresAt > 0 {
-		ts := int64(e.ExpiresAt)
-		je.ExpiresAt = &ts
-	}
-	return je
+	return je, nil
 }
 
 // findEntry returns the index of the entry with the given key, or -1.

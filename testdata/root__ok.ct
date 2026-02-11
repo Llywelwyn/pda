@@ -14,6 +14,7 @@ Usage:
 Key commands:
   copy         Make a copy of a key
   get          Get the value of a key
+  identity     Show or create the age encryption identity
   list         List the contents of a store
   move         Move a key
   remove       Delete one or more keys

@@ -30,6 +30,7 @@ import (
 	"os"
 	"strconv"
 
+	"filippo.io/age"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
@@ -126,12 +127,18 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
+	identity, _ := loadIdentity()
+	var recipient *age.X25519Recipient
+	if identity != nil {
+		recipient = identity.Recipient()
+	}
+
 	dbName := targetDB[1:] // strip leading '@'
 	p, err := store.storePath(dbName)
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
-	entries, err := readStoreFile(p)
+	entries, err := readStoreFile(p, identity)
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
@@ -150,10 +157,14 @@ func list(cmd *cobra.Command, args []string) error {
 
 	output := cmd.OutOrStdout()
 
-	// NDJSON format: emit JSON lines directly
+	// NDJSON format: emit JSON lines directly (encrypted form for secrets)
 	if listFormat.String() == "ndjson" {
 		for _, e := range filtered {
-			data, err := json.Marshal(encodeJsonEntry(e))
+			je, err := encodeJsonEntry(e, recipient)
+			if err != nil {
+				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+			}
+			data, err := json.Marshal(je)
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 			}
@@ -180,7 +191,11 @@ func list(cmd *cobra.Command, args []string) error {
 	for _, e := range filtered {
 		var valueStr string
 		if showValues {
-			valueStr = store.FormatBytes(listBinary, e.Value)
+			if e.Locked {
+				valueStr = "locked (identity file missing)"
+			} else {
+				valueStr = store.FormatBytes(listBinary, e.Value)
+			}
 		}
 		row := make(table.Row, 0, len(columns))
 		for _, col := range columns {

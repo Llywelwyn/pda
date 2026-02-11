@@ -25,6 +25,7 @@
 - plaintext exports in multiple formats,
 - support for [binary data](https://github.com/Llywelwyn/pda#binary),
 - [time-to-live](https://github.com/Llywelwyn/pda#ttl) support,
+- [encryption](https://github.com/Llywelwyn/pda#encryption) at rest using [age](https://github.com/FiloSottile/age),
 
 and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
 
@@ -54,6 +55,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [Globs](https://github.com/Llywelwyn/pda#globs)
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
+- [Encryption](https://github.com/Llywelwyn/pda#encryption)
 - [Environment](https://github.com/Llywelwyn/pda#environment)
 
 <p align="center"></p><!-- spacer -->
@@ -76,6 +78,7 @@ Usage:
 Key commands:
   copy         Make a copy of a key
   get          Get the value of a key
+  identity     Show or create the age encryption identity
   list         List the contents of a store
   move         Move a key
   remove       Delete one or more keys
@@ -577,6 +580,74 @@ pda get logo --include-binary
 ```bash
 pda export
 # {"key":"logo","value":"89504E470D0A1A0A0000000D4948445200000001000000010802000000","encoding":"base64"}
+```
+
+<p align="center"></p><!-- spacer -->
+
+### Encryption
+
+`pda set --encrypt` encrypts values at rest using [age](https://github.com/FiloSottile/age). Values are stored on disk as age ciphertext and decrypted automatically by commands like `get` and `list` when the correct identity file is present. An X25519 identity is generated on first use and saved at `~/.config/pda/identity.txt`.
+
+```bash
+pda set --encrypt api-key "sk-live-abc123"
+#   ok  created identity at ~/.config/pda/identity.txt
+
+pda set --encrypt token "ghp_xxxx"
+```
+
+<p align="center"></p><!-- spacer -->
+
+`get` decrypts automatically.
+```bash
+pda get api-key
+# sk-live-abc123
+```
+
+<p align="center"></p><!-- spacer -->
+
+The on-disk value is ciphertext, so encrypted entries are safe to commit and push with Git.
+```bash
+pda export
+# {"key":"api-key","value":"YWdlLWVuY3J5cHRpb24u...","encoding":"secret"}
+```
+
+<p align="center"></p><!-- spacer -->
+
+`mv`, `cp`, and `import` all preserve encryption. Overwriting an encrypted key without `--encrypt` will warn you.
+```bash
+pda cp api-key api-key-backup
+# still encrypted
+
+pda set api-key "oops"
+# WARN  overwriting encrypted key 'api-key' as plaintext
+# hint  pass --encrypt to keep it encrypted
+```
+
+<p align="center"></p><!-- spacer -->
+
+If the identity file is missing, encrypted values are inaccessible but not lost. Keys are still visible, and the ciphertext is preserved through reads and writes.
+```bash
+pda ls
+# api-key    locked (identity file missing)
+
+pda get api-key
+# FAIL  cannot get 'api-key': secret is locked (identity file missing)
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda identity` to see your public key and identity file path.
+```bash
+pda identity
+#   ok  pubkey  age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+#   ok  identity  ~/.config/pda/identity.txt
+
+# Just the path.
+pda identity --path
+# ~/.config/pda/identity.txt
+
+# Generate a new identity. Errors if one already exists.
+pda identity --new
 ```
 
 <p align="center"></p><!-- spacer -->

@@ -1,0 +1,7 @@
+# Copy an encrypted key; both keys should decrypt.
+$ pda set --encrypt secret-key hidden-value
+$ pda cp secret-key copied-key
+$ pda get secret-key
+hidden-value
+$ pda get copied-key
+hidden-value

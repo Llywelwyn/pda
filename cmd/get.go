@@ -72,6 +72,8 @@ For example:
 func get(cmd *cobra.Command, args []string) error {
 	store := &Store{}
 
+	identity, _ := loadIdentity()
+
 	spec, err := store.parseKey(args[0], true)
 	if err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
@@ -80,7 +82,7 @@ func get(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
-	entries, err := readStoreFile(p)
+	entries, err := readStoreFile(p, identity)
 	if err != nil {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
@@ -92,7 +94,11 @@ func get(cmd *cobra.Command, args []string) error {
 		}
 		return fmt.Errorf("cannot get '%s': %w", args[0], suggestKey(spec.Key, keys))
 	}
-	v := entries[idx].Value
+	entry := entries[idx]
+	if entry.Locked {
+		return fmt.Errorf("cannot get '%s': secret is locked (identity file missing)", spec.Display())
+	}
+	v := entry.Value
 
 	binary, err := cmd.Flags().GetBool("include-binary")
 	if err != nil {

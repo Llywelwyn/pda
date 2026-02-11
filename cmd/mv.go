@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"strings"
 
+	"filippo.io/age"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +66,12 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	}
 	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
 
+	identity, _ := loadIdentity()
+	var recipient *age.X25519Recipient
+	if identity != nil {
+		recipient = identity.Recipient()
+	}
+
 	fromSpec, err := store.parseKey(args[0], true)
 	if err != nil {
 		return err
@@ -79,7 +86,7 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	if err != nil {
 		return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 	}
-	srcEntries, err := readStoreFile(srcPath)
+	srcEntries, err := readStoreFile(srcPath, identity)
 	if err != nil {
 		return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 	}
@@ -99,7 +106,7 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		if err != nil {
 			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 		}
-		dstEntries, err = readStoreFile(dstPath)
+		dstEntries, err = readStoreFile(dstPath, identity)
 		if err != nil {
 			return fmt.Errorf("cannot move '%s': %v", fromSpec.Key, err)
 		}
@@ -118,11 +125,13 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		}
 	}
 
-	// Write destination entry
+	// Write destination entry — preserve secret status
 	newEntry := Entry{
 		Key:       toSpec.Key,
 		Value:     srcEntry.Value,
 		ExpiresAt: srcEntry.ExpiresAt,
+		Secret:    srcEntry.Secret,
+		Locked:    srcEntry.Locked,
 	}
 
 	if sameStore {
@@ -139,7 +148,7 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 				dstEntries = append(dstEntries[:idx], dstEntries[idx+1:]...)
 			}
 		}
-		if err := writeStoreFile(dstPath, dstEntries); err != nil {
+		if err := writeStoreFile(dstPath, dstEntries, recipient); err != nil {
 			return err
 		}
 	} else {
@@ -149,12 +158,12 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		} else {
 			dstEntries = append(dstEntries, newEntry)
 		}
-		if err := writeStoreFile(dstPath, dstEntries); err != nil {
+		if err := writeStoreFile(dstPath, dstEntries, recipient); err != nil {
 			return err
 		}
 		if !keepSource {
 			srcEntries = append(srcEntries[:srcIdx], srcEntries[srcIdx+1:]...)
-			if err := writeStoreFile(srcPath, srcEntries); err != nil {
+			if err := writeStoreFile(srcPath, srcEntries, recipient); err != nil {
 				return err
 			}
 		}

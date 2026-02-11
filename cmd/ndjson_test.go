@@ -38,11 +38,11 @@ func TestReadWriteRoundtrip(t *testing.T) {
 		{Key: "gamma", Value: []byte{0xff, 0xfe}}, // binary
 	}
 
-	if err := writeStoreFile(path, entries); err != nil {
+	if err := writeStoreFile(path, entries, nil); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := readStoreFile(path)
+	got, err := readStoreFile(path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,11 +69,11 @@ func TestReadStoreFileSkipsExpired(t *testing.T) {
 		{Key: "dead", Value: []byte("no"), ExpiresAt: 1}, // expired long ago
 	}
 
-	if err := writeStoreFile(path, entries); err != nil {
+	if err := writeStoreFile(path, entries, nil); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := readStoreFile(path)
+	got, err := readStoreFile(path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestReadStoreFileSkipsExpired(t *testing.T) {
 }
 
 func TestReadStoreFileNotExist(t *testing.T) {
-	got, err := readStoreFile("/nonexistent/path.ndjson")
+	got, err := readStoreFile("/nonexistent/path.ndjson", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,11 +103,11 @@ func TestWriteStoreFileSortsKeys(t *testing.T) {
 		{Key: "bravo", Value: []byte("2")},
 	}
 
-	if err := writeStoreFile(path, entries); err != nil {
+	if err := writeStoreFile(path, entries, nil); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := readStoreFile(path)
+	got, err := readStoreFile(path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,12 +122,12 @@ func TestWriteStoreFileAtomic(t *testing.T) {
 	path := filepath.Join(dir, "test.ndjson")
 
 	// Write initial data
-	if err := writeStoreFile(path, []Entry{{Key: "a", Value: []byte("1")}}); err != nil {
+	if err := writeStoreFile(path, []Entry{{Key: "a", Value: []byte("1")}}, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	// Overwrite — should not leave .tmp files
-	if err := writeStoreFile(path, []Entry{{Key: "b", Value: []byte("2")}}); err != nil {
+	if err := writeStoreFile(path, []Entry{{Key: "b", Value: []byte("2")}}, nil); err != nil {
 		t.Fatal(err)
 	}
 

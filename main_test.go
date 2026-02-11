@@ -24,10 +24,12 @@ package main
 
 import (
 	"flag"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"filippo.io/age"
 	cmdtest "github.com/google/go-cmdtest"
 )
 
@@ -35,7 +37,19 @@ var update = flag.Bool("update", false, "update test files with results")
 
 func TestMain(t *testing.T) {
 	t.Setenv("PDA_DATA", t.TempDir())
-	t.Setenv("PDA_CONFIG", t.TempDir())
+	configDir := t.TempDir()
+	t.Setenv("PDA_CONFIG", configDir)
+
+	// Pre-create an age identity so encryption tests don't print a
+	// creation message with a non-deterministic path.
+	id, err := age.GenerateX25519Identity()
+	if err != nil {
+		t.Fatalf("generate identity: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "identity.txt"), []byte(id.String()+"\n"), 0o600); err != nil {
+		t.Fatalf("write identity: %v", err)
+	}
+
 	ts, err := cmdtest.Read("testdata")
 	if err != nil {
 		t.Fatalf("read testdata: %v", err)

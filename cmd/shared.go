@@ -252,7 +252,7 @@ func (s *Store) Keys(dbName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries, err := readStoreFile(p)
+	entries, err := readStoreFile(p, nil)
 	if err != nil {
 		return nil, err
 	}

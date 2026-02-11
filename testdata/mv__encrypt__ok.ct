@@ -1,0 +1,7 @@
+# Move an encrypted key; the new key should still decrypt.
+$ pda set --encrypt secret-key hidden-value
+$ pda mv secret-key moved-key
+$ pda get moved-key
+hidden-value
+$ pda get secret-key --> FAIL
+FAIL  cannot get 'secret-key': no such key
