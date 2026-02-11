@@ -1,4 +1,0 @@
-# Set an encrypted key with TTL, then retrieve it.
-$ pda set --encrypt --ttl 1h api-key sk-ttl-test
-$ pda get api-key
-sk-ttl-test

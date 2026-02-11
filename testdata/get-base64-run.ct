@@ -1,0 +1,4 @@
+$ fecho cmd echo hello
+$ pda set foo@gbr < cmd
+$ pda get foo@gbr --base64 --run
+hello

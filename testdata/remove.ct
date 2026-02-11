@@ -1,0 +1,2 @@
+$ pda set a@rm b
+$ pda rm a@rm

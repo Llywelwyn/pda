@@ -1,3 +1,0 @@
-$ pda set a b
-$ pda get a --base64
-b

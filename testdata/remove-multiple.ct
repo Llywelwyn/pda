@@ -1,0 +1,7 @@
+$ pda set a@rmm 1
+$ pda set b@rmm 2
+$ pda rm a@rmm b@rmm
+$ pda get a@rmm --> FAIL
+FAIL  cannot get 'a@rmm': no such key
+$ pda get b@rmm --> FAIL
+FAIL  cannot get 'b@rmm': no such key

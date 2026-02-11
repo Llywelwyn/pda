@@ -1,2 +1,2 @@
 $ fecho cmd hello world
-$ pda set foo < cmd
+$ pda set foo@ss < cmd

@@ -1,8 +1,0 @@
-$ pda set a 1
-$ pda set b 2
-$ pda rm a b
-$ pda get a --> FAIL
-FAIL  cannot get 'a': no such key
-$ pda get b --> FAIL
-FAIL  cannot get 'b': no such key
-hint  did you mean 'b1'?

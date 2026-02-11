@@ -1,0 +1,6 @@
+$ fecho cmd echo hello
+$ pda set a@gr < cmd
+$ pda get a@gr
+echo hello
+$ pda get a@gr --run
+hello

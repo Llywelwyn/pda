@@ -1,4 +1,4 @@
 # Set an encrypted key, then retrieve it (transparent decryption).
-$ pda set --encrypt api-key sk-test-123
-$ pda get api-key
+$ pda set --encrypt api-key@se sk-test-123
+$ pda get api-key@se
 sk-test-123

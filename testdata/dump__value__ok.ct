@@ -1,8 +1,0 @@
-$ pda set url https://example.com
-$ fecho tmpval hello world
-$ pda set greeting < tmpval
-$ pda set number 42
-$ pda export --value "**https**"
-{"key":"url","value":"https://example.com","encoding":"text"}
-$ pda export --value "**world**"
-{"key":"greeting","value":"hello world\n","encoding":"text"}

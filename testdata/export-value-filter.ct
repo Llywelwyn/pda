@@ -1,0 +1,8 @@
+$ pda set url@evf https://example.com
+$ fecho tmpval hello world
+$ pda set greeting@evf < tmpval
+$ pda set number@evf 42
+$ pda export evf --value "**https**"
+{"key":"url","value":"https://example.com","encoding":"text"}
+$ pda export evf --value "**world**"
+{"key":"greeting","value":"hello world\n","encoding":"text"}

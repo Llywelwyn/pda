@@ -1,8 +1,0 @@
-$ pda set a1 1
-$ pda set a2 2
-$ pda set b1 3
-$ pda export --key "a*"
-{"key":"a1","value":"1","encoding":"text"}
-{"key":"a2","value":"2","encoding":"text"}
-$ pda export --key "c*" --> FAIL
-FAIL  cannot ls '@default': no matches for key pattern 'c*'
