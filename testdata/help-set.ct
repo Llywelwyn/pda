@@ -21,12 +21,12 @@ Aliases:
   set, s
 
 Flags:
-  -e, --encrypt        Encrypt the value at rest using age
-  -f, --file string    Read value from a file
+  -e, --encrypt        encrypt the value at rest using age
+  -f, --file string    read value from a file
   -h, --help           help for set
-  -i, --interactive    Prompt before overwriting an existing key
-      --safe           Do not overwrite if the key already exists
-  -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
+  -i, --interactive    prompt before overwriting an existing key
+      --safe           do not overwrite if the key already exists
+  -t, --ttl duration   expire the key after the provided duration (e.g. 24h, 30m)
 Set a key to a given value or stdin. Optionally specify a store.
 
 Pass --encrypt to encrypt the value at rest using age. An identity file
@@ -48,9 +48,9 @@ Aliases:
   set, s
 
 Flags:
-  -e, --encrypt        Encrypt the value at rest using age
-  -f, --file string    Read value from a file
+  -e, --encrypt        encrypt the value at rest using age
+  -f, --file string    read value from a file
   -h, --help           help for set
-  -i, --interactive    Prompt before overwriting an existing key
-      --safe           Do not overwrite if the key already exists
-  -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
+  -i, --interactive    prompt before overwriting an existing key
+      --safe           do not overwrite if the key already exists
+  -t, --ttl duration   expire the key after the provided duration (e.g. 24h, 30m)

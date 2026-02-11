@@ -123,9 +123,9 @@ func del(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	delCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
-	delCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
-	delCmd.Flags().StringSliceP("key", "k", nil, "Delete keys matching glob pattern (repeatable)")
+	delCmd.Flags().BoolP("interactive", "i", false, "prompt yes/no for each deletion")
+	delCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
+	delCmd.Flags().StringSliceP("key", "k", nil, "delete keys matching glob pattern (repeatable)")
 	rootCmd.AddCommand(delCmd)
 }
 

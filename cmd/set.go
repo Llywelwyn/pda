@@ -180,9 +180,9 @@ func set(cmd *cobra.Command, args []string) error {
 
 func init() {
 	rootCmd.AddCommand(setCmd)
-	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
-	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
-	setCmd.Flags().BoolP("encrypt", "e", false, "Encrypt the value at rest using age")
-	setCmd.Flags().Bool("safe", false, "Do not overwrite if the key already exists")
-	setCmd.Flags().StringP("file", "f", "", "Read value from a file")
+	setCmd.Flags().DurationP("ttl", "t", 0, "expire the key after the provided duration (e.g. 24h, 30m)")
+	setCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting an existing key")
+	setCmd.Flags().BoolP("encrypt", "e", false, "encrypt the value at rest using age")
+	setCmd.Flags().Bool("safe", false, "do not overwrite if the key already exists")
+	setCmd.Flags().StringP("file", "f", "", "read value from a file")
 }

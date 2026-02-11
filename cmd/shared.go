@@ -86,19 +86,19 @@ func (s *Store) formatBytes(base64Flag bool, v []byte) string {
 
 func formatSize(n int) string {
 	const (
-		kb = 1024
-		mb = 1024 * kb
-		gb = 1024 * mb
+		ki = 1024
+		mi = 1024 * ki
+		gi = 1024 * mi
 	)
 	switch {
-	case n < kb:
-		return fmt.Sprintf("%d B", n)
-	case n < mb:
-		return fmt.Sprintf("%.1f KB", float64(n)/float64(kb))
-	case n < gb:
-		return fmt.Sprintf("%.1f MB", float64(n)/float64(mb))
+	case n < ki:
+		return fmt.Sprintf("%d", n)
+	case n < mi:
+		return fmt.Sprintf("%.1fk", float64(n)/float64(ki))
+	case n < gi:
+		return fmt.Sprintf("%.1fM", float64(n)/float64(mi))
 	default:
-		return fmt.Sprintf("%.1f GB", float64(n)/float64(gb))
+		return fmt.Sprintf("%.1fG", float64(n)/float64(gi))
 	}
 }
 

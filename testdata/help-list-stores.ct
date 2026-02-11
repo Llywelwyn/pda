@@ -9,7 +9,9 @@ Aliases:
   list-stores, lss
 
 Flags:
-  -h, --help   help for list-stores
+  -h, --help        help for list-stores
+      --no-header   suppress the header row
+      --short       only print store names
 List all stores
 
 Usage:
@@ -19,4 +21,6 @@ Aliases:
   list-stores, lss
 
 Flags:
-  -h, --help   help for list-stores
+  -h, --help        help for list-stores
+      --no-header   suppress the header row
+      --short       only print store names

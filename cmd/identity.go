@@ -70,8 +70,8 @@ func identityRun(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	identityCmd.Flags().Bool("new", false, "Generate a new identity (errors if one already exists)")
-	identityCmd.Flags().Bool("path", false, "Print only the identity file path")
+	identityCmd.Flags().Bool("new", false, "generate a new identity (errors if one already exists)")
+	identityCmd.Flags().Bool("path", false, "print only the identity file path")
 	identityCmd.MarkFlagsMutuallyExclusive("new", "path")
 	rootCmd.AddCommand(identityCmd)
 }

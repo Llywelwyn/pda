@@ -10,8 +10,8 @@ Aliases:
 
 Flags:
   -h, --help          help for remove-store
-  -i, --interactive   Prompt yes/no for each deletion
-  -y, --yes           Skip all confirmation prompts
+  -i, --interactive   prompt yes/no for each deletion
+  -y, --yes           skip all confirmation prompts
 Delete a store
 
 Usage:
@@ -22,5 +22,5 @@ Aliases:
 
 Flags:
   -h, --help          help for remove-store
-  -i, --interactive   Prompt yes/no for each deletion
-  -y, --yes           Skip all confirmation prompts
+  -i, --interactive   prompt yes/no for each deletion
+  -y, --yes           skip all confirmation prompts

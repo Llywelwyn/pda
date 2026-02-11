@@ -40,7 +40,7 @@ var syncCmd = &cobra.Command{
 }
 
 func init() {
-	syncCmd.Flags().StringP("message", "m", "", "Custom commit message (defaults to timestamp)")
+	syncCmd.Flags().StringP("message", "m", "", "custom commit message (defaults to timestamp)")
 	rootCmd.AddCommand(syncCmd)
 }
 

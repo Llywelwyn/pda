@@ -226,9 +226,9 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 }
 
 func init() {
-	restoreCmd.Flags().StringP("file", "f", "", "Path to an NDJSON dump (defaults to stdin)")
-	restoreCmd.Flags().StringSliceP("key", "k", nil, "Restore keys matching glob pattern (repeatable)")
-	restoreCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting existing keys")
-	restoreCmd.Flags().Bool("drop", false, "Drop existing entries before restoring (full replace)")
+	restoreCmd.Flags().StringP("file", "f", "", "path to an NDJSON dump (defaults to stdin)")
+	restoreCmd.Flags().StringSliceP("key", "k", nil, "restore keys matching glob pattern (repeatable)")
+	restoreCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting existing keys")
+	restoreCmd.Flags().Bool("drop", false, "drop existing entries before restoring (full replace)")
 	rootCmd.AddCommand(restoreCmd)
 }

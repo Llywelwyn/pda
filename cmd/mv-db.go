@@ -121,9 +121,9 @@ func mvStore(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	mvStoreCmd.Flags().Bool("copy", false, "Copy instead of move (keeps source)")
-	mvStoreCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
-	mvStoreCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
-	mvStoreCmd.Flags().Bool("safe", false, "Do not overwrite if the destination store already exists")
+	mvStoreCmd.Flags().Bool("copy", false, "copy instead of move (keeps source)")
+	mvStoreCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting destination")
+	mvStoreCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
+	mvStoreCmd.Flags().Bool("safe", false, "do not overwrite if the destination store already exists")
 	rootCmd.AddCommand(mvStoreCmd)
 }

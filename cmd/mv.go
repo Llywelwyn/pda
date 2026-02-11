@@ -191,13 +191,13 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 }
 
 func init() {
-	mvCmd.Flags().Bool("copy", false, "Copy instead of move (keeps source)")
-	mvCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
-	mvCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
-	mvCmd.Flags().Bool("safe", false, "Do not overwrite if the destination already exists")
+	mvCmd.Flags().Bool("copy", false, "copy instead of move (keeps source)")
+	mvCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting destination")
+	mvCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
+	mvCmd.Flags().Bool("safe", false, "do not overwrite if the destination already exists")
 	rootCmd.AddCommand(mvCmd)
-	cpCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
-	cpCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
-	cpCmd.Flags().Bool("safe", false, "Do not overwrite if the destination already exists")
+	cpCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting destination")
+	cpCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
+	cpCmd.Flags().Bool("safe", false, "do not overwrite if the destination already exists")
 	rootCmd.AddCommand(cpCmd)
 }

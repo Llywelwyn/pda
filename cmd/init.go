@@ -40,7 +40,7 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
-	initCmd.Flags().Bool("clean", false, "Remove .git from stores directory before initialising")
+	initCmd.Flags().Bool("clean", false, "remove .git from stores directory before initialising")
 	rootCmd.AddCommand(initCmd)
 }
 

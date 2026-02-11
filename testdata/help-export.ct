@@ -7,8 +7,8 @@ Usage:
 
 Flags:
   -h, --help            help for export
-  -k, --key strings     Filter keys with glob pattern (repeatable)
-  -v, --value strings   Filter values with regex pattern (repeatable)
+  -k, --key strings     filter keys with glob pattern (repeatable)
+  -v, --value strings   filter values with glob pattern (repeatable)
 Export store as NDJSON (alias for list --format ndjson)
 
 Usage:
@@ -16,5 +16,5 @@ Usage:
 
 Flags:
   -h, --help            help for export
-  -k, --key strings     Filter keys with glob pattern (repeatable)
-  -v, --value strings   Filter values with regex pattern (repeatable)
+  -k, --key strings     filter keys with glob pattern (repeatable)
+  -v, --value strings   filter values with glob pattern (repeatable)

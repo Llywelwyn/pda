@@ -10,9 +10,9 @@ Aliases:
 
 Flags:
   -h, --help          help for remove
-  -i, --interactive   Prompt yes/no for each deletion
-  -k, --key strings   Delete keys matching glob pattern (repeatable)
-  -y, --yes           Skip all confirmation prompts
+  -i, --interactive   prompt yes/no for each deletion
+  -k, --key strings   delete keys matching glob pattern (repeatable)
+  -y, --yes           skip all confirmation prompts
 Delete one or more keys
 
 Usage:
@@ -23,6 +23,6 @@ Aliases:
 
 Flags:
   -h, --help          help for remove
-  -i, --interactive   Prompt yes/no for each deletion
-  -k, --key strings   Delete keys matching glob pattern (repeatable)
-  -y, --yes           Skip all confirmation prompts
+  -i, --interactive   prompt yes/no for each deletion
+  -k, --key strings   delete keys matching glob pattern (repeatable)
+  -y, --yes           skip all confirmation prompts

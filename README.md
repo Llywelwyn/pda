@@ -292,8 +292,14 @@ pda set alice@birthdays 11/11/1998
 
 # See which stores have contents.
 pda list-stores
-# @default
+# Keys  Size Store
+#    2 1.8k @birthdays
+#   12 4.2k @default
+
+# Just the names.
+pda list-stores --short
 # @birthdays
+# @default
 
 # Check out a specific store.
 pda ls @birthdays --no-header --no-ttl

@@ -90,7 +90,7 @@ func executeDeletion(path string) error {
 }
 
 func init() {
-	delStoreCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
-	delStoreCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
+	delStoreCmd.Flags().BoolP("interactive", "i", false, "prompt yes/no for each deletion")
+	delStoreCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
 	rootCmd.AddCommand(delStoreCmd)
 }

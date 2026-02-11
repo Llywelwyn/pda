@@ -486,7 +486,7 @@ func init() {
 	listCmd.Flags().BoolVarP(&listFull, "full", "f", false, "show full values without truncation")
 	listCmd.Flags().BoolVar(&listNoHeader, "no-header", false, "suppress the header row")
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
-	listCmd.Flags().StringSliceP("key", "k", nil, "Filter keys with glob pattern (repeatable)")
-	listCmd.Flags().StringSliceP("value", "v", nil, "Filter values with regex pattern (repeatable)")
+	listCmd.Flags().StringSliceP("key", "k", nil, "filter keys with glob pattern (repeatable)")
+	listCmd.Flags().StringSliceP("value", "v", nil, "filter values with glob pattern (repeatable)")
 	rootCmd.AddCommand(listCmd)
 }

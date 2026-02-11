@@ -6,19 +6,19 @@ Usage:
   pda import [STORE] [flags]
 
 Flags:
-      --drop          Drop existing entries before restoring (full replace)
-  -f, --file string   Path to an NDJSON dump (defaults to stdin)
+      --drop          drop existing entries before restoring (full replace)
+  -f, --file string   path to an NDJSON dump (defaults to stdin)
   -h, --help          help for import
-  -i, --interactive   Prompt before overwriting existing keys
-  -k, --key strings   Restore keys matching glob pattern (repeatable)
+  -i, --interactive   prompt before overwriting existing keys
+  -k, --key strings   restore keys matching glob pattern (repeatable)
 Restore key/value pairs from an NDJSON dump
 
 Usage:
   pda import [STORE] [flags]
 
 Flags:
-      --drop          Drop existing entries before restoring (full replace)
-  -f, --file string   Path to an NDJSON dump (defaults to stdin)
+      --drop          drop existing entries before restoring (full replace)
+  -f, --file string   path to an NDJSON dump (defaults to stdin)
   -h, --help          help for import
-  -i, --interactive   Prompt before overwriting existing keys
-  -k, --key strings   Restore keys matching glob pattern (repeatable)
+  -i, --interactive   prompt before overwriting existing keys
+  -k, --key strings   restore keys matching glob pattern (repeatable)
