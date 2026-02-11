@@ -44,7 +44,6 @@ func init() {
 }
 
 func sync(manual bool) error {
-	store := &Store{}
 	repoDir, err := ensureVCSInitialized()
 	if err != nil {
 		return err
@@ -89,18 +88,12 @@ func sync(manual bool) error {
 						return err
 					}
 				}
-				if err := pullRemote(repoDir, remoteInfo); err != nil {
-					return err
-				}
-				return restoreAllSnapshots(store, repoDir)
+				return pullRemote(repoDir, remoteInfo)
 			}
 		}
 	}
 
-	if err := exportAllStores(store, repoDir); err != nil {
-		return err
-	}
-	if err := runGit(repoDir, "add", storeDirName); err != nil {
+	if err := runGit(repoDir, "add", "-A"); err != nil {
 		return err
 	}
 	changed, err := repoHasStagedChanges(repoDir)

@@ -34,16 +34,12 @@ var gitCmd = &cobra.Command{
 	Short: "Run any arbitrary command. Use with caution.",
 	Long: `Run any arbitrary command. Use with caution.
 
-Be wary of how pda! version control operates before using this.
-Regular data is stored in "PDA_DATA/pda/stores" as a store; the
-Git repository is in "PDA_DATA/pda/vcs" and contains a plaintext
-replica of the store data.
+The Git repository lives directly in the stores directory
+("PDA_DATA/pda/stores"). Store files (*.ndjson) are tracked
+by Git as-is.
 
-The regular sync command (or auto-syncing) exports pda! data into
-plaintext in the Git repository. If you manually modify the
-repository without using the built-in commands, or exporting your
-data to the Git folder in the correct format first, you may desync
-your repository.
+If you manually modify files without using the built-in
+commands, you may desync your repository.
 
 Generally prefer "pda sync".`,
 	Args:               cobra.ArbitraryArgs,
