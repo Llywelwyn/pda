@@ -1,0 +1,9 @@
+# Functional list-stores: verify created stores appear
+$ pda set a@lsalpha 1
+$ pda set b@lsbeta 2
+$ pda ls lsalpha --format tsv
+Key	Value	TTL
+a	1	no expiry
+$ pda ls lsbeta --format tsv
+Key	Value	TTL
+b	2	no expiry

@@ -1,0 +1,27 @@
+# Basic template substitution
+$ fecho tpl1 Hello, {{ .NAME }}
+$ pda set greeting@tpl < tpl1
+$ pda get greeting@tpl NAME=Alice
+Hello, Alice
+# Default function provides fallback value
+$ fecho tpl2 Hello, {{ default "World" .NAME }}
+$ pda set defval@tpl < tpl2
+$ pda get defval@tpl
+Hello, World
+$ pda get defval@tpl NAME=Bob
+Hello, Bob
+# Enum function restricts to allowed values
+$ fecho tpl3 {{ enum .LEVEL "info" "warn" }}
+$ pda set level@tpl < tpl3
+$ pda get level@tpl LEVEL=info
+info
+# Int function parses integer
+$ fecho tpl4 {{ int .N }}
+$ pda set number@tpl < tpl4
+$ pda get number@tpl N=42
+42
+# List function parses CSV
+$ fecho tpl5 {{ range list .NAMES }}{{.}},{{ end }}
+$ pda set names@tpl < tpl5
+$ pda get names@tpl NAMES=Bob,Alice
+Bob,Alice,

@@ -1,0 +1,5 @@
+# --no-template outputs raw template syntax without evaluation
+$ fecho tpl Hello, {{ .NAME }}
+$ pda set tmpl@tplnt < tpl
+$ pda get tmpl@tplnt --no-template
+Hello, {{ .NAME }}

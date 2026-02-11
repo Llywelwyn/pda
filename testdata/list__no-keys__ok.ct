@@ -1,0 +1,5 @@
+# --no-keys suppresses the key column
+$ pda set a@nk 1
+$ pda ls nk --format tsv --no-keys
+Value	TTL
+1	no expiry

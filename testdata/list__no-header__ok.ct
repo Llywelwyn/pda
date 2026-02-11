@@ -1,0 +1,4 @@
+# --no-header suppresses the header row
+$ pda set a@nh 1
+$ pda ls nh --format tsv --no-header
+a	1	no expiry

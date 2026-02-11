@@ -1,0 +1,5 @@
+# enum errors on invalid value
+$ fecho tpl {{ enum .LEVEL "info" "warn" }}
+$ pda set level@tple < tpl
+$ pda get level@tple LEVEL=debug --> FAIL
+FAIL  cannot get 'level@tple': template: cmd:1:3: executing "cmd" at <enum .LEVEL "info" "warn">: error calling enum: invalid value 'debug', allowed: [info warn]

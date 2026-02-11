@@ -1,0 +1,9 @@
+# Import from stdin preserves existing entries
+$ pda set existing@stn keep-me
+$ fecho dumpfile {"key":"new","value":"hello","encoding":"text"}
+$ pda restore stn < dumpfile
+  ok  restored 1 entries into @stn
+$ pda get existing@stn
+keep-me
+$ pda get new@stn
+hello

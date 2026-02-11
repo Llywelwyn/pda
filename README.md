@@ -104,6 +104,21 @@ Additional Commands:
 
 <p align="center"></p><!-- spacer -->
 
+Most commands have short aliases for quick access:
+
+| Command | Alias(es) |
+|---------|-----------|
+| `set` | `s` |
+| `get` | `g` |
+| `list` | `ls` |
+| `remove` | `rm` |
+| `move` | `mv` |
+| `copy` | `cp` |
+| `list-stores` | `ls-stores`, `lss` |
+| `remove-store` | `rm-store`, `rms` |
+
+<p align="center"></p><!-- spacer -->
+
 ### Installation
 
 ```bash
@@ -544,7 +559,7 @@ Locked (encrypted without an available identity) and non-UTF-8 (binary) entries 
 # Expire after 1 hour
 pda set session "123" --ttl 1h
 
-# After 52 minutes and 10 seconds
+# After 54 minutes and 10 seconds
 pda set session2 "xyz" --ttl 54m10s
 ```
 

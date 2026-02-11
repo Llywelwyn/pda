@@ -1,0 +1,10 @@
+# Operations across multiple stores
+$ pda set foo@ms1 bar
+$ pda set x@ms2 y
+$ pda get foo@ms1
+bar
+$ pda get x@ms2
+y
+$ pda ls ms2 --format tsv
+Key	Value	TTL
+x	y	no expiry

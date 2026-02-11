@@ -1,0 +1,5 @@
+# require errors when variable is missing
+$ fecho tpl {{ require .FILE }}
+$ pda set tmpl@tplr < tpl
+$ pda get tmpl@tplr --> FAIL
+FAIL  cannot get 'tmpl@tplr': template: cmd:1:3: executing "cmd" at <require .FILE>: error calling require: required value is missing or empty

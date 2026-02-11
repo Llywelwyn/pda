@@ -1,0 +1,3 @@
+# Move non-existent key
+$ pda mv nonexistent dest --> FAIL
+FAIL  cannot move 'nonexistent': no such key
