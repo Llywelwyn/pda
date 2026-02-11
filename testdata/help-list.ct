@@ -10,6 +10,7 @@ Aliases:
 
 Flags:
   -b, --base64          view binary data as base64
+  -c, --count           print only the count of matching entries
   -o, --format format   output format (table|tsv|csv|markdown|html|ndjson) (default table)
   -f, --full            show full values without truncation
   -h, --help            help for list
@@ -29,6 +30,7 @@ Aliases:
 
 Flags:
   -b, --base64          view binary data as base64
+  -c, --count           print only the count of matching entries
   -o, --format format   output format (table|tsv|csv|markdown|html|ndjson) (default table)
   -f, --full            show full values without truncation
   -h, --help            help for list

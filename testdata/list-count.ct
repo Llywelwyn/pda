@@ -1,0 +1,9 @@
+$ pda set a@lc val-a
+$ pda set b@lc val-b
+$ pda set c@lc val-c
+$ pda ls lc --count
+3
+$ pda ls lc --count --key "a*"
+1
+$ pda ls lc --count --key "z*"
+0

@@ -206,6 +206,12 @@ pda ls --format csv
 # dogs,four legged mammals,no expiry
 
 # Or TSV, or Markdown, or HTML.
+
+# Just the count of entries.
+pda ls --count
+# 2
+pda ls --count --key "d*"
+# 1
 ```
 
 <p align="center"></p><!-- spacer -->

@@ -58,6 +58,7 @@ func (e *formatEnum) Type() string { return "format" }
 
 var (
 	listBase64   bool
+	listCount    bool
 	listNoKeys   bool
 	listNoValues bool
 	listNoTTL    bool
@@ -159,6 +160,11 @@ func list(cmd *cobra.Command, args []string) error {
 		if globMatch(matchers, e.Key) && valueMatch(valueMatchers, e) {
 			filtered = append(filtered, e)
 		}
+	}
+
+	if listCount {
+		fmt.Fprintln(cmd.OutOrStdout(), len(filtered))
+		return nil
 	}
 
 	if (len(matchers) > 0 || len(valueMatchers) > 0) && len(filtered) == 0 {
@@ -473,6 +479,7 @@ func renderTable(tw table.Writer) {
 
 func init() {
 	listCmd.Flags().BoolVarP(&listBase64, "base64", "b", false, "view binary data as base64")
+	listCmd.Flags().BoolVarP(&listCount, "count", "c", false, "print only the count of matching entries")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
 	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
 	listCmd.Flags().BoolVar(&listNoTTL, "no-ttl", false, "suppress the TTL column")
