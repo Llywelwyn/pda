@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -65,6 +66,37 @@ var configPathCmd = &cobra.Command{
 		}
 		fmt.Println(p)
 		return nil
+	},
+}
+
+var configEditCmd = &cobra.Command{
+	Use:          "edit",
+	Short:        "Open config file in $EDITOR",
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		editor := os.Getenv("EDITOR")
+		if editor == "" {
+			return withHint(
+				fmt.Errorf("EDITOR not set"),
+				"set $EDITOR to your preferred text editor",
+			)
+		}
+		p, err := configPath()
+		if err != nil {
+			return fmt.Errorf("cannot determine config path: %w", err)
+		}
+		// Create default config if file doesn't exist
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			if err := writeConfigFile(defaultConfig()); err != nil {
+				return err
+			}
+		}
+		c := exec.Command(editor, p)
+		c.Stdin = os.Stdin
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+		return c.Run()
 	},
 }
 
@@ -157,6 +189,7 @@ var configSetCmd = &cobra.Command{
 
 func init() {
 	configInitCmd.Flags().Bool("new", false, "overwrite existing config file")
+	configCmd.AddCommand(configEditCmd)
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configInitCmd)
 	configCmd.AddCommand(configListCmd)
