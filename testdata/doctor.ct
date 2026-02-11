@@ -1,7 +1,0 @@
-# Doctor reports environment health
-$ pda doctor
-info  Using default configuration
-  ok  Data directory accessible
-  ok  Identity file present
-info  Git not initialised
-  ok  5 store(s)

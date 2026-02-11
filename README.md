@@ -26,6 +26,7 @@
 - plaintext exports in multiple formats,
 - support for all [binary data](https://github.com/Llywelwyn/pda#binary),
 - [time-to-live](https://github.com/Llywelwyn/pda#ttl)/expiry support,
+- built-in [diagnostics](https://github.com/Llywelwyn/pda#doctor),
 
 and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
 
@@ -56,6 +57,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
 - [Encryption](https://github.com/Llywelwyn/pda#encryption)
+- [Doctor](https://github.com/Llywelwyn/pda#doctor)
 - [Environment](https://github.com/Llywelwyn/pda#environment)
 
 <p align="center"></p><!-- spacer -->
@@ -99,6 +101,7 @@ Git commands:
 
 Additional Commands:
   completion   Generate the autocompletion script for the specified shell
+  doctor       Check environment health
   help         Help about any command
   version      Display pda! version
 ```
@@ -724,6 +727,36 @@ pda identity --path
 # Generate a new identity. Errors if one already exists.
 pda identity --new
 ```
+
+<p align="center"></p><!-- spacer -->
+
+### Doctor
+
+`pda doctor` runs a set of health checks of your environment.
+
+```bash
+pda doctor
+#   ok  pda! 2025.52 Christmas release (linux/amd64)
+#   ok  OS: Linux 6.18.7-arch1-1
+#   ok  Go: go1.23.0
+#   ok  Git: 2.45.0
+#   ok  Shell: /bin/zsh
+#   ok  Config: /home/user/.config/pda
+#   ok  Non-default config:
+#       ├── display_ascii_art: false
+#       └── git.auto_commit: true
+#   ok  Data: /home/user/.local/share/pda/stores
+#   ok  Identity: /home/user/.config/pda/identity.txt
+#   ok  Git initialised on main
+#   ok  Git remote configured
+#   ok  Git in sync with remote
+#   ok  3 store(s), 15 key(s), 2 secret(s), 4.2k total
+#   ok  No issues found
+```
+
+<p align="center"></p><!-- spacer -->
+
+Severity levels are colour-coded: `ok` (green), `WARN` (yellow), and `FAIL` (red). Only `FAIL` produces a non-zero exit code. `WARN` is generally not a problem, but may mean some functionality isn't being made use of, like for example version control not having been initialised yet.
 
 <p align="center"></p><!-- spacer -->
 
