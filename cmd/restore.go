@@ -56,15 +56,11 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 	displayTarget := "@" + dbName
 
-	globPatterns, err := cmd.Flags().GetStringSlice("glob")
+	keyPatterns, err := cmd.Flags().GetStringSlice("key")
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
-	separators, err := parseGlobSeparators(cmd)
-	if err != nil {
-		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
-	}
-	matchers, err := compileGlobMatchers(globPatterns, separators)
+	matchers, err := compileGlobMatchers(keyPatterns)
 	if err != nil {
 		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
@@ -113,7 +109,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(matchers) > 0 && restored == 0 {
-		return fmt.Errorf("cannot restore '%s': no matches for pattern %s", displayTarget, formatGlobPatterns(globPatterns))
+		return fmt.Errorf("cannot restore '%s': no matches for key pattern %s", displayTarget, formatGlobPatterns(keyPatterns))
 	}
 
 	okf("restored %d entries into @%s", restored, dbName)
@@ -208,8 +204,7 @@ func restoreEntries(decoder *json.Decoder, storePath string, opts restoreOpts) (
 
 func init() {
 	restoreCmd.Flags().StringP("file", "f", "", "Path to an NDJSON dump (defaults to stdin)")
-	restoreCmd.Flags().StringSliceP("glob", "g", nil, "Restore keys matching glob pattern (repeatable)")
-	restoreCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
+	restoreCmd.Flags().StringSliceP("key", "k", nil, "Restore keys matching glob pattern (repeatable)")
 	restoreCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting existing keys")
 	restoreCmd.Flags().Bool("drop", false, "Drop existing entries before restoring (full replace)")
 	rootCmd.AddCommand(restoreCmd)

@@ -47,20 +47,16 @@ func del(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	globPatterns, err := cmd.Flags().GetStringSlice("glob")
-	if err != nil {
-		return err
-	}
-	separators, err := parseGlobSeparators(cmd)
+	keyPatterns, err := cmd.Flags().GetStringSlice("key")
 	if err != nil {
 		return err
 	}
 
-	if len(args) == 0 && len(globPatterns) == 0 {
+	if len(args) == 0 && len(keyPatterns) == 0 {
 		return fmt.Errorf("cannot remove: no keys provided")
 	}
 
-	targets, err := resolveDeleteTargets(store, args, globPatterns, separators)
+	targets, err := resolveDeleteTargets(store, args, keyPatterns)
 	if err != nil {
 		return err
 	}
@@ -124,8 +120,7 @@ func del(cmd *cobra.Command, args []string) error {
 
 func init() {
 	delCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
-	delCmd.Flags().StringSliceP("glob", "g", nil, "Delete keys matching glob pattern (repeatable)")
-	delCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
+	delCmd.Flags().StringSliceP("key", "k", nil, "Delete keys matching glob pattern (repeatable)")
 	rootCmd.AddCommand(delCmd)
 }
 
@@ -152,7 +147,7 @@ func keyExists(store *Store, arg string) (bool, error) {
 	return findEntry(entries, spec.Key) >= 0, nil
 }
 
-func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string, separators []rune) ([]resolvedTarget, error) {
+func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []string) ([]resolvedTarget, error) {
 	targetSet := make(map[string]struct{})
 	var targets []resolvedTarget
 
@@ -202,7 +197,7 @@ func resolveDeleteTargets(store *Store, exactArgs []string, globPatterns []strin
 			return nil, err
 		}
 		pattern := spec.Key
-		m, err := glob.Compile(pattern, separators...)
+		m, err := glob.Compile(pattern, defaultGlobSeparators...)
 		if err != nil {
 			return nil, fmt.Errorf("cannot remove '%s': %v", raw, err)
 		}

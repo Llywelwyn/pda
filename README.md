@@ -20,12 +20,12 @@
 
 `pda!` is a command-line key-value store tool with:
 - [templates](https://github.com/Llywelwyn/pda#templates),
-- search and filtering with [globs](https://github.com/Llywelwyn/pda#globs),
-- Git-backed [version control](https://github.com/Llywelwyn/pda#git),
-- plaintext exports in multiple formats,
-- support for [binary data](https://github.com/Llywelwyn/pda#binary),
-- [time-to-live](https://github.com/Llywelwyn/pda#ttl) support,
 - [encryption](https://github.com/Llywelwyn/pda#encryption) at rest using [age](https://github.com/FiloSottile/age),
+- Git-backed [version control](https://github.com/Llywelwyn/pda#git),
+- [search and filtering](https://github.com/Llywelwyn/pda#filtering) by key and/or value,
+- plaintext exports in multiple formats,
+- support for all [binary data](https://github.com/Llywelwyn/pda#binary),
+- [time-to-live](https://github.com/Llywelwyn/pda#ttl)/expiry support,
 
 and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
 
@@ -52,7 +52,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [Get Started](https://github.com/Llywelwyn/pda#get-started)
 - [Git-backed version control](https://github.com/Llywelwyn/pda#git)
 - [Templates](https://github.com/Llywelwyn/pda#templates)
-- [Globs](https://github.com/Llywelwyn/pda#globs)
+- [Filtering](https://github.com/Llywelwyn/pda#filtering)
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
 - [Encryption](https://github.com/Llywelwyn/pda#encryption)
@@ -174,12 +174,11 @@ pda rm kitty
 # Remove multiple keys, within the same or different stores.
 pda rm kitty dog@animals
 
-# Mix exact keys with globs.
+# Mix exact keys with glob patterns.
 pda set cog "cogs"
 pda set dog "doggy"
 pda set kitty "cat"
-pda rm kitty --glob ?og
-# Default glob separators: "/-_.@: " (space included). Override with --glob-sep.
+pda rm kitty --key "?og"
 
 # Opt in to a confirmation prompt with --interactive/-i (or always_prompt_delete in config).
 pda rm kitty -i
@@ -210,11 +209,11 @@ pda ls --format csv
 Long values are truncated to fit the terminal. Use `--full`/`-f` to show the complete value.
 ```bash
 pda ls
-# Key  Value                                   TTL
-# note this is a very long (..30 more chars)   no expiry
+# Key  Value                                 TTL
+# note this is a very long (..30 more chars) no expiry
 
 pda ls --full
-# Key  Value                                                  TTL
+# Key  Value                                                   TTL
 # note this is a very long value that keeps on going and going no expiry
 ```
 
@@ -225,7 +224,10 @@ pda ls --full
 pda export > my_backup
 
 # Export only matching keys.
-pda export --glob a*
+pda export --key "a*"
+
+# Export only entries whose values contain a URL.
+pda export --value "**https**"
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -241,7 +243,7 @@ pda import < my_backup
 #   ok  restored 2 entries into @default
 
 # Import only matching keys.
-pda import --glob a* -f my_backup
+pda import --key "a*" -f my_backup
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -257,7 +259,7 @@ pda list-stores
 # @birthdays
 
 # Check out a specific store.
-pda ls @birthdays
+pda ls @birthdays --no-header --no-ttl
 # alice    11/11/1998
 # bob      05/12/1980
 
@@ -407,17 +409,17 @@ pda get hello --no-template
 
 <p align="center"></p><!-- spacer -->
 
-### Globs
+### Filtering
 
-Globs can be used in a few commands where their use makes sense. `gobwas/glob` is used for matching.
+`--key`/`-k` and `--value`/`-v` can be used as filters with glob support. `gobwas/glob` is used for matching. Both flags are repeatable, with results matching one-or-more of the keys and one-or-more of the values passed. If a `--key` and `--value` are passed, results must match both of them. If multiple are passed, results must match at least one `--key` and `--value` pattern.
 
-Searching for globs is inherently slower than looking for direct matches, so globs are opt-in via a repeatable `--glob/-g` flag by default rather than having every string treated as a glob by default. Realistically the performance impact will be negligible unless you have many thousands of entries in the same store.
+`--key` and `--value` filters work with `list`, `remove`, `export`, and `import` commands.
 
 <p align="center"></p><!-- spacer -->
 
-`*` wildcards a word or series of characters.
+`*` wildcards a word or series of characters, stopping at separator boundaries (the default separators are `/-_.@:` and space).
 ```bash
-pda ls --no-values
+pda ls --no-values --no-header
 # cat
 # dog
 # cog
@@ -425,16 +427,16 @@ pda ls --no-values
 # mouse house
 # foo.bar.baz
 
-pda ls --glob "*"
+pda ls --key "*"
 # cat
 # dog
 # cog
 
-pda ls --glob "* *"
+pda ls --key "* *"
 # mouse hotdog
 # mouse house
 
-pda ls --glob "foo.*.baz"
+pda ls --key "foo.*.baz"
 # foo.bar.baz
 ```
 
@@ -442,10 +444,10 @@ pda ls --glob "foo.*.baz"
 
 `**` super-wildcards ignore word boundaries.
 ```bash
-pda ls --glob "foo**"
+pda ls --key "foo**"
 # foo.bar.baz
 
-pda ls --glob "**g"
+pda ls --key "**g"
 # dog
 # cog
 # mouse hotdog
@@ -455,7 +457,7 @@ pda ls --glob "**g"
 
 `?` wildcards a single letter.
 ```bash
-pda ls --glob ?og
+pda ls --key "?og"
 # dog
 # cog
 # frog --> fail
@@ -466,13 +468,13 @@ pda ls --glob ?og
 
 `[abc]` must match one of the characters in the brackets.
 ```bash
-pda ls --glob [dc]og
+pda ls --key "[dc]og"
 # dog
 # cog
 # bog --> fail
 
 # Can be negated with '!'
-pda ls --glob [!dc]og
+pda ls --key "[!dc]og"
 # dog --> fail
 # cog --> fail
 # bog
@@ -480,20 +482,20 @@ pda ls --glob [!dc]og
 
 <p align="center"></p><!-- spacer -->
 
-`[a-c]` must fall within the range given in the brackets
+`[a-c]` must fall within the range given in the brackets.
 ```bash
-pda ls --glob [a-g]ag
+pda ls --key "[a-g]ag"
 # bag
 # gag
 # wag --> fail
 
 # Can be negated with '!'
-pda ls --glob [!a-g]ag
+pda ls --key "[!a-g]ag"
 # bag --> fail
 # gag --> fail
 # wag
 
-pda ls --glob 19[90-99]
+pda ls --key "19[90-99]"
 # 1991
 # 1992
 # 2001 --> fail
@@ -502,39 +504,33 @@ pda ls --glob 19[90-99]
 
 <p align="center"></p><!-- spacer -->
 
-Globs can be arbitrarily complex, and can be combined with strict matches.
+`--value` filters by value content using the same glob syntax.
 ```bash
-pda ls --no-keys
-# cat
-# mouse trap
-# dog house
-# cat flap
-# cogwheel
+pda ls --value "**localhost**"
+# db-url  postgres://localhost:5432  no expiry
 
-pda rm cat --glob "{mouse,[cd]og}**"
+# Combine key and value filters.
+pda ls --key "db*" --value "**localhost**"
+# db-url  postgres://localhost:5432  no expiry
+
+# Multiple --value patterns are OR'd.
+pda ls --value "**world**" --value "42"
+# greeting  hello world  no expiry
+# number    42           no expiry
+```
+
+<p align="center"></p><!-- spacer -->
+
+Globs can be arbitrarily complex, and `--key` can be combined with exact positional args on `rm`.
+```bash
+pda rm cat --key "{mouse,[cd]og}**"
 #  ???  remove 'cat'? (y/n)
 #  ==>  y
 #  ???  remove 'mouse trap'? (y/n)
 # ...
 ```
 
-<p align="center"></p><!-- spacer -->
-
-`--glob-sep` can be used to change the default list of separators used to determine word boundaries. Separators default to a somewhat reasonable list of common alphanumeric characters so should be usable in most usual situations.
-```bash
-pda ls --no-keys
-# foo%baz
-
-pda ls --glob "*"
-# foo%baz
-
-pda ls --glob "*" --glob-sep "%"
-# foo%baz --> fail
-# % is considered a word boundary, so "*" no longer matches.
-
-pda ls --glob "*%*" --glob-sep "%"
-# foo%baz
-```
+Locked (encrypted without an available identity) and non-UTF-8 (binary) entries are silently excluded from `--value` matching.
 
 <p align="center"></p><!-- spacer -->
 

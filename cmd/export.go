@@ -23,8 +23,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +39,7 @@ var exportCmd = &cobra.Command{
 }
 
 func init() {
-	exportCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
-	exportCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
+	exportCmd.Flags().StringSliceP("key", "k", nil, "Filter keys with glob pattern (repeatable)")
+	exportCmd.Flags().StringSliceP("value", "v", nil, "Filter values with regex pattern (repeatable)")
 	rootCmd.AddCommand(exportCmd)
 }

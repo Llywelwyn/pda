@@ -25,13 +25,12 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gobwas/glob"
 )
 
-var defaultGlobSeparators = []rune{'/', '-', '_', '.', '@', ':', ' '}
-
-func compileGlobMatchers(patterns []string) ([]glob.Glob, error) {
+func compileValueMatchers(patterns []string) ([]glob.Glob, error) {
 	var matchers []glob.Glob
 	for _, pattern := range patterns {
 		m, err := glob.Compile(strings.ToLower(pattern), defaultGlobSeparators...)
@@ -43,20 +42,26 @@ func compileGlobMatchers(patterns []string) ([]glob.Glob, error) {
 	return matchers, nil
 }
 
-func globMatch(matchers []glob.Glob, key string) bool {
+func valueMatch(matchers []glob.Glob, e Entry) bool {
 	if len(matchers) == 0 {
 		return true
 	}
-	lowered := strings.ToLower(key)
+	if e.Locked {
+		return false
+	}
+	if !utf8.Valid(e.Value) {
+		return false
+	}
+	s := strings.ToLower(string(e.Value))
 	for _, m := range matchers {
-		if m.Match(lowered) {
+		if m.Match(s) {
 			return true
 		}
 	}
 	return false
 }
 
-func formatGlobPatterns(patterns []string) string {
+func formatValuePatterns(patterns []string) string {
 	quoted := make([]string, 0, len(patterns))
 	for _, pattern := range patterns {
 		quoted = append(quoted, fmt.Sprintf("'%s'", pattern))

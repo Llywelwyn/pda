@@ -119,15 +119,20 @@ func list(cmd *cobra.Command, args []string) error {
 		columns = append(columns, columnTTL)
 	}
 
-	globPatterns, err := cmd.Flags().GetStringSlice("glob")
+	keyPatterns, err := cmd.Flags().GetStringSlice("key")
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
-	separators, err := parseGlobSeparators(cmd)
+	matchers, err := compileGlobMatchers(keyPatterns)
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
-	matchers, err := compileGlobMatchers(globPatterns, separators)
+
+	valuePatterns, err := cmd.Flags().GetStringSlice("value")
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
+	}
+	valueMatchers, err := compileValueMatchers(valuePatterns)
 	if err != nil {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
@@ -148,16 +153,23 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
-	// Filter by glob
+	// Filter by key glob and value regex
 	var filtered []Entry
 	for _, e := range entries {
-		if globMatch(matchers, e.Key) {
+		if globMatch(matchers, e.Key) && valueMatch(valueMatchers, e) {
 			filtered = append(filtered, e)
 		}
 	}
 
-	if len(matchers) > 0 && len(filtered) == 0 {
-		return fmt.Errorf("cannot ls '%s': no matches for pattern %s", targetDB, formatGlobPatterns(globPatterns))
+	if (len(matchers) > 0 || len(valueMatchers) > 0) && len(filtered) == 0 {
+		switch {
+		case len(matchers) > 0 && len(valueMatchers) > 0:
+			return fmt.Errorf("cannot ls '%s': no matches for key pattern %s and value pattern %s", targetDB, formatGlobPatterns(keyPatterns), formatValuePatterns(valuePatterns))
+		case len(valueMatchers) > 0:
+			return fmt.Errorf("cannot ls '%s': no matches for value pattern %s", targetDB, formatValuePatterns(valuePatterns))
+		default:
+			return fmt.Errorf("cannot ls '%s': no matches for key pattern %s", targetDB, formatGlobPatterns(keyPatterns))
+		}
 	}
 
 	output := cmd.OutOrStdout()
@@ -467,7 +479,7 @@ func init() {
 	listCmd.Flags().BoolVarP(&listFull, "full", "f", false, "show full values without truncation")
 	listCmd.Flags().BoolVar(&listNoHeader, "no-header", false, "suppress the header row")
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
-	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
-	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default '%s')", defaultGlobSeparatorsDisplay()))
+	listCmd.Flags().StringSliceP("key", "k", nil, "Filter keys with glob pattern (repeatable)")
+	listCmd.Flags().StringSliceP("value", "v", nil, "Filter values with regex pattern (repeatable)")
 	rootCmd.AddCommand(listCmd)
 }

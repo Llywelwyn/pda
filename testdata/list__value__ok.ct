@@ -1,0 +1,15 @@
+$ pda set url@vt https://example.com
+$ fecho tmpval hello world
+$ pda set greeting@vt < tmpval
+$ pda set number@vt 42
+$ pda ls vt --value "**world**" --format tsv
+Key	Value	TTL
+greeting	hello world (..1 more chars)	no expiry
+$ pda ls vt --value "**https**" --format tsv
+Key	Value	TTL
+url	https://example.com	no expiry
+$ pda ls vt --value "*" --format tsv
+Key	Value	TTL
+number	42	no expiry
+$ pda ls vt --value "**nomatch**" --> FAIL
+FAIL  cannot ls '@vt': no matches for value pattern '**nomatch**'

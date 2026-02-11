@@ -9,10 +9,9 @@ Aliases:
   remove, rm
 
 Flags:
-  -g, --glob strings      Delete keys matching glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-  -h, --help              help for remove
-  -i, --interactive       Prompt yes/no for each deletion
+  -h, --help          help for remove
+  -i, --interactive   Prompt yes/no for each deletion
+  -k, --key strings   Delete keys matching glob pattern (repeatable)
 Delete one or more keys
 
 Usage:
@@ -22,7 +21,6 @@ Aliases:
   remove, rm
 
 Flags:
-  -g, --glob strings      Delete keys matching glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-  -h, --help              help for remove
-  -i, --interactive       Prompt yes/no for each deletion
+  -h, --help          help for remove
+  -i, --interactive   Prompt yes/no for each deletion
+  -k, --key strings   Delete keys matching glob pattern (repeatable)

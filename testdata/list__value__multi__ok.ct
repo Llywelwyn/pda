@@ -1,0 +1,8 @@
+$ pda set url@vm https://example.com
+$ fecho tmpval hello world
+$ pda set greeting@vm < tmpval
+$ pda set number@vm 42
+$ pda ls vm --value "**world**" --value "42" --format tsv
+Key	Value	TTL
+greeting	hello world (..1 more chars)	no expiry
+number	42	no expiry

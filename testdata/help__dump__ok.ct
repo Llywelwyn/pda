@@ -9,9 +9,9 @@ Aliases:
   export, dump
 
 Flags:
-  -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-  -h, --help              help for export
+  -h, --help            help for export
+  -k, --key strings     Filter keys with glob pattern (repeatable)
+  -v, --value strings   Filter values with regex pattern (repeatable)
 Export store as NDJSON (alias for list --format ndjson)
 
 Usage:
@@ -21,6 +21,6 @@ Aliases:
   export, dump
 
 Flags:
-  -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-  -h, --help              help for export
+  -h, --help            help for export
+  -k, --key strings     Filter keys with glob pattern (repeatable)
+  -v, --value strings   Filter values with regex pattern (repeatable)

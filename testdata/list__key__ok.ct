@@ -1,0 +1,12 @@
+$ pda set a1@lg 1
+$ pda set a2@lg 2
+$ pda set b1@lg 3
+$ pda ls lg --key "a*" --format tsv
+Key	Value	TTL
+a1	1	no expiry
+a2	2	no expiry
+$ pda ls lg --key "b*" --format tsv
+Key	Value	TTL
+b1	3	no expiry
+$ pda ls lg --key "c*" --> FAIL
+FAIL  cannot ls '@lg': no matches for key pattern 'c*'

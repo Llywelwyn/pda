@@ -9,16 +9,16 @@ Aliases:
   list, ls
 
 Flags:
-  -b, --base64            view binary data as base64
-  -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
-  -f, --full              show full values without truncation
-  -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-  -h, --help              help for list
-      --no-header         suppress the header row
-      --no-keys           suppress the key column
-      --no-ttl            suppress the TTL column
-      --no-values         suppress the value column
+  -b, --base64          view binary data as base64
+  -o, --format format   output format (table|tsv|csv|markdown|html|ndjson) (default table)
+  -f, --full            show full values without truncation
+  -h, --help            help for list
+  -k, --key strings     Filter keys with glob pattern (repeatable)
+      --no-header       suppress the header row
+      --no-keys         suppress the key column
+      --no-ttl          suppress the TTL column
+      --no-values       suppress the value column
+  -v, --value strings   Filter values with regex pattern (repeatable)
 List the contents of a store
 
 Usage:
@@ -28,13 +28,13 @@ Aliases:
   list, ls
 
 Flags:
-  -b, --base64            view binary data as base64
-  -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
-  -f, --full              show full values without truncation
-  -g, --glob strings      Filter keys with glob pattern (repeatable)
-      --glob-sep string   Characters treated as separators for globbing (default '/-_.@: ')
-  -h, --help              help for list
-      --no-header         suppress the header row
-      --no-keys           suppress the key column
-      --no-ttl            suppress the TTL column
-      --no-values         suppress the value column
+  -b, --base64          view binary data as base64
+  -o, --format format   output format (table|tsv|csv|markdown|html|ndjson) (default table)
+  -f, --full            show full values without truncation
+  -h, --help            help for list
+  -k, --key strings     Filter keys with glob pattern (repeatable)
+      --no-header       suppress the header row
+      --no-keys         suppress the key column
+      --no-ttl          suppress the TTL column
+      --no-values       suppress the value column
+  -v, --value strings   Filter values with regex pattern (repeatable)
