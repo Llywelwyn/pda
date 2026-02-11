@@ -135,7 +135,8 @@ func runDoctor(w io.Writer) bool {
 	}
 
 	// 7. Non-default config values
-	if diffs := configDiffs(); len(diffs) > 0 {
+	defaults := defaultConfig()
+	if diffs := configDiffStrings(configFields(&config, &defaults)); len(diffs) > 0 {
 		emit("ok", "Non-default config:")
 		tree(diffs)
 	}
@@ -293,41 +294,12 @@ func runDoctor(w io.Writer) bool {
 	return hasError
 }
 
-func configDiffs() []string {
-	def := defaultConfig()
+func configDiffStrings(fields []ConfigField) []string {
 	var diffs []string
-	if config.DisplayAsciiArt != def.DisplayAsciiArt {
-		diffs = append(diffs, fmt.Sprintf("display_ascii_art: %v", config.DisplayAsciiArt))
-	}
-	if config.Key.AlwaysPromptDelete != def.Key.AlwaysPromptDelete {
-		diffs = append(diffs, fmt.Sprintf("key.always_prompt_delete: %v", config.Key.AlwaysPromptDelete))
-	}
-	if config.Key.AlwaysPromptGlobDelete != def.Key.AlwaysPromptGlobDelete {
-		diffs = append(diffs, fmt.Sprintf("key.always_prompt_glob_delete: %v", config.Key.AlwaysPromptGlobDelete))
-	}
-	if config.Key.AlwaysPromptOverwrite != def.Key.AlwaysPromptOverwrite {
-		diffs = append(diffs, fmt.Sprintf("key.always_prompt_overwrite: %v", config.Key.AlwaysPromptOverwrite))
-	}
-	if config.Store.DefaultStoreName != def.Store.DefaultStoreName {
-		diffs = append(diffs, fmt.Sprintf("store.default_store_name: %s", config.Store.DefaultStoreName))
-	}
-	if config.Store.ListAllStores != def.Store.ListAllStores {
-		diffs = append(diffs, fmt.Sprintf("store.list_all_stores: %v", config.Store.ListAllStores))
-	}
-	if config.Store.AlwaysPromptDelete != def.Store.AlwaysPromptDelete {
-		diffs = append(diffs, fmt.Sprintf("store.always_prompt_delete: %v", config.Store.AlwaysPromptDelete))
-	}
-	if config.Store.AlwaysPromptOverwrite != def.Store.AlwaysPromptOverwrite {
-		diffs = append(diffs, fmt.Sprintf("store.always_prompt_overwrite: %v", config.Store.AlwaysPromptOverwrite))
-	}
-	if config.Git.AutoFetch != def.Git.AutoFetch {
-		diffs = append(diffs, fmt.Sprintf("git.auto_fetch: %v", config.Git.AutoFetch))
-	}
-	if config.Git.AutoCommit != def.Git.AutoCommit {
-		diffs = append(diffs, fmt.Sprintf("git.auto_commit: %v", config.Git.AutoCommit))
-	}
-	if config.Git.AutoPush != def.Git.AutoPush {
-		diffs = append(diffs, fmt.Sprintf("git.auto_push: %v", config.Git.AutoPush))
+	for _, f := range fields {
+		if !f.IsDefault {
+			diffs = append(diffs, fmt.Sprintf("%s: %v", f.Key, f.Value))
+		}
 	}
 	return diffs
 }
