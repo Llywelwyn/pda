@@ -24,6 +24,7 @@ Flags:
   -e, --encrypt        Encrypt the value at rest using age
   -h, --help           help for set
   -i, --interactive    Prompt before overwriting an existing key
+      --safe           Do not overwrite if the key already exists
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)
 Set a key to a given value or stdin. Optionally specify a store.
 
@@ -49,4 +50,5 @@ Flags:
   -e, --encrypt        Encrypt the value at rest using age
   -h, --help           help for set
   -i, --interactive    Prompt before overwriting an existing key
+      --safe           Do not overwrite if the key already exists
   -t, --ttl duration   Expire the key after the provided duration (e.g. 24h, 30m)

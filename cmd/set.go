@@ -62,6 +62,10 @@ func set(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	safe, err := cmd.Flags().GetBool("safe")
+	if err != nil {
+		return err
+	}
 	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
 
 	secret, err := cmd.Flags().GetBool("encrypt")
@@ -116,6 +120,10 @@ func set(cmd *cobra.Command, args []string) error {
 
 	idx := findEntry(entries, spec.Key)
 
+	if safe && idx >= 0 {
+		return nil
+	}
+
 	// Warn if overwriting an encrypted key without --encrypt
 	if idx >= 0 && entries[idx].Secret && !secret {
 		warnf("overwriting encrypted key '%s' as plaintext", spec.Display())
@@ -160,4 +168,5 @@ func init() {
 	setCmd.Flags().DurationP("ttl", "t", 0, "Expire the key after the provided duration (e.g. 24h, 30m)")
 	setCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting an existing key")
 	setCmd.Flags().BoolP("encrypt", "e", false, "Encrypt the value at rest using age")
+	setCmd.Flags().Bool("safe", false, "Do not overwrite if the key already exists")
 }

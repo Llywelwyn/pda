@@ -1,0 +1,9 @@
+$ pda set key@ss "original" --safe
+$ pda get key@ss
+"original"
+$ pda set key@ss "overwritten" --safe
+$ pda get key@ss
+"original"
+$ pda set newkey@ss "fresh" --safe
+$ pda get newkey@ss
+"fresh"
