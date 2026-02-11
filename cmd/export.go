@@ -43,6 +43,5 @@ var exportCmd = &cobra.Command{
 func init() {
 	exportCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
 	exportCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
-	exportCmd.Flags().StringVarP(&listEncoding, "encoding", "e", "auto", "value encoding: auto, base64, or text")
 	rootCmd.AddCommand(exportCmd)
 }

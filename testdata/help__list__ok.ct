@@ -10,7 +10,6 @@ Aliases:
 
 Flags:
   -b, --binary            include binary data in text output
-  -e, --encoding string   value encoding for ndjson format: auto, base64, or text (default "auto")
   -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
@@ -29,7 +28,6 @@ Aliases:
 
 Flags:
   -b, --binary            include binary data in text output
-  -e, --encoding string   value encoding for ndjson format: auto, base64, or text (default "auto")
   -o, --format format     output format (table|tsv|csv|markdown|html|ndjson) (default table)
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")

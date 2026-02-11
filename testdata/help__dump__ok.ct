@@ -9,7 +9,6 @@ Aliases:
   export, dump
 
 Flags:
-  -e, --encoding string   value encoding: auto, base64, or text (default "auto")
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for export
@@ -22,7 +21,6 @@ Aliases:
   export, dump
 
 Flags:
-  -e, --encoding string   value encoding: auto, base64, or text (default "auto")
   -g, --glob strings      Filter keys with glob pattern (repeatable)
       --glob-sep string   Characters treated as separators for globbing (default "/-_.@: ")
   -h, --help              help for export

@@ -23,14 +23,12 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
-	"unicode/utf8"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -60,9 +58,8 @@ var (
 	listNoKeys   bool
 	listNoValues bool
 	listTTL      bool
-	listHeader   bool
-	listFormat   formatEnum = "table"
-	listEncoding string
+	listHeader bool
+	listFormat formatEnum = "table"
 )
 
 type columnKind int
@@ -155,16 +152,8 @@ func list(cmd *cobra.Command, args []string) error {
 
 	// NDJSON format: emit JSON lines directly
 	if listFormat.String() == "ndjson" {
-		enc := listEncoding
-		if enc == "" {
-			enc = "auto"
-		}
 		for _, e := range filtered {
-			je, err := encodeJsonEntryWithEncoding(e, enc)
-			if err != nil {
-				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
-			}
-			data, err := json.Marshal(je)
+			data, err := json.Marshal(encodeJsonEntry(e))
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 			}
@@ -310,33 +299,6 @@ func renderTable(tw table.Writer) {
 	}
 }
 
-// encodeJsonEntryWithEncoding encodes an Entry to jsonEntry respecting the encoding mode.
-func encodeJsonEntryWithEncoding(e Entry, mode string) (jsonEntry, error) {
-	switch mode {
-	case "base64":
-		je := jsonEntry{Key: e.Key, Encoding: "base64"}
-		je.Value = base64.StdEncoding.EncodeToString(e.Value)
-		if e.ExpiresAt > 0 {
-			ts := int64(e.ExpiresAt)
-			je.ExpiresAt = &ts
-		}
-		return je, nil
-	case "text":
-		if !utf8.Valid(e.Value) {
-			return jsonEntry{}, fmt.Errorf("key %q contains non-UTF8 data; use --encoding=auto or base64", e.Key)
-		}
-		je := jsonEntry{Key: e.Key, Encoding: "text"}
-		je.Value = string(e.Value)
-		if e.ExpiresAt > 0 {
-			ts := int64(e.ExpiresAt)
-			je.ExpiresAt = &ts
-		}
-		return je, nil
-	default: // "auto"
-		return encodeJsonEntry(e), nil
-	}
-}
-
 func init() {
 	listCmd.Flags().BoolVarP(&listBinary, "binary", "b", false, "include binary data in text output")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
@@ -346,6 +308,5 @@ func init() {
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson)")
 	listCmd.Flags().StringSliceP("glob", "g", nil, "Filter keys with glob pattern (repeatable)")
 	listCmd.Flags().String("glob-sep", "", fmt.Sprintf("Characters treated as separators for globbing (default %q)", defaultGlobSeparatorsDisplay()))
-	listCmd.Flags().StringVarP(&listEncoding, "encoding", "e", "auto", "value encoding for ndjson format: auto, base64, or text")
 	rootCmd.AddCommand(listCmd)
 }
