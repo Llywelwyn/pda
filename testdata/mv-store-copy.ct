@@ -1,0 +1,7 @@
+$ pda set key@msc1 value
+$ pda move-store msc1 msc2 --copy
+  ok  copied @msc1 to @msc2
+$ pda get key@msc1
+value
+$ pda get key@msc2
+value

@@ -89,6 +89,7 @@ Store commands:
   export       Export store as NDJSON (alias for list --format ndjson)
   import       Restore key/value pairs from an NDJSON dump
   list-stores  List all stores
+  move-store   Rename a store
   remove-store Delete a store
 
 Git commands:
@@ -171,7 +172,14 @@ pda get name --exists
 `pda mv` to move it.
 ```bash
 pda mv name name2
-# renamed name to name2
+#   ok  renamed name to name2
+
+# --safe to skip if the destination already exists.
+pda mv name name2 --safe
+# info  skipped 'name2': already exists
+
+# --yes/-y to skip confirmation prompts.
+pda mv name name2 -y
 ```
 
 `pda cp` to make a copy.
@@ -277,7 +285,7 @@ pda import --drop -f my_backup
 
 <p align="center"></p><!-- spacer -->
 
-You can have as many stores as you want.
+You can have as many stores as you want. All the store commands have shorthands, like `mv` to move a key, or `mvs` to move a store.
 ```bash
 # Save to a specific store.
 pda set alice@birthdays 11/11/1998
@@ -298,8 +306,20 @@ pda export birthdays > friends_birthdays
 # Import it.
 pda import birthdays < friends_birthdays
 
+# Rename it.
+pda move-store birthdays bdays
+
+# Or copy it.
+pda move-store birthdays bdays --copy
+
+# --safe to skip if the destination already exists.
+pda move-store birthdays bdays --safe
+
 # Delete it.
-pda rm-store birthdays
+pda remove-store birthdays
+
+# --yes/-y to skip confirmation prompts on delete or overwrite.
+pda remove-store birthdays -y
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -714,6 +734,7 @@ always_prompt_overwrite = false
 [store]
 default_store_name = "default"
 always_prompt_delete = true
+always_prompt_overwrite = true
 
 [git]
 auto_fetch = false

@@ -1,0 +1,2 @@
+$ pda move-store nonexistent dest --> FAIL
+FAIL  cannot rename store 'nonexistent': no such store

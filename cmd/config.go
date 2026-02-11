@@ -44,8 +44,9 @@ type KeyConfig struct {
 }
 
 type StoreConfig struct {
-	DefaultStoreName   string `toml:"default_store_name"`
-	AlwaysPromptDelete bool   `toml:"always_prompt_delete"`
+	DefaultStoreName      string `toml:"default_store_name"`
+	AlwaysPromptDelete    bool   `toml:"always_prompt_delete"`
+	AlwaysPromptOverwrite bool   `toml:"always_prompt_overwrite"`
 }
 
 type GitConfig struct {
@@ -80,8 +81,9 @@ func defaultConfig() Config {
 			AlwaysPromptOverwrite: false,
 		},
 		Store: StoreConfig{
-			DefaultStoreName:   "default",
-			AlwaysPromptDelete: true,
+			DefaultStoreName:      "default",
+			AlwaysPromptDelete:    true,
+			AlwaysPromptOverwrite: true,
 		},
 		Git: GitConfig{
 			AutoFetch:  false,

@@ -1,6 +1,7 @@
 # Cross-store move
 $ pda set key@src value
 $ pda mv key@src key@dst
+  ok  renamed key@src to key@dst
 $ pda get key@dst
 value
 $ pda get key@src --> FAIL

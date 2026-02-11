@@ -60,8 +60,12 @@ func delStore(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("cannot delete store '%s': %v", dbName, err)
 	}
+	yes, err := cmd.Flags().GetBool("yes")
+	if err != nil {
+		return fmt.Errorf("cannot delete store '%s': %v", dbName, err)
+	}
 
-	if interactive || config.Store.AlwaysPromptDelete {
+	if !yes && (interactive || config.Store.AlwaysPromptDelete) {
 		promptf("delete store '%s'? (y/n)", args[0])
 
 		var confirm string
@@ -87,5 +91,6 @@ func executeDeletion(path string) error {
 
 func init() {
 	delStoreCmd.Flags().BoolP("interactive", "i", false, "Prompt yes/no for each deletion")
+	delStoreCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
 	rootCmd.AddCommand(delStoreCmd)
 }

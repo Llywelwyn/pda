@@ -35,6 +35,7 @@ func stdoutIsTerminal() bool {
 //	FAIL  red         (stderr)
 //	hint  dim         (stderr)
 //	WARN  yellow      (stderr)
+//	info  blue        (stderr)
 //	  ok  green       (stderr)
 //	   ?  cyan        (stdout)
 //	   >  dim         (stdout)
@@ -58,6 +59,11 @@ func printHint(format string, args ...any) {
 func warnf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("33", "WARN", stderrIsTerminal()), msg)
+}
+
+func infof(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("34", "info", stderrIsTerminal()), msg)
 }
 
 func okf(format string, args ...any) {

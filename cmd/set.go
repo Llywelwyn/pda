@@ -135,6 +135,7 @@ func set(cmd *cobra.Command, args []string) error {
 	idx := findEntry(entries, spec.Key)
 
 	if safe && idx >= 0 {
+		infof("skipped '%s': already exists", spec.Display())
 		return nil
 	}
 

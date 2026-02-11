@@ -64,7 +64,15 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	if err != nil {
 		return err
 	}
-	promptOverwrite := interactive || config.Key.AlwaysPromptOverwrite
+	safe, err := cmd.Flags().GetBool("safe")
+	if err != nil {
+		return err
+	}
+	yes, err := cmd.Flags().GetBool("yes")
+	if err != nil {
+		return err
+	}
+	promptOverwrite := !yes && (interactive || config.Key.AlwaysPromptOverwrite)
 
 	identity, _ := loadIdentity()
 	var recipient *age.X25519Recipient
@@ -113,6 +121,11 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	}
 
 	dstIdx := findEntry(dstEntries, toSpec.Key)
+
+	if safe && dstIdx >= 0 {
+		infof("skipped '%s': already exists", toSpec.Display())
+		return nil
+	}
 
 	if promptOverwrite && dstIdx >= 0 {
 		var confirm string
@@ -169,13 +182,22 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		}
 	}
 
+	if keepSource {
+		okf("copied %s to %s", fromSpec.Display(), toSpec.Display())
+	} else {
+		okf("renamed %s to %s", fromSpec.Display(), toSpec.Display())
+	}
 	return autoSync()
 }
 
 func init() {
 	mvCmd.Flags().Bool("copy", false, "Copy instead of move (keeps source)")
 	mvCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
+	mvCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
+	mvCmd.Flags().Bool("safe", false, "Do not overwrite if the destination already exists")
 	rootCmd.AddCommand(mvCmd)
 	cpCmd.Flags().BoolP("interactive", "i", false, "Prompt before overwriting destination")
+	cpCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts")
+	cpCmd.Flags().Bool("safe", false, "Do not overwrite if the destination already exists")
 	rootCmd.AddCommand(cpCmd)
 }

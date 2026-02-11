@@ -1,0 +1,3 @@
+$ pda set a@mss same
+$ pda move-store mss mss --> FAIL
+FAIL  cannot rename store 'mss': source and destination are the same

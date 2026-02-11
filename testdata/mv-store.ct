@@ -1,0 +1,5 @@
+$ pda set key@mvs1 value
+$ pda move-store mvs1 mvs2
+  ok  renamed @mvs1 to @mvs2
+$ pda get key@mvs2
+value

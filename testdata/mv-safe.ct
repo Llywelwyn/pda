@@ -1,0 +1,8 @@
+$ pda set src@msf hello
+$ pda set dst@msf existing
+$ pda mv src@msf dst@msf --safe
+info  skipped 'dst@msf': already exists
+$ pda get src@msf
+hello
+$ pda get dst@msf
+existing

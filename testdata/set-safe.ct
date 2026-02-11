@@ -2,6 +2,7 @@ $ pda set key@ss "original" --safe
 $ pda get key@ss
 "original"
 $ pda set key@ss "overwritten" --safe
+info  skipped 'key@ss': already exists
 $ pda get key@ss
 "original"
 $ pda set newkey@ss "fresh" --safe

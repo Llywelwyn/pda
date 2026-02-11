@@ -1,0 +1,8 @@
+$ pda set a@mssf1 1
+$ pda set b@mssf2 2
+$ pda move-store mssf1 mssf2 --safe
+info  skipped '@mssf2': already exists
+$ pda get a@mssf1
+1
+$ pda get b@mssf2
+2

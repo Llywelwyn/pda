@@ -1,6 +1,7 @@
 # Basic move
 $ pda set source@mvok value
 $ pda mv source@mvok dest@mvok
+  ok  renamed source@mvok to dest@mvok
 $ pda get dest@mvok
 value
 $ pda get source@mvok --> FAIL

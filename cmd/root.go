@@ -65,6 +65,7 @@ func init() {
 
 	listStoresCmd.GroupID = "stores"
 	delStoreCmd.GroupID = "stores"
+	mvStoreCmd.GroupID = "stores"
 	exportCmd.GroupID = "stores"
 	restoreCmd.GroupID = "stores"
 

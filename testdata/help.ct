@@ -26,6 +26,7 @@ Store commands:
   export       Export store as NDJSON (alias for list --format ndjson)
   import       Restore key/value pairs from an NDJSON dump
   list-stores  List all stores
+  move-store   Rename a store
   remove-store Delete a store
 
 Git commands:
@@ -68,6 +69,7 @@ Store commands:
   export       Export store as NDJSON (alias for list --format ndjson)
   import       Restore key/value pairs from an NDJSON dump
   list-stores  List all stores
+  move-store   Rename a store
   remove-store Delete a store
 
 Git commands:

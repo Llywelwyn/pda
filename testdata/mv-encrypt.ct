@@ -1,6 +1,7 @@
 # Move an encrypted key; the new key should still decrypt.
 $ pda set --encrypt secret-key@mve hidden-value
 $ pda mv secret-key@mve moved-key@mve
+  ok  renamed secret-key@mve to moved-key@mve
 $ pda get moved-key@mve
 hidden-value
 $ pda get secret-key@mve --> FAIL
