@@ -1,12 +1,9 @@
-$ pda help dump
-$ pda dump --help
+$ pda help export
+$ pda export --help
 Export store as NDJSON (alias for list --format ndjson)
 
 Usage:
   pda export [STORE] [flags]
-
-Aliases:
-  export, dump
 
 Flags:
   -h, --help            help for export
@@ -16,9 +13,6 @@ Export store as NDJSON (alias for list --format ndjson)
 
 Usage:
   pda export [STORE] [flags]
-
-Aliases:
-  export, dump
 
 Flags:
   -h, --help            help for export

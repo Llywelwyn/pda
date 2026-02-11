@@ -1,7 +1,7 @@
 $ pda set existing keep-me
 $ pda set other also-keep
 $ fecho dumpfile {"key":"new","value":"hello","encoding":"text"}
-$ pda restore --drop --file dumpfile
+$ pda import --drop --file dumpfile
   ok  restored 1 entries into @default
 $ pda get new
 hello

@@ -8,6 +8,7 @@ import (
 
 var identityCmd = &cobra.Command{
 	Use:          "identity",
+	Aliases:      []string{"id"},
 	Short:        "Show or create the age encryption identity",
 	Args:         cobra.NoArgs,
 	RunE:         identityRun,

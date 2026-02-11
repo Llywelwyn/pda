@@ -1,12 +1,9 @@
-$ pda help restore
-$ pda restore --help
+$ pda help import
+$ pda import --help
 Restore key/value pairs from an NDJSON dump
 
 Usage:
   pda import [STORE] [flags]
-
-Aliases:
-  import, restore
 
 Flags:
       --drop          Drop existing entries before restoring (full replace)
@@ -18,9 +15,6 @@ Restore key/value pairs from an NDJSON dump
 
 Usage:
   pda import [STORE] [flags]
-
-Aliases:
-  import, restore
 
 Flags:
       --drop          Drop existing entries before restoring (full replace)

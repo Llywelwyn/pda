@@ -29,7 +29,7 @@ import (
 var exportCmd = &cobra.Command{
 	Use:     "export [STORE]",
 	Short:   "Export store as NDJSON (alias for list --format ndjson)",
-	Aliases: []string{"dump"},
+	Aliases: []string{},
 	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		listFormat = "ndjson"

@@ -6,7 +6,7 @@ Usage:
   pda remove-store STORE [flags]
 
 Aliases:
-  remove-store, rm-store, rms
+  remove-store, rms
 
 Flags:
   -h, --help          help for remove-store
@@ -17,7 +17,7 @@ Usage:
   pda remove-store STORE [flags]
 
 Aliases:
-  remove-store, rm-store, rms
+  remove-store, rms
 
 Flags:
   -h, --help          help for remove-store
