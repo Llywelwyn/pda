@@ -232,7 +232,7 @@ pda export --value "**https**"
 
 <p align="center"></p><!-- spacer -->
 
-`pda import` to import it all back.
+`pda import` to import it all back. By default, import merges into the existing store — existing keys are updated and new keys are added.
 ```bash
 # Import with an argument.
 pda import -f my_backup
@@ -244,6 +244,9 @@ pda import < my_backup
 
 # Import only matching keys.
 pda import --key "a*" -f my_backup
+
+# Full replace — drop all existing entries before importing.
+pda import --drop -f my_backup
 ```
 
 <p align="center"></p><!-- spacer -->
