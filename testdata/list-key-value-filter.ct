@@ -8,4 +8,4 @@ $ pda ls kv -k "*url*" -v "**example**" --format tsv
 Key	Store	Value	TTL
 apiurl	kv	https://api.example.com	no expiry
 $ pda ls kv -k "db*" -v "**nomatch**" --> FAIL
-FAIL  cannot ls '@kv': no matches for key pattern 'db*' and value pattern '**nomatch**'
+FAIL cannot ls '@kv': no matches for key pattern 'db*' and value pattern '**nomatch**'

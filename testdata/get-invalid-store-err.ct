@@ -1,2 +1,2 @@
 $ pda get key@foo/bar --> FAIL
-FAIL  cannot get 'key@foo/bar': bad store format, use STORE or @STORE
+FAIL cannot get 'key@foo/bar': bad store format, use STORE or @STORE

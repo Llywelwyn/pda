@@ -1,6 +1,6 @@
 $ pda set src@csf hello
 $ pda set dst@csf existing
 $ pda cp src@csf dst@csf --safe
-info  skipped 'dst@csf': already exists
+info skipped 'dst@csf': already exists
 $ pda get dst@csf
 existing

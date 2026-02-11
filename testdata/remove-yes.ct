@@ -2,7 +2,7 @@ $ pda set a@ry "1"
 $ pda set b@ry "2"
 $ pda rm a@ry -i -y
 $ pda get a@ry --> FAIL
-FAIL  cannot get 'a@ry': no such key
-hint  did you mean 'b'?
+FAIL cannot get 'a@ry': no such key
+hint did you mean 'b'?
 $ pda get b@ry
 "2"

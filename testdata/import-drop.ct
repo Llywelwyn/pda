@@ -2,8 +2,8 @@ $ pda set existing@idr keep-me
 $ pda set other@idr also-keep
 $ fecho dumpfile {"key":"new","value":"hello","encoding":"text"}
 $ pda import idr --drop --file dumpfile
-  ok  restored 1 entries into @idr
+  ok restored 1 entries into @idr
 $ pda get new@idr
 hello
 $ pda get existing@idr --> FAIL
-FAIL  cannot get 'existing@idr': no such key
+FAIL cannot get 'existing@idr': no such key

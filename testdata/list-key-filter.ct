@@ -9,4 +9,4 @@ $ pda ls lg --key "b*" --format tsv
 Key	Store	Value	TTL
 b1	lg	3	no expiry
 $ pda ls lg --key "c*" --> FAIL
-FAIL  cannot ls '@lg': no matches for key pattern 'c*'
+FAIL cannot ls '@lg': no matches for key pattern 'c*'

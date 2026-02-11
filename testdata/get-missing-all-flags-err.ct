@@ -5,10 +5,10 @@ $ pda get foobar --base64 --run --secret --> FAIL
 $ pda get foobar --run --> FAIL
 $ pda get foobar --run --secret --> FAIL
 $ pda get foobar --secret --> FAIL
-FAIL  cannot get 'foobar': no such key
-FAIL  cannot get 'foobar': no such key
-FAIL  cannot get 'foobar': no such key
-FAIL  unknown flag: --secret
-FAIL  cannot get 'foobar': no such key
-FAIL  unknown flag: --secret
-FAIL  unknown flag: --secret
+FAIL cannot get 'foobar': no such key
+FAIL cannot get 'foobar': no such key
+FAIL cannot get 'foobar': no such key
+FAIL unknown flag: --secret
+FAIL cannot get 'foobar': no such key
+FAIL unknown flag: --secret
+FAIL unknown flag: --secret

@@ -4,13 +4,13 @@ $ pda set b1@ikf 3
 $ fecho dumpfile {"key":"a1","value":"1","encoding":"text"} {"key":"a2","value":"2","encoding":"text"} {"key":"b1","value":"3","encoding":"text"}
 $ pda rm a1@ikf a2@ikf b1@ikf
 $ pda import ikf --key "a*" --file dumpfile
-  ok  restored 2 entries into @ikf
+  ok restored 2 entries into @ikf
 $ pda get a1@ikf
 1
 $ pda get a2@ikf
 2
 $ pda get b1@ikf --> FAIL
-FAIL  cannot get 'b1@ikf': no such key
-hint  did you mean 'a1'?
+FAIL cannot get 'b1@ikf': no such key
+hint did you mean 'a1'?
 $ pda import ikf --key "c*" --file dumpfile --> FAIL
-FAIL  cannot restore '@ikf': no matches for key pattern 'c*'
+FAIL cannot restore '@ikf': no matches for key pattern 'c*'

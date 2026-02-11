@@ -48,41 +48,41 @@ func keyword(code, word string, tty bool) string {
 }
 
 func printError(err error) {
-	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("31", "FAIL", stderrIsTerminal()), err)
+	fmt.Fprintf(os.Stderr, "%s %s\n", keyword("31", "FAIL", stderrIsTerminal()), err)
 }
 
 func printHint(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("2", "hint", stderrIsTerminal()), msg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", keyword("2", "hint", stderrIsTerminal()), msg)
 }
 
 func warnf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("33", "WARN", stderrIsTerminal()), msg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", keyword("33", "WARN", stderrIsTerminal()), msg)
 }
 
 func infof(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("34", "info", stderrIsTerminal()), msg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", keyword("34", "info", stderrIsTerminal()), msg)
 }
 
 func okf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(os.Stderr, "%s  %s\n", keyword("32", "ok", stderrIsTerminal()), msg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", keyword("32", "ok", stderrIsTerminal()), msg)
 }
 
 func promptf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(os.Stdout, "%s  %s\n", keyword("36", "???", stdoutIsTerminal()), msg)
+	fmt.Fprintf(os.Stdout, "%s %s\n", keyword("36", "???", stdoutIsTerminal()), msg)
 }
 
 func progressf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(os.Stdout, "%s  %s\n", keyword("2", ">", stdoutIsTerminal()), msg)
+	fmt.Fprintf(os.Stdout, "%s %s\n", keyword("2", ">", stdoutIsTerminal()), msg)
 }
 
 func scanln(dest *string) error {
-	fmt.Fprintf(os.Stdout, "%s  ", keyword("2", "==>", stdoutIsTerminal()))
+	fmt.Fprintf(os.Stdout, "%s ", keyword("2", "==>", stdoutIsTerminal()))
 	_, err := fmt.Scanln(dest)
 	return err
 }

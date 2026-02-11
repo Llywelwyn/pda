@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/agnivade/levenshtein"
 )
@@ -69,16 +70,36 @@ func findConfigField(fields []ConfigField, key string) *ConfigField {
 	return nil
 }
 
-// suggestConfigKey returns Levenshtein-based suggestions for a mistyped config key.
+// suggestConfigKey returns suggestions for a mistyped config key. More generous
+// than key/store suggestions since the config key space is small (~11 keys).
+// Normalises spaces to underscores and matches against both the full dotted key
+// and the leaf segment (part after the last dot).
 func suggestConfigKey(fields []ConfigField, target string) []string {
-	minThreshold := 1
-	maxThreshold := 4
-	threshold := min(max(len(target)/3, minThreshold), maxThreshold)
+	normalized := strings.ReplaceAll(target, " ", "_")
 	var suggestions []string
 	for _, f := range fields {
-		if levenshtein.ComputeDistance(target, f.Key) <= threshold {
+		if matchesConfigKey(normalized, f.Key) {
 			suggestions = append(suggestions, f.Key)
 		}
 	}
 	return suggestions
+}
+
+func matchesConfigKey(input, key string) bool {
+	// Substring match (either direction)
+	if strings.Contains(key, input) || strings.Contains(input, key) {
+		return true
+	}
+	// Levenshtein against full dotted key
+	if levenshtein.ComputeDistance(input, key) <= max(len(key)/3, 4) {
+		return true
+	}
+	// Levenshtein against leaf segment
+	if i := strings.LastIndex(key, "."); i >= 0 {
+		leaf := key[i+1:]
+		if levenshtein.ComputeDistance(input, leaf) <= max(len(leaf)/3, 1) {
+			return true
+		}
+	}
+	return false
 }

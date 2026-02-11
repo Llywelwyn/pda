@@ -1,2 +1,2 @@
 $ pda rms foo/bar --> FAIL
-FAIL  cannot delete store 'foo/bar': cannot parse store: bad store format, use STORE or @STORE
+FAIL cannot delete store 'foo/bar': cannot parse store: bad store format, use STORE or @STORE

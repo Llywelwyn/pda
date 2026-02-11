@@ -175,11 +175,11 @@ pda get name --exists
 `pda mv` to move it.
 ```bash
 pda mv name name2
-#   ok  renamed name to name2
+#   ok renamed name to name2
 
 # --safe to skip if the destination already exists.
 pda mv name name2 --safe
-# info  skipped 'name2': already exists
+# info skipped 'name2': already exists
 
 # --yes/-y to skip confirmation prompts.
 pda mv name name2 -y
@@ -210,8 +210,8 @@ pda rm kitty --key "?og"
 
 # Opt in to a confirmation prompt with --interactive/-i (or always_prompt_delete in config).
 pda rm kitty -i
-#  ???  remove 'kitty'? (y/n)
-#  ==>  y
+#  ??? remove 'kitty'? (y/n)
+#  ==> y
 
 # --yes/-y to auto-accept all confirmation prompts.
 pda rm kitty -y
@@ -283,11 +283,11 @@ pda export --value "**https**"
 ```bash
 # Entries are routed to their original stores.
 pda import -f my_backup
-#   ok  restored 5 entries
+#   ok restored 5 entries
 
 # Force all entries into a specific store by passing a store name.
 pda import mystore -f my_backup
-#   ok  restored 5 entries into @mystore
+#   ok restored 5 entries into @mystore
 
 # Or from stdin.
 pda import < my_backup
@@ -322,8 +322,8 @@ pda list-stores --short
 
 # Check out a specific store.
 pda ls @birthdays --no-header --no-ttl
-# alice    11/11/1998
-# bob      05/12/1980
+# alice 11/11/1998
+# bob   05/12/1980
 
 # Export it.
 pda export birthdays > friends_birthdays
@@ -427,7 +427,7 @@ pda get greeting NAME="Bob"
 ```bash
 pda set file "{{ require .FILE }}"
 pda get file
-# FAIL  cannot get 'file': ...required value is missing or empty
+# FAIL cannot get 'file': ...required value is missing or empty
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -447,7 +447,7 @@ pda set level "Log level: {{ enum .LEVEL "info" "warn" "error" }}"
 pda get level LEVEL=info
 # Log level: info
 pda get level LEVEL=debug
-# FAIL  cannot get 'level': ...invalid value 'debug', allowed: [info warn error]
+# FAIL cannot get 'level': ...invalid value 'debug', allowed: [info warn error]
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -601,9 +601,9 @@ pda ls --value "**world**" --value "42"
 Globs can be arbitrarily complex, and `--key` can be combined with exact positional args on `rm`.
 ```bash
 pda rm cat --key "{mouse,[cd]og}**"
-#  ???  remove 'cat'? (y/n)
-#  ==>  y
-#  ???  remove 'mouse trap'? (y/n)
+#  ??? remove 'cat'? (y/n)
+#  ==> y
+#  ??? remove 'mouse trap'? (y/n)
 # ...
 ```
 
@@ -679,7 +679,7 @@ pda export
 
 ```bash
 pda set --encrypt api-key "sk-live-abc123"
-#   ok  created identity at ~/.config/pda/identity.txt
+#   ok created identity at ~/.config/pda/identity.txt
 
 pda set --encrypt token "ghp_xxxx"
 ```
@@ -708,8 +708,8 @@ pda cp api-key api-key-backup
 # still encrypted
 
 pda set api-key "oops"
-# WARN  overwriting encrypted key 'api-key' as plaintext
-# hint  pass --encrypt to keep it encrypted
+# WARN overwriting encrypted key 'api-key' as plaintext
+# hint pass --encrypt to keep it encrypted
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -721,7 +721,7 @@ pda ls
 # api-key locked (identity file missing) no expiry
 
 pda get api-key
-# FAIL  cannot get 'api-key': secret is locked (identity file missing)
+# FAIL cannot get 'api-key': secret is locked (identity file missing)
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -729,8 +729,8 @@ pda get api-key
 `pda identity` to see your public key and identity file path.
 ```bash
 pda identity
-#   ok  pubkey  age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
-#   ok  identity  ~/.config/pda/identity.txt
+#   ok pubkey  age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+#   ok identity  ~/.config/pda/identity.txt
 
 # Just the path.
 pda identity --path
@@ -748,22 +748,22 @@ pda identity --new
 
 ```bash
 pda doctor
-#   ok  pda! 2025.52 Christmas release (linux/amd64)
-#   ok  OS: Linux 6.18.7-arch1-1
-#   ok  Go: go1.23.0
-#   ok  Git: 2.45.0
-#   ok  Shell: /bin/zsh
-#   ok  Config: /home/user/.config/pda
-#   ok  Non-default config:
-#       ├── display_ascii_art: false
-#       └── git.auto_commit: true
-#   ok  Data: /home/user/.local/share/pda
-#   ok  Identity: /home/user/.config/pda/identity.txt
-#   ok  Git initialised on main
-#   ok  Git remote configured
-#   ok  Git in sync with remote
-#   ok  3 store(s), 15 key(s), 2 secret(s), 4.2k total
-#   ok  No issues found
+#   ok pda! 2025.52 Christmas release (linux/amd64)
+#   ok OS: Linux 6.18.7-arch1-1
+#   ok Go: go1.23.0
+#   ok Git: 2.45.0
+#   ok Shell: /bin/zsh
+#   ok Config: /home/user/.config/pda
+#   ok Non-default config:
+#      ├── display_ascii_art: false
+#      └── git.auto_commit: true
+#   ok Data: /home/user/.local/share/pda
+#   ok Identity: /home/user/.config/pda/identity.txt
+#   ok Git initialised on main
+#   ok Git remote configured
+#   ok Git in sync with remote
+#   ok 3 store(s), 15 key(s), 2 secret(s), 4.2k total size
+#   ok No issues found
 ```
 
 <p align="center"></p><!-- spacer -->

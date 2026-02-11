@@ -1,7 +1,7 @@
 # Basic copy
 $ pda set source@cpok value
 $ pda cp source@cpok dest@cpok
-  ok  copied source@cpok to dest@cpok
+  ok copied source@cpok to dest@cpok
 $ pda get source@cpok
 value
 $ pda get dest@cpok

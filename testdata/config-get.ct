@@ -7,7 +7,12 @@ default
 $ pda config get git.auto_commit
 false
 
-# Unknown key with suggestion
+# Unknown key with suggestion (typo)
 $ pda config get git.auto_comit --> FAIL
-FAIL  unknown config key 'git.auto_comit'
-hint  did you mean 'git.auto_commit'?
+FAIL unknown config key 'git.auto_comit'
+hint did you mean 'git.auto_commit'?
+
+# Unknown key with suggestion (leaf match, no prefix)
+$ pda config get auto_commit --> FAIL
+FAIL unknown config key 'auto_commit'
+hint did you mean 'git.auto_commit'?

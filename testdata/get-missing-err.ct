@@ -1,2 +1,2 @@
 $ pda get foobar --> FAIL
-FAIL  cannot get 'foobar': no such key
+FAIL cannot get 'foobar': no such key

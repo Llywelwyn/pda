@@ -1,5 +1,5 @@
 # Error when all columns are suppressed
 $ pda set a@las 1
 $ pda ls las --no-keys --no-values --no-ttl --> FAIL
-FAIL  cannot ls '@las': no columns selected
-hint  disable --no-keys, --no-values, or --no-ttl
+FAIL cannot ls '@las': no columns selected
+hint disable --no-keys, --no-values, or --no-ttl

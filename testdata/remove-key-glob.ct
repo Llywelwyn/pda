@@ -3,9 +3,9 @@ $ pda set a2@rkg 2
 $ pda set b1@rkg 3
 $ pda rm --key "a*@rkg" -y
 $ pda get a1@rkg --> FAIL
-FAIL  cannot get 'a1@rkg': no such key
-hint  did you mean 'b1'?
+FAIL cannot get 'a1@rkg': no such key
+hint did you mean 'b1'?
 $ pda get a2@rkg --> FAIL
-FAIL  cannot get 'a2@rkg': no such key
+FAIL cannot get 'a2@rkg': no such key
 $ pda get b1@rkg
 3

@@ -49,7 +49,7 @@ func runDoctor(w io.Writer) bool {
 			code = "31"
 			hasError = true
 		}
-		fmt.Fprintf(w, "%s  %s\n", keyword(code, level, tty), msg)
+		fmt.Fprintf(w, "%s %s\n", keyword(code, level, tty), msg)
 	}
 
 	tree := func(items []string) {
@@ -279,7 +279,7 @@ func runDoctor(w io.Writer) bool {
 		if parseErrors > 0 {
 			emit("FAIL", fmt.Sprintf("%d store(s), %d with parse errors", len(stores), parseErrors))
 		} else {
-			emit("ok", fmt.Sprintf("%d store(s), %d key(s), %d secret(s), %s total",
+			emit("ok", fmt.Sprintf("%d store(s), %d key(s), %d secret(s), %s total size",
 				len(stores), totalKeys, totalSecrets, formatSize(int(totalSize))))
 		}
 	}

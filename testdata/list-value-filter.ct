@@ -12,4 +12,4 @@ $ pda ls vt --value "*" --format tsv
 Key	Store	Value	TTL
 number	vt	42	no expiry
 $ pda ls vt --value "**nomatch**" --> FAIL
-FAIL  cannot ls '@vt': no matches for value pattern '**nomatch**'
+FAIL cannot ls '@vt': no matches for value pattern '**nomatch**'

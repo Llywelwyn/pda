@@ -3,8 +3,8 @@ $ pda set bar1@rkm 2
 $ pda set bar2@rkm 3
 $ pda rm foo@rkm --key "bar*@rkm" -y
 $ pda get foo@rkm --> FAIL
-FAIL  cannot get 'foo@rkm': no such key
+FAIL cannot get 'foo@rkm': no such key
 $ pda get bar1@rkm --> FAIL
-FAIL  cannot get 'bar1@rkm': no such key
+FAIL cannot get 'bar1@rkm': no such key
 $ pda get bar2@rkm --> FAIL
-FAIL  cannot get 'bar2@rkm': no such key
+FAIL cannot get 'bar2@rkm': no such key

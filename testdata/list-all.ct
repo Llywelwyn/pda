@@ -23,7 +23,7 @@ Key	Store	Value	TTL
 lax	laa	1	no expiry
 # --store cannot be combined with positional arg
 $ pda ls --store "laa" laa --> FAIL
-FAIL  cannot use --store with a store argument
+FAIL cannot use --store with a store argument
 # --store no matches
 $ pda ls --store "nonexistent" --key "lax" --> FAIL
-FAIL  cannot ls 'all': no matches for key pattern 'lax' and store pattern 'nonexistent'
+FAIL cannot ls 'all': no matches for key pattern 'lax' and store pattern 'nonexistent'

@@ -1,2 +1,2 @@
 $ pda invalidcmd --> FAIL
-FAIL  unknown command "invalidcmd" for "pda"
+FAIL unknown command "invalidcmd" for "pda"

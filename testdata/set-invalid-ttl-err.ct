@@ -1,2 +1,2 @@
 $ pda set a b --ttl 3343r --> FAIL
-FAIL  invalid argument "3343r" for "-t, --ttl" flag: time: unknown unit "r" in duration "3343r"
+FAIL invalid argument "3343r" for "-t, --ttl" flag: time: unknown unit "r" in duration "3343r"

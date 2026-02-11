@@ -2,7 +2,7 @@
 $ pda set existing@mrg old-value
 $ fecho dumpfile {"key":"existing","value":"updated","encoding":"text"} {"key":"new","value":"hello","encoding":"text"}
 $ pda import mrg --file dumpfile
-  ok  restored 2 entries into @mrg
+  ok restored 2 entries into @mrg
 $ pda get existing@mrg
 updated
 $ pda get new@mrg

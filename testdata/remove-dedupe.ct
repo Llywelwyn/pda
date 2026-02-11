@@ -7,6 +7,6 @@ bar	rdd	2	no expiry
 foo	rdd	1	no expiry
 $ pda rm foo@rdd --key "*@rdd" -y
 $ pda get bar@rdd --> FAIL
-FAIL  cannot get 'bar@rdd': no such key
+FAIL cannot get 'bar@rdd': no such key
 $ pda get foo@rdd --> FAIL
-FAIL  cannot get 'foo@rdd': no such key
+FAIL cannot get 'foo@rdd': no such key

@@ -1,7 +1,7 @@
 # Cross-store copy
 $ pda set key@src value
 $ pda cp key@src key@dst
-  ok  copied key@src to key@dst
+  ok copied key@src to key@dst
 $ pda get key@src
 value
 $ pda get key@dst
