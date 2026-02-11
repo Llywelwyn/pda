@@ -1,6 +1,10 @@
 package cmd
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/agnivade/levenshtein"
+)
 
 // ConfigField represents a single leaf field in the Config struct,
 // mapped to its dotted TOML key path.
@@ -52,4 +56,29 @@ func walk(cv, dv reflect.Value, prefix string, out *[]ConfigField) {
 			Kind:      sf.Type.Kind(),
 		})
 	}
+}
+
+// findConfigField returns the ConfigField matching the given dotted key,
+// or nil if not found.
+func findConfigField(fields []ConfigField, key string) *ConfigField {
+	for i := range fields {
+		if fields[i].Key == key {
+			return &fields[i]
+		}
+	}
+	return nil
+}
+
+// suggestConfigKey returns Levenshtein-based suggestions for a mistyped config key.
+func suggestConfigKey(fields []ConfigField, target string) []string {
+	minThreshold := 1
+	maxThreshold := 4
+	threshold := min(max(len(target)/3, minThreshold), maxThreshold)
+	var suggestions []string
+	for _, f := range fields {
+		if levenshtein.ComputeDistance(target, f.Key) <= threshold {
+			suggestions = append(suggestions, f.Key)
+		}
+	}
+	return suggestions
 }

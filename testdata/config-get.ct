@@ -1,0 +1,13 @@
+$ pda config get display_ascii_art
+true
+
+$ pda config get store.default_store_name
+default
+
+$ pda config get git.auto_commit
+false
+
+# Unknown key with suggestion
+$ pda config get git.auto_comit --> FAIL
+FAIL  unknown config key 'git.auto_comit'
+hint  did you mean 'git.auto_commit'?

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,27 @@ var configListCmd = &cobra.Command{
 	},
 }
 
+var configGetCmd = &cobra.Command{
+	Use:          "get <key>",
+	Short:        "Print a configuration value",
+	Args:         cobra.ExactArgs(1),
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		defaults := defaultConfig()
+		fields := configFields(&config, &defaults)
+		f := findConfigField(fields, args[0])
+		if f == nil {
+			err := fmt.Errorf("unknown config key '%s'", args[0])
+			if suggestions := suggestConfigKey(fields, args[0]); len(suggestions) > 0 {
+				return withHint(err, fmt.Sprintf("did you mean '%s'?", strings.Join(suggestions, "', '")))
+			}
+			return err
+		}
+		fmt.Printf("%v\n", f.Value)
+		return nil
+	},
+}
+
 var configPathCmd = &cobra.Command{
 	Use:          "path",
 	Short:        "Print config file path",
@@ -43,6 +65,7 @@ var configPathCmd = &cobra.Command{
 }
 
 func init() {
+	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configPathCmd)
 	rootCmd.AddCommand(configCmd)
