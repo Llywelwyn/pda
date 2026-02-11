@@ -1,0 +1,23 @@
+# Set a bool value and verify with get
+$ pda config set git.auto_commit true
+$ pda config get git.auto_commit
+true
+
+# Set a string value
+$ pda config set store.default_store_name mystore
+$ pda config get store.default_store_name
+mystore
+
+# Set back to original
+$ pda config set git.auto_commit false
+$ pda config get git.auto_commit
+false
+
+# Bad type
+$ pda config set git.auto_commit yes --> FAIL
+FAIL cannot set 'git.auto_commit': expected bool (true/false), got 'yes'
+
+# Unknown key
+$ pda config set git.auto_comit true --> FAIL
+FAIL unknown config key 'git.auto_comit'
+hint did you mean 'git.auto_commit'?

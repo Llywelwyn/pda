@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -107,11 +108,59 @@ var configInitCmd = &cobra.Command{
 	},
 }
 
+var configSetCmd = &cobra.Command{
+	Use:          "set <key> <value>",
+	Short:        "Set a configuration value",
+	Args:         cobra.ExactArgs(2),
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		key, raw := args[0], args[1]
+
+		// Work on a copy of the current config so we can write it back.
+		cfg := config
+		defaults := defaultConfig()
+		fields := configFields(&cfg, &defaults)
+		f := findConfigField(fields, key)
+		if f == nil {
+			err := fmt.Errorf("unknown config key '%s'", key)
+			if suggestions := suggestConfigKey(fields, key); len(suggestions) > 0 {
+				return withHint(err, fmt.Sprintf("did you mean '%s'?", strings.Join(suggestions, "', '")))
+			}
+			return err
+		}
+
+		switch f.Kind {
+		case reflect.Bool:
+			switch raw {
+			case "true":
+				f.Field.SetBool(true)
+			case "false":
+				f.Field.SetBool(false)
+			default:
+				return fmt.Errorf("cannot set '%s': expected bool (true/false), got '%s'", key, raw)
+			}
+		case reflect.String:
+			f.Field.SetString(raw)
+		default:
+			return fmt.Errorf("cannot set '%s': unsupported type %s", key, f.Kind)
+		}
+
+		if err := writeConfigFile(cfg); err != nil {
+			return err
+		}
+
+		// Reload so subsequent commands in the same process see the change.
+		config = cfg
+		return nil
+	},
+}
+
 func init() {
 	configInitCmd.Flags().Bool("new", false, "overwrite existing config file")
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configInitCmd)
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configPathCmd)
+	configCmd.AddCommand(configSetCmd)
 	rootCmd.AddCommand(configCmd)
 }
