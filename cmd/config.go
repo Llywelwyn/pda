@@ -145,6 +145,11 @@ func loadConfig() (Config, []string, error) {
 	return cfg, undecoded, nil
 }
 
+// validateConfig checks invariants on a Config value before it is persisted.
+func validateConfig(cfg Config) error {
+	return validListFormat(cfg.List.DefaultListFormat)
+}
+
 func configPath() (string, error) {
 	if override := os.Getenv("PDA_CONFIG"); override != "" {
 		return filepath.Join(override, "config.toml"), nil

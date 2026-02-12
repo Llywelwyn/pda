@@ -96,7 +96,23 @@ var configEditCmd = &cobra.Command{
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
-		return c.Run()
+		if err := c.Run(); err != nil {
+			return err
+		}
+
+		cfg, undecoded, err := loadConfig()
+		if err != nil {
+			warnf("config has errors: %v", err)
+			printHint("re-run 'pda config edit' to fix")
+			return nil
+		}
+		if len(undecoded) > 0 {
+			warnf("unrecognised key(s) will be ignored: %s", strings.Join(undecoded, ", "))
+		}
+		config = cfg
+		configUndecodedKeys = undecoded
+		configErr = nil
+		return nil
 	},
 }
 
@@ -177,12 +193,17 @@ var configSetCmd = &cobra.Command{
 			return fmt.Errorf("cannot set '%s': unsupported type %s", key, f.Kind)
 		}
 
+		if err := validateConfig(cfg); err != nil {
+			return fmt.Errorf("cannot set '%s': %w", key, err)
+		}
+
 		if err := writeConfigFile(cfg); err != nil {
 			return err
 		}
 
 		// Reload so subsequent commands in the same process see the change.
 		config = cfg
+		configUndecodedKeys = nil
 		return nil
 	},
 }

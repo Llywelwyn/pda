@@ -17,6 +17,15 @@ false
 $ pda config set git.auto_commit yes --> FAIL
 FAIL cannot set 'git.auto_commit': expected bool (true/false), got 'yes'
 
+# Invalid list format
+$ pda config set list.default_list_format yaml --> FAIL
+FAIL cannot set 'list.default_list_format': must be one of 'table', 'tsv', 'csv', 'html', 'markdown', 'ndjson', or 'json'
+
+# Valid list format
+$ pda config set list.default_list_format json
+$ pda config get list.default_list_format
+json
+
 # Unknown key
 $ pda config set git.auto_comit true --> FAIL
 FAIL unknown config key 'git.auto_comit'
