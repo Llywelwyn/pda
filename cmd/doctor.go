@@ -38,18 +38,27 @@ func runDoctor(w io.Writer) bool {
 	}
 	hasError := false
 
+	lastFail := false
+
 	emit := func(level, msg string) {
 		var code string
 		switch level {
 		case "ok":
 			code = "32"
+			lastFail = false
 		case "WARN":
 			code = "33"
+			lastFail = false
 		case "FAIL":
 			code = "31"
 			hasError = true
+			lastFail = true
 		}
-		fmt.Fprintf(w, "%s %s\n", keyword(code, level, tty), msg)
+		if lastFail && tty {
+			fmt.Fprintf(w, "%s \033[1m%s\033[0m\n", keyword(code, level, tty), msg)
+		} else {
+			fmt.Fprintf(w, "%s %s\n", keyword(code, level, tty), msg)
+		}
 	}
 
 	tree := func(items []string) {
@@ -58,7 +67,11 @@ func runDoctor(w io.Writer) bool {
 			if i == len(items)-1 {
 				connector = "└── "
 			}
-			fmt.Fprintf(w, "      %s%s\n", connector, item)
+			if lastFail && tty {
+				fmt.Fprintf(w, "\033[1m      %s%s\033[0m\n", connector, item)
+			} else {
+				fmt.Fprintf(w, "      %s%s\n", connector, item)
+			}
 		}
 	}
 
@@ -117,6 +130,7 @@ func runDoctor(w io.Writer) bool {
 		}
 		if configErr != nil {
 			issues = append(issues, fmt.Sprintf("Parse error: %v", configErr))
+			issues = append(issues, "While broken, ONLY 'doctor', 'config edit', and 'config init' will function")
 			issues = append(issues, "Fix with 'pda config edit' or 'pda config init --new'")
 		}
 		if unexpectedFiles(cfgDir, map[string]bool{

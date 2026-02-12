@@ -23,6 +23,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -40,7 +41,7 @@ func Execute() {
 	if configErr != nil {
 		cmd, _, _ := rootCmd.Find(os.Args[1:])
 		if !configSafeCmd(cmd) {
-			infof("Running pda! doctor")
+			printError(fmt.Errorf("fatal problem: running pda! doctor automatically"))
 			runDoctor(os.Stderr)
 			os.Exit(1)
 		}

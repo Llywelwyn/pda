@@ -14,6 +14,9 @@ func TestDoctorCleanEnv(t *testing.T) {
 	configDir := t.TempDir()
 	t.Setenv("PDA_DATA", dataDir)
 	t.Setenv("PDA_CONFIG", configDir)
+	saved := configErr
+	configErr = nil
+	t.Cleanup(func() { configErr = saved })
 
 	var buf bytes.Buffer
 	hasError := runDoctor(&buf)
@@ -40,6 +43,9 @@ func TestDoctorWithStores(t *testing.T) {
 	configDir := t.TempDir()
 	t.Setenv("PDA_DATA", dataDir)
 	t.Setenv("PDA_CONFIG", configDir)
+	saved := configErr
+	configErr = nil
+	t.Cleanup(func() { configErr = saved })
 
 	content := "{\"key\":\"foo\",\"value\":\"bar\",\"encoding\":\"text\"}\n" +
 		"{\"key\":\"baz\",\"value\":\"qux\",\"encoding\":\"text\"}\n"

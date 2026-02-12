@@ -31,24 +31,33 @@ func stdoutIsTerminal() bool {
 }
 
 // keyword returns a right-aligned, colored keyword (color only on TTY).
+// All keywords are bold except dim (code "2").
 //
-//	FAIL  red         (stderr)
+//	FAIL  bold red    (stderr)
 //	hint  dim         (stderr)
-//	WARN  yellow      (stderr)
-//	info  blue        (stderr)
-//	  ok  green       (stderr)
-//	   ?  cyan        (stdout)
+//	WARN  bold yellow (stderr)
+//	info  bold blue   (stderr)
+//	  ok  bold green  (stderr)
+//	   ?  bold cyan   (stdout)
 //	   >  dim         (stdout)
 func keyword(code, word string, tty bool) string {
 	padded := fmt.Sprintf("%4s", word)
 	if tty {
+		if code != "2" {
+			code = "1;" + code
+		}
 		return fmt.Sprintf("\033[%sm%s\033[0m", code, padded)
 	}
 	return padded
 }
 
 func printError(err error) {
-	fmt.Fprintf(os.Stderr, "%s %s\n", keyword("31", "FAIL", stderrIsTerminal()), err)
+	tty := stderrIsTerminal()
+	if tty {
+		fmt.Fprintf(os.Stderr, "%s \033[1m%s\033[0m\n", keyword("31", "FAIL", true), err)
+	} else {
+		fmt.Fprintf(os.Stderr, "%s %s\n", keyword("31", "FAIL", false), err)
+	}
 }
 
 func printHint(format string, args ...any) {
