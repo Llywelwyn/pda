@@ -73,6 +73,7 @@ func set(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	secret = secret || config.Key.AlwaysEncrypt
 
 	spec, err := store.parseKey(args[0], true)
 	if err != nil {

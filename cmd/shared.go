@@ -262,7 +262,7 @@ func validateDBName(name string) error {
 
 func formatExpiry(expiresAt uint64) string {
 	if expiresAt == 0 {
-		return "no expiry"
+		return "none"
 	}
 	expiry := time.Unix(int64(expiresAt), 0).UTC()
 	remaining := time.Until(expiry)

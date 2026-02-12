@@ -23,7 +23,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -66,7 +66,7 @@ func sync(manual bool, customMsg string) error {
 	if changed {
 		msg := customMsg
 		if msg == "" {
-			msg = fmt.Sprintf("sync: %s", time.Now().UTC().Format(time.RFC3339))
+			msg = strings.ReplaceAll(config.Git.DefaultCommitMessage, "{{.Time}}", time.Now().UTC().Format(time.RFC3339))
 			if manual {
 				printHint("use -m to set a custom commit message")
 			}

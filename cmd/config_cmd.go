@@ -100,7 +100,14 @@ var configEditCmd = &cobra.Command{
 			return err
 		}
 
-		cfg, undecoded, err := loadConfig()
+		cfg, undecoded, migrations, err := loadConfig()
+		for _, m := range migrations {
+			if m.Conflict {
+				warnf("both '%s' and '%s' present; using '%s'", m.Old, m.New, m.New)
+			} else {
+				warnf("config key '%s' is deprecated, use '%s'", m.Old, m.New)
+			}
+		}
 		if err != nil {
 			warnf("config has errors: %v", err)
 			printHint("re-run 'pda config edit' to fix")
@@ -112,6 +119,7 @@ var configEditCmd = &cobra.Command{
 		config = cfg
 		configUndecodedKeys = undecoded
 		configErr = nil
+		okf("saved config: %s", p)
 		return nil
 	},
 }
@@ -144,14 +152,42 @@ var configInitCmd = &cobra.Command{
 			return fmt.Errorf("cannot determine config path: %w", err)
 		}
 		newFlag, _ := cmd.Flags().GetBool("new")
+		updateFlag, _ := cmd.Flags().GetBool("update")
+
+		if newFlag && updateFlag {
+			return fmt.Errorf("--new and --update are mutually exclusive")
+		}
+
+		if updateFlag {
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				return withHint(
+					fmt.Errorf("no config file to update"),
+					"use 'pda config init' to create one",
+				)
+			}
+			cfg, _, migrations, loadErr := loadConfig()
+			if loadErr != nil {
+				return fmt.Errorf("cannot update config: %w", loadErr)
+			}
+			if err := writeConfigFile(cfg); err != nil {
+				return err
+			}
+			for _, m := range migrations {
+				okf("%s migrated to %s", m.Old, m.New)
+			}
+			okf("updated config: %s", p)
+			return nil
+		}
+
 		if !newFlag {
 			if _, err := os.Stat(p); err == nil {
 				return withHint(
 					fmt.Errorf("config file already exists"),
-					"use 'pda config edit' or 'pda config init --new'",
+					"use '--update' to update your config, or '--new' to get a fresh copy",
 				)
 			}
 		}
+		okf("generated config: %s", p)
 		return writeConfigFile(defaultConfig())
 	},
 }
@@ -163,8 +199,6 @@ var configSetCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key, raw := args[0], args[1]
-
-		// Work on a copy of the current config so we can write it back.
 		cfg := config
 		defaults := defaultConfig()
 		fields := configFields(&cfg, &defaults)
@@ -201,15 +235,16 @@ var configSetCmd = &cobra.Command{
 			return err
 		}
 
-		// Reload so subsequent commands in the same process see the change.
 		config = cfg
 		configUndecodedKeys = nil
+		okf("%s set to '%s'", key, raw)
 		return nil
 	},
 }
 
 func init() {
 	configInitCmd.Flags().Bool("new", false, "overwrite existing config file")
+	configInitCmd.Flags().Bool("update", false, "migrate deprecated keys and fill missing defaults")
 	configCmd.AddCommand(configEditCmd)
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configInitCmd)

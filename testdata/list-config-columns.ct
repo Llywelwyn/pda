@@ -1,0 +1,11 @@
+# default_columns = "key,value" shows only key and value
+$ pda config set list.default_columns key,value
+$ pda set a@lcc 1
+$ pda ls lcc --format tsv
+  ok list.default_columns set to 'key,value'
+Key	Value
+a	1
+
+# Reset
+$ pda config set list.default_columns key,store,value,ttl
+  ok list.default_columns set to 'key,store,value,ttl'

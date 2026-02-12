@@ -1,0 +1,10 @@
+# always_encrypt config encrypts without --encrypt flag
+$ pda config set key.always_encrypt true
+$ pda set secret-key@sce mysecretvalue
+$ pda get secret-key@sce
+  ok key.always_encrypt set to 'true'
+mysecretvalue
+
+# Reset
+$ pda config set key.always_encrypt false
+  ok key.always_encrypt set to 'false'

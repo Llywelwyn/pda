@@ -216,7 +216,7 @@ pda rm kitty -y
 
 <p align="center"></p><!-- spacer -->
 
-`pda ls` to see what you've got stored. By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `list.list_all_stores` can be set to false to list `store.default_store_name` by default.
+`pda ls` to see what you've got stored. By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `list.always_show_all_stores` can be set to false to list `store.default_store_name` by default.
 ```bash
 pda ls
 # Key  Store    Value                TTL
@@ -798,6 +798,9 @@ pda config init
 
 # Overwrite an existing config with defaults.
 pda config init --new
+
+# Update config: migrate deprecated keys and fill missing defaults.
+pda config init --update
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -821,6 +824,8 @@ always_prompt_delete = false
 always_prompt_glob_delete = true
 # prompt y/n before key overwrites
 always_prompt_overwrite = false
+# encrypt all values at rest by default
+always_encrypt = false
 
 [store]
 # store name used when none is specified
@@ -832,9 +837,15 @@ always_prompt_overwrite = true
 
 [list]
 # list all, or list only the default store when none specified
-list_all_stores = true
+always_show_all_stores = true
 # default output, accepts: table|tsv|csv|markdown|html|ndjson|json
 default_list_format = "table"
+# show full values without truncation
+always_show_full_values = false
+# suppress the header row
+always_hide_header = false
+# columns and order, accepts: key,store,value,ttl
+default_columns = "key,store,value,ttl"
 
 [git]
 # auto fetch whenever a change happens
@@ -843,6 +854,8 @@ auto_fetch = false
 auto_commit = false
 # auto push after committing
 auto_push = false
+# commit message template ({{.Time}} is replaced with RFC3339 timestamp)
+default_commit_message = "sync: {{.Time}}"
 ```
 
 <p align="center"></p><!-- spacer -->

@@ -101,7 +101,7 @@ func TestDoctorUndecodedKeys(t *testing.T) {
 	}
 
 	savedCfg, savedUndecoded, savedErr := config, configUndecodedKeys, configErr
-	config, configUndecodedKeys, configErr = loadConfig()
+	config, configUndecodedKeys, _, configErr = loadConfig()
 	t.Cleanup(func() {
 		config, configUndecodedKeys, configErr = savedCfg, savedUndecoded, savedErr
 	})

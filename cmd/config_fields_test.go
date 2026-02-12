@@ -40,14 +40,19 @@ func TestConfigFieldsDottedKeys(t *testing.T) {
 		"key.always_prompt_delete":      true,
 		"key.always_prompt_glob_delete": true,
 		"key.always_prompt_overwrite":   true,
+		"key.always_encrypt":            true,
 		"store.default_store_name":      true,
 		"store.always_prompt_delete":    true,
 		"store.always_prompt_overwrite": true,
-		"list.list_all_stores":          true,
+		"list.always_show_all_stores":   true,
 		"list.default_list_format":      true,
+		"list.always_show_full_values":  true,
+		"list.always_hide_header":       true,
+		"list.default_columns":          true,
 		"git.auto_fetch":               true,
 		"git.auto_commit":              true,
 		"git.auto_push":                true,
+		"git.default_commit_message":    true,
 	}
 
 	got := make(map[string]bool)

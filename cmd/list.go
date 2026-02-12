@@ -64,6 +64,42 @@ func validListFormat(v string) error {
 
 func (e *formatEnum) Type() string { return "format" }
 
+var columnNames = map[string]columnKind{
+	"key":   columnKey,
+	"store": columnStore,
+	"value": columnValue,
+	"ttl":   columnTTL,
+}
+
+func validListColumns(v string) error {
+	seen := make(map[string]bool)
+	for _, raw := range strings.Split(v, ",") {
+		tok := strings.TrimSpace(raw)
+		if _, ok := columnNames[tok]; !ok {
+			return fmt.Errorf("must be a comma-separated list of 'key', 'store', 'value', 'ttl' (got '%s')", tok)
+		}
+		if seen[tok] {
+			return fmt.Errorf("duplicate column '%s'", tok)
+		}
+		seen[tok] = true
+	}
+	if len(seen) == 0 {
+		return fmt.Errorf("at least one column is required")
+	}
+	return nil
+}
+
+func parseColumns(v string) []columnKind {
+	var cols []columnKind
+	for _, raw := range strings.Split(v, ",") {
+		tok := strings.TrimSpace(raw)
+		if kind, ok := columnNames[tok]; ok {
+			cols = append(cols, kind)
+		}
+	}
+	return cols
+}
+
 var (
 	listBase64   bool
 	listCount    bool
@@ -121,7 +157,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot use --store with a store argument")
 	}
 
-	allStores := len(args) == 0 && (config.List.ListAllStores || listAll)
+	allStores := len(args) == 0 && (config.List.AlwaysShowAllStores || listAll)
 	var targetDB string
 	if allStores {
 		targetDB = "all"
@@ -147,16 +183,15 @@ func list(cmd *cobra.Command, args []string) error {
 		return withHint(fmt.Errorf("cannot ls '%s': no columns selected", targetDB), "disable --no-keys, --no-values, or --no-ttl")
 	}
 
-	var columns []columnKind
-	if !listNoKeys {
-		columns = append(columns, columnKey)
+	columns := parseColumns(config.List.DefaultColumns)
+	if listNoKeys {
+		columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == columnKey })
 	}
-	columns = append(columns, columnStore)
-	if !listNoValues {
-		columns = append(columns, columnValue)
+	if listNoValues {
+		columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == columnValue })
 	}
-	if !listNoTTL {
-		columns = append(columns, columnTTL)
+	if listNoTTL {
+		columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == columnTTL })
 	}
 
 	keyPatterns, err := cmd.Flags().GetStringSlice("key")
@@ -310,7 +345,7 @@ func list(cmd *cobra.Command, args []string) error {
 
 	tty := stdoutIsTerminal() && listFormat.String() == "table"
 
-	if !listNoHeader {
+	if !(listNoHeader || config.List.AlwaysHideHeader) {
 		tw.AppendHeader(headerRow(columns, tty))
 		tw.Style().Format.Header = text.FormatDefault
 	}
@@ -329,7 +364,7 @@ func list(cmd *cobra.Command, args []string) error {
 					dimValue = true
 				}
 			}
-			if !listFull {
+			if !(listFull || config.List.AlwaysShowFullValues) {
 				valueStr = summariseValue(valueStr, lay.value, tty)
 			}
 		}
@@ -365,7 +400,7 @@ func list(cmd *cobra.Command, args []string) error {
 		tw.AppendRow(row)
 	}
 
-	applyColumnWidths(tw, columns, output, lay, listFull)
+	applyColumnWidths(tw, columns, output, lay, listFull || config.List.AlwaysShowFullValues)
 	renderTable(tw)
 	return nil
 }
