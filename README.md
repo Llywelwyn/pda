@@ -811,27 +811,37 @@ pda config init --new
 All values below are the defaults. A missing config file or missing keys will use these values.
 
 ```toml
-display_ascii_art = true
+# display ascii header in long root and version commands
+display_ascii_art = true 
 
 [key]
+# prompt y/n before deleting keys
 always_prompt_delete = false
+# prompt y/n before deleting with a glob match
 always_prompt_glob_delete = true
+# prompt y/n before key overwrites
 always_prompt_overwrite = false
 
 [store]
+# store name used when none is specified
 default_store_name = "default"
+# prompt y/n before deleting whole store
 always_prompt_delete = true
+# prompt y/n before store overwrites
 always_prompt_overwrite = true
 
 [list]
-# List all stores when 'pda ls' is run with no arguments.
+# list all, or list only the default store when none specified
 list_all_stores = true
-# Output format for 'pda ls' (table|tsv|csv|markdown|html|ndjson|json).
+# default output, accepts: table|tsv|csv|markdown|html|ndjson|json
 default_list_format = "table"
 
 [git]
+# auto fetch whenever a change happens
 auto_fetch = false
+# auto commit any changes
 auto_commit = false
+# auto push after committing
 auto_push = false
 ```
 
