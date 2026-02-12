@@ -63,7 +63,8 @@ type GitConfig struct {
 }
 
 var (
-	config   Config
+	config              Config
+	configUndecodedKeys []string
 	asciiArt string = `                 ▄▄           
                  ██           
  ██▄███▄    ▄███▄██   ▄█████▄
@@ -77,7 +78,7 @@ var (
 )
 
 func init() {
-	config, configErr = loadConfig()
+	config, configUndecodedKeys, configErr = loadConfig()
 }
 
 func defaultConfig() Config {
@@ -105,24 +106,29 @@ func defaultConfig() Config {
 	}
 }
 
-func loadConfig() (Config, error) {
+func loadConfig() (Config, []string, error) {
 	cfg := defaultConfig()
 
 	path, err := configPath()
 	if err != nil {
-		return cfg, err
+		return cfg, nil, err
 	}
 
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return cfg, nil
+			return cfg, nil, nil
 		}
-		return cfg, err
+		return cfg, nil, err
 	}
 
-	_, err = toml.DecodeFile(path, &cfg)
+	meta, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
-		return cfg, fmt.Errorf("parse %s: %w", path, err)
+		return cfg, nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+
+	var undecoded []string
+	for _, key := range meta.Undecoded() {
+		undecoded = append(undecoded, key.String())
 	}
 
 	if cfg.Store.DefaultStoreName == "" {
@@ -133,10 +139,10 @@ func loadConfig() (Config, error) {
 		cfg.List.DefaultListFormat = defaultConfig().List.DefaultListFormat
 	}
 	if err := validListFormat(cfg.List.DefaultListFormat); err != nil {
-		return cfg, fmt.Errorf("parse %s: list.default_list_format: %w", path, err)
+		return cfg, undecoded, fmt.Errorf("parse %s: list.default_list_format: %w", path, err)
 	}
 
-	return cfg, nil
+	return cfg, undecoded, nil
 }
 
 func configPath() (string, error) {

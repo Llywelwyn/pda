@@ -88,6 +88,36 @@ func TestDoctorIdentityPermissions(t *testing.T) {
 	}
 }
 
+func TestDoctorUndecodedKeys(t *testing.T) {
+	dataDir := t.TempDir()
+	configDir := t.TempDir()
+	t.Setenv("PDA_DATA", dataDir)
+	t.Setenv("PDA_CONFIG", configDir)
+
+	// Write a config with an unknown key.
+	cfgContent := "[store]\nno_such_key = true\n"
+	if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte(cfgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	savedCfg, savedUndecoded, savedErr := config, configUndecodedKeys, configErr
+	config, configUndecodedKeys, configErr = loadConfig()
+	t.Cleanup(func() {
+		config, configUndecodedKeys, configErr = savedCfg, savedUndecoded, savedErr
+	})
+
+	var buf bytes.Buffer
+	runDoctor(&buf)
+	out := buf.String()
+
+	if !strings.Contains(out, "Unrecognised config key") {
+		t.Errorf("expected undecoded key warning, got:\n%s", out)
+	}
+	if !strings.Contains(out, "store.no_such_key") {
+		t.Errorf("expected 'store.no_such_key' in output, got:\n%s", out)
+	}
+}
+
 func TestDoctorGitInitialised(t *testing.T) {
 	dataDir := t.TempDir()
 	configDir := t.TempDir()

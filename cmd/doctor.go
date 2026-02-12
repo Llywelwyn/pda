@@ -161,6 +161,12 @@ func runDoctor(w io.Writer) bool {
 		}
 	}
 
+	// 7b. Unrecognised config keys
+	if len(configUndecodedKeys) > 0 {
+		emit("WARN", fmt.Sprintf("Unrecognised config key(s) (ignored):"))
+		tree(configUndecodedKeys)
+	}
+
 	// 8. Data directory
 	store := &Store{}
 	dataDir, err := store.path()
