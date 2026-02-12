@@ -58,6 +58,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [Binary](https://github.com/Llywelwyn/pda#binary)
 - [Encryption](https://github.com/Llywelwyn/pda#encryption)
 - [Doctor](https://github.com/Llywelwyn/pda#doctor)
+- [Config](https://github.com/Llywelwyn/pda#config)
 - [Environment](https://github.com/Llywelwyn/pda#environment)
 
 <p align="center"></p><!-- spacer -->
@@ -99,9 +100,12 @@ Git commands:
   init         Initialise pda! version control
   sync         Manually sync your stores with Git
 
+Environment commands:
+  config       View and modify configuration
+  doctor       Check environment health
+
 Additional Commands:
   completion   Generate the autocompletion script for the specified shell
-  doctor       Check environment health
   help         Help about any command
   version      Display pda! version
 ```
@@ -772,14 +776,48 @@ Severity levels are colour-coded: `ok` (green), `WARN` (yellow), and `FAIL` (red
 
 <p align="center"></p><!-- spacer -->
 
-### Environment
+### Config
 
-Config is stored in your user config directory in `pda/config.toml`.
+Config is stored at `~/.config/pda/config.toml` (Linux/macOS) or `%LOCALAPPDATA%/pda/config.toml` (Windows). All values have sensible defaults, so a config file is entirely optional.
 
-Usually: `~/.config/pda/config.toml`
+<p align="center"></p><!-- spacer -->
 
+`pda config` manages configuration without editing files by hand.
+```bash
+# List all config values and their current settings.
+pda config list
+
+# Get a single value.
+pda config get git.auto_commit
+# false
+
+# Set a value. Validated before saving.
+pda config set git.auto_commit true
+
+# Open in $EDITOR. Validated on save.
+pda config edit
+
+# Print the config file path.
+pda config path
+
+# Generate a fresh default config file.
+pda config init
+
+# Overwrite an existing config with defaults.
+pda config init --new
 ```
-# ~/.config/pda/config.toml
+
+<p align="center"></p><!-- spacer -->
+
+`pda doctor` will warn about unrecognised keys (typos, removed options) and show any non-default values, so it doubles as a config audit.
+
+<p align="center"></p><!-- spacer -->
+
+#### Example config.toml
+
+All values below are the defaults. A missing config file or missing keys will use these values.
+
+```toml
 display_ascii_art = true
 
 [key]
@@ -793,43 +831,43 @@ always_prompt_delete = true
 always_prompt_overwrite = true
 
 [list]
+# List all stores when 'pda ls' is run with no arguments.
 list_all_stores = true
+# Output format for 'pda ls' (table|tsv|csv|markdown|html|ndjson|json).
 default_list_format = "table"
 
 [git]
 auto_fetch = false
-auto_commit = true
+auto_commit = false
 auto_push = false
 ```
 
-`PDA_CONFIG` overrides the default config location. pda! will look for a config.toml file in that directory.
+<p align="center"></p><!-- spacer -->
+
+### Environment
+
+`PDA_CONFIG` overrides the config directory. pda! will look for `config.toml` in this directory.
 ```bash
 PDA_CONFIG=/tmp/config/ pda set key value
 ```
 
 <p align="center"></p><!-- spacer -->
 
-Data is stored in your user data directory under `pda/`.
+`PDA_DATA` overrides the data storage directory.
 
-Usually:
-- linux: `~/.local/share/pda/`
+Default locations:
+- Linux: `~/.local/share/pda/`
 - macOS: `~/Library/Application Support/pda/`
-- windows: `%LOCALAPPDATA%/pda/`
+- Windows: `%LOCALAPPDATA%/pda/`
 
-`PDA_DATA` overrides the default storage location.
 ```bash
 PDA_DATA=/tmp/stores pda set key value
 ```
 
 <p align="center"></p><!-- spacer -->
 
-`pda run` (or `pda get --run`) uses `SHELL` for command execution.
+`SHELL` is used by `pda run` (or `pda get --run`) for command execution. Falls back to `/bin/sh` if unset.
 ```bash
-# SHELL is usually your current shell.
-pda run script
-
-# An empty SHELL falls back to using 'sh'.
-export SHELL=""
 pda run script
 ```
 

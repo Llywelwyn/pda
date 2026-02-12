@@ -85,4 +85,9 @@ func init() {
 	initCmd.GroupID = "git"
 	syncCmd.GroupID = "git"
 	gitCmd.GroupID = "git"
+
+	rootCmd.AddGroup(&cobra.Group{ID: "env", Title: "Environment commands:"})
+
+	configCmd.GroupID = "env"
+	doctorCmd.GroupID = "env"
 }

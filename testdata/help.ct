@@ -34,10 +34,12 @@ Git commands:
   init         Initialise pda! version control
   sync         Manually sync your stores with Git
 
-Additional Commands:
-  completion   Generate the autocompletion script for the specified shell
+Environment commands:
   config       View and modify configuration
   doctor       Check environment health
+
+Additional Commands:
+  completion   Generate the autocompletion script for the specified shell
   help         Help about any command
   version      Display pda! version
 
@@ -79,10 +81,12 @@ Git commands:
   init         Initialise pda! version control
   sync         Manually sync your stores with Git
 
-Additional Commands:
-  completion   Generate the autocompletion script for the specified shell
+Environment commands:
   config       View and modify configuration
   doctor       Check environment health
+
+Additional Commands:
+  completion   Generate the autocompletion script for the specified shell
   help         Help about any command
   version      Display pda! version
 
