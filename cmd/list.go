@@ -46,9 +46,16 @@ type formatEnum string
 func (e *formatEnum) String() string { return string(*e) }
 
 func (e *formatEnum) Set(v string) error {
+	if err := validListFormat(v); err != nil {
+		return err
+	}
+	*e = formatEnum(v)
+	return nil
+}
+
+func validListFormat(v string) error {
 	switch v {
 	case "table", "tsv", "csv", "html", "markdown", "ndjson", "json":
-		*e = formatEnum(v)
 		return nil
 	default:
 		return fmt.Errorf("must be one of 'table', 'tsv', 'csv', 'html', 'markdown', 'ndjson', or 'json'")
@@ -66,7 +73,7 @@ var (
 	listFull     bool
 	listAll      bool
 	listNoHeader bool
-	listFormat   formatEnum = "table"
+	listFormat   formatEnum
 
 	dimStyle = text.Colors{text.Faint, text.Italic}
 )
@@ -100,6 +107,10 @@ within the same flag.`,
 }
 
 func list(cmd *cobra.Command, args []string) error {
+	if listFormat == "" {
+		listFormat = formatEnum(config.List.DefaultListFormat)
+	}
+
 	store := &Store{}
 
 	storePatterns, err := cmd.Flags().GetStringSlice("store")
@@ -110,7 +121,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot use --store with a store argument")
 	}
 
-	allStores := len(args) == 0 && (config.Store.ListAllStores || listAll)
+	allStores := len(args) == 0 && (config.List.ListAllStores || listAll)
 	var targetDB string
 	if allStores {
 		targetDB = "all"

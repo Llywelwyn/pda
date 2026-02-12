@@ -219,7 +219,7 @@ pda rm kitty -y
 
 <p align="center"></p><!-- spacer -->
 
-`pda ls` to see what you've got stored. By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `store.list_all_stores` can be set to false to list `store.default_store_name` by default.
+`pda ls` to see what you've got stored. By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `list.list_all_stores` can be set to false to list `store.default_store_name` by default.
 ```bash
 pda ls
 # Key  Store    Value                TTL
@@ -789,9 +789,12 @@ always_prompt_overwrite = false
 
 [store]
 default_store_name = "default"
-list_all_stores = true
 always_prompt_delete = true
 always_prompt_overwrite = true
+
+[list]
+list_all_stores = true
+default_list_format = "table"
 
 [git]
 auto_fetch = false

@@ -35,6 +35,7 @@ type Config struct {
 	DisplayAsciiArt bool        `toml:"display_ascii_art"`
 	Key             KeyConfig   `toml:"key"`
 	Store           StoreConfig `toml:"store"`
+	List            ListConfig  `toml:"list"`
 	Git             GitConfig   `toml:"git"`
 }
 
@@ -46,9 +47,13 @@ type KeyConfig struct {
 
 type StoreConfig struct {
 	DefaultStoreName      string `toml:"default_store_name"`
-	ListAllStores         bool   `toml:"list_all_stores"`
 	AlwaysPromptDelete    bool   `toml:"always_prompt_delete"`
 	AlwaysPromptOverwrite bool   `toml:"always_prompt_overwrite"`
+}
+
+type ListConfig struct {
+	ListAllStores     bool   `toml:"list_all_stores"`
+	DefaultListFormat string `toml:"default_list_format"`
 }
 
 type GitConfig struct {
@@ -85,9 +90,12 @@ func defaultConfig() Config {
 		},
 		Store: StoreConfig{
 			DefaultStoreName:      "default",
-			ListAllStores:         true,
 			AlwaysPromptDelete:    true,
 			AlwaysPromptOverwrite: true,
+		},
+		List: ListConfig{
+			ListAllStores:     true,
+			DefaultListFormat: "table",
 		},
 		Git: GitConfig{
 			AutoFetch:  false,
@@ -119,6 +127,13 @@ func loadConfig() (Config, error) {
 
 	if cfg.Store.DefaultStoreName == "" {
 		cfg.Store.DefaultStoreName = defaultConfig().Store.DefaultStoreName
+	}
+
+	if cfg.List.DefaultListFormat == "" {
+		cfg.List.DefaultListFormat = defaultConfig().List.DefaultListFormat
+	}
+	if err := validListFormat(cfg.List.DefaultListFormat); err != nil {
+		return cfg, fmt.Errorf("parse %s: list.default_list_format: %w", path, err)
 	}
 
 	return cfg, nil
