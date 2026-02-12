@@ -66,14 +66,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 ### Overview
 
   ```bash
-                  ▄▄
-                  ██
-██▄███▄    ▄███▄██   ▄█████▄
-██▀  ▀██  ██▀  ▀██   ▀ ▄▄▄██
-██    ██  ██    ██  ▄██▀▀▀██
-███▄▄██▀  ▀██▄▄███  ██▄▄▄███
-██ ▀▀▀      ▀▀▀ ▀▀   ▀▀▀▀ ▀▀
-██      (c) 2025 Lewis Wynne
+pda! MIT licensed. (c) 2025 Lewis Wynne
 
 Usage:
   pda [command]
