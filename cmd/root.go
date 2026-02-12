@@ -23,7 +23,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -41,8 +40,6 @@ func Execute() {
 	if configErr != nil {
 		cmd, _, _ := rootCmd.Find(os.Args[1:])
 		if !configSafeCmd(cmd) {
-			printError(fmt.Errorf("cannot load config: %v", configErr))
-			fmt.Fprintln(os.Stderr)
 			infof("Running pda! doctor")
 			runDoctor(os.Stderr)
 			os.Exit(1)

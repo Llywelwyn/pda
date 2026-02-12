@@ -115,6 +115,10 @@ func runDoctor(w io.Writer) bool {
 		if _, statErr := os.Stat(cfgPath); statErr != nil && !os.IsNotExist(statErr) {
 			issues = append(issues, fmt.Sprintf("Config file unreadable: %s", cfgPath))
 		}
+		if configErr != nil {
+			issues = append(issues, fmt.Sprintf("Parse error: %v", configErr))
+			issues = append(issues, "Fix with 'pda config edit' or 'pda config init --new'")
+		}
 		if unexpectedFiles(cfgDir, map[string]bool{
 			"config.toml":  true,
 			"identity.txt": true,
@@ -134,11 +138,13 @@ func runDoctor(w io.Writer) bool {
 		}
 	}
 
-	// 7. Non-default config values
-	defaults := defaultConfig()
-	if diffs := configDiffStrings(configFields(&config, &defaults)); len(diffs) > 0 {
-		emit("ok", "Non-default config:")
-		tree(diffs)
+	// 7. Non-default config values (skip if config failed to parse)
+	if configErr == nil {
+		defaults := defaultConfig()
+		if diffs := configDiffStrings(configFields(&config, &defaults)); len(diffs) > 0 {
+			emit("ok", "Non-default config:")
+			tree(diffs)
+		}
 	}
 
 	// 8. Data directory
