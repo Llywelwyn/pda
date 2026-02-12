@@ -40,10 +40,10 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	if configErr != nil {
 		cmd, _, _ := rootCmd.Find(os.Args[1:])
-		if configSafeCmd(cmd) {
-			warnf("config error: %v (using defaults)", configErr)
-		} else {
+		if !configSafeCmd(cmd) {
 			printError(fmt.Errorf("cannot load config: %v", configErr))
+			fmt.Fprintln(os.Stderr)
+			infof("Running pda! doctor")
 			runDoctor(os.Stderr)
 			os.Exit(1)
 		}
@@ -56,13 +56,10 @@ func Execute() {
 }
 
 // configSafeCmd reports whether cmd can run with a broken config.
+// Only non-destructive commands that don't depend on parsed config values.
 func configSafeCmd(cmd *cobra.Command) bool {
-	for c := cmd; c != nil; c = c.Parent() {
-		if c == configCmd || c == doctorCmd {
-			return true
-		}
-	}
-	return false
+	return cmd == configEditCmd || cmd == configInitCmd ||
+		cmd == configPathCmd || cmd == doctorCmd
 }
 
 func init() {
