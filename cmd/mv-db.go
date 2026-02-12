@@ -102,6 +102,7 @@ func mvStore(cmd *cobra.Command, args []string) error {
 	}
 
 	copy, _ := cmd.Flags().GetBool("copy")
+	var summary string
 	if copy {
 		data, err := os.ReadFile(fromPath)
 		if err != nil {
@@ -111,13 +112,15 @@ func mvStore(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("cannot copy store '%s': %v", fromName, err)
 		}
 		okf("copied @%s to @%s", fromName, toName)
+		summary = fmt.Sprintf("copied @%s to @%s", fromName, toName)
 	} else {
 		if err := os.Rename(fromPath, toPath); err != nil {
 			return fmt.Errorf("cannot rename store '%s': %v", fromName, err)
 		}
 		okf("renamed @%s to @%s", fromName, toName)
+		summary = fmt.Sprintf("moved @%s to @%s", fromName, toName)
 	}
-	return autoSync()
+	return autoSync(summary)
 }
 
 func init() {

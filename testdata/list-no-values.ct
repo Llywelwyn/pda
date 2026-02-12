@@ -2,4 +2,4 @@
 $ pda set a@nv 1
 $ pda ls nv --format tsv --no-values
 Key	Store	TTL
-a	nv	no expiry
+a	nv	none

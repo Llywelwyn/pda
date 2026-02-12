@@ -1,6 +1,6 @@
 # Init creates a config file
 $ pda config init
-  ok generated config: /tmp/TestMain2533282848/002/config.toml
+  ok generated config: ${ROOTDIR}/config/config.toml
 
 # Second init fails
 $ pda config init --> FAIL
@@ -9,7 +9,7 @@ hint use '--update' to update your config, or '--new' to get a fresh copy
 
 # Init --new overwrites
 $ pda config init --new
-  ok generated config: /tmp/TestMain2533282848/002/config.toml
+  ok generated config: ${ROOTDIR}/config/config.toml
 
 # --update preserves user changes
 $ pda config set list.always_show_all_stores false
@@ -18,7 +18,7 @@ $ pda config get list.always_show_all_stores
 false
 $ pda config init --update
 $ pda config get list.always_show_all_stores
-  ok updated config: /tmp/TestMain2533282848/002/config.toml
+  ok updated config: ${ROOTDIR}/config/config.toml
 false
 
 # --new and --update are mutually exclusive
@@ -27,4 +27,4 @@ FAIL --new and --update are mutually exclusive
 
 # Reset for other tests
 $ pda config init --new
-  ok generated config: /tmp/TestMain2533282848/002/config.toml
+  ok generated config: ${ROOTDIR}/config/config.toml

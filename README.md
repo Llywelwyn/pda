@@ -394,7 +394,7 @@ Values support effectively all of Go's `text/template` syntax. Templates are eva
 
 `text/template` is a Turing-complete templating library that supports most of what you'd expect in a scripting language. Actions are given with ``{{ action }}`` syntax and support pipelines and nested templates, along with a lot more. I recommend reading the documentation if you want to do anything more complicated than described here.
 
-To fit `text/template` nicely into this tool, pda has a sparse set of additional functions built-in. For example, `default` values, `enum`s, `require`d values, `lists`, among others.
+To fit `text/template` nicely into this tool, pda has a sparse set of additional functions built-in. For example, `default` values, `enum`s, `require`d values, `time`, `lists`, among others. These same functions are also available in `git.default_commit_message` templates, along with `{{ summary }}` which returns the action that triggered the commit (e.g. "set foo", "removed bar").
 
 Below is more detail on the extra functions added by this tool.
 
@@ -434,6 +434,15 @@ pda get file
 pda set my_name "{{ env "USER" }}"
 pda get my_name
 # llywelwyn
+```
+
+<p align="center"></p><!-- spacer -->
+
+`time` returns the current UTC time in RFC3339 format.
+```bash
+pda set note "Created at {{ time }}"
+pda get note
+# Created at 2025-01-15T12:00:00Z
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -854,8 +863,9 @@ auto_fetch = false
 auto_commit = false
 # auto push after committing
 auto_push = false
-# commit message template ({{.Time}} is replaced with RFC3339 timestamp)
-default_commit_message = "sync: {{.Time}}"
+# commit message if none manually specified
+# supports templates, see: #templates section
+default_commit_message = "{{ summary }} {{ time }}"
 ```
 
 <p align="center"></p><!-- spacer -->

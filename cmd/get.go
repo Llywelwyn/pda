@@ -27,8 +27,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"slices"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -150,57 +148,11 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 		val := parts[1]
 		vars[key] = val
 	}
-	funcMap := template.FuncMap{
-		"require": func(v any) (string, error) {
-			s := fmt.Sprint(v)
-			if s == "" {
-				return "", fmt.Errorf("required value is missing or empty")
-			}
-			return s, nil
-		},
-		"default": func(def string, v any) string {
-			s := fmt.Sprint(v)
-			if s == "" {
-				return def
-			}
-			return s
-		},
-		"env": os.Getenv,
-		"enum": func(v any, allowed ...string) (string, error) {
-			s := fmt.Sprint(v)
-			if s == "" {
-				return "", fmt.Errorf("enum value is missing or empty")
-			}
-			if slices.Contains(allowed, s) {
-				return s, nil
-			}
-			return "", fmt.Errorf("invalid value '%s', allowed: %v", s, allowed)
-		},
-		"int": func(v any) (int, error) {
-			s := fmt.Sprint(v)
-			i, err := strconv.Atoi(s)
-			if err != nil {
-				return 0, fmt.Errorf("cannot convert to int: %w", err)
-			}
-			return i, nil
-		},
-		"list": func(v any) []string {
-			s := fmt.Sprint(v)
-			if s == "" {
-				return nil
-			}
-			parts := strings.Split(s, ",")
-			for i := range parts {
-				parts[i] = strings.TrimSpace(parts[i])
-			}
-			return parts
-		},
-	}
 	tpl, err := template.New("cmd").
 		Delims("{{", "}}").
 		// Render missing map keys as zero values so the default helper can decide on fallbacks.
 		Option("missingkey=zero").
-		Funcs(funcMap).
+		Funcs(templateFuncMap()).
 		Parse(string(tplBytes))
 	if err != nil {
 		return nil, err

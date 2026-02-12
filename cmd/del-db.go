@@ -79,7 +79,7 @@ func delStore(cmd *cobra.Command, args []string) error {
 	if err := executeDeletion(path); err != nil {
 		return err
 	}
-	return autoSync()
+	return autoSync(fmt.Sprintf("removed @%s", dbName))
 }
 
 func executeDeletion(path string) error {

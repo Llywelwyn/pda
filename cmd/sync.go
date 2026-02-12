@@ -23,9 +23,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"strings"
-	"time"
-
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +32,7 @@ var syncCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		msg, _ := cmd.Flags().GetString("message")
-		return sync(true, msg)
+		return sync(true, msg, "sync")
 	},
 }
 
@@ -44,7 +41,7 @@ func init() {
 	rootCmd.AddCommand(syncCmd)
 }
 
-func sync(manual bool, customMsg string) error {
+func sync(manual bool, customMsg string, summary string) error {
 	repoDir, err := ensureVCSInitialized()
 	if err != nil {
 		return err
@@ -66,7 +63,7 @@ func sync(manual bool, customMsg string) error {
 	if changed {
 		msg := customMsg
 		if msg == "" {
-			msg = strings.ReplaceAll(config.Git.DefaultCommitMessage, "{{.Time}}", time.Now().UTC().Format(time.RFC3339))
+			msg = renderCommitMessage(config.Git.DefaultCommitMessage, summary)
 			if manual {
 				printHint("use -m to set a custom commit message")
 			}
@@ -123,12 +120,12 @@ func sync(manual bool, customMsg string) error {
 	return nil
 }
 
-func autoSync() error {
+func autoSync(summary string) error {
 	if !config.Git.AutoCommit {
 		return nil
 	}
 	if _, err := ensureVCSInitialized(); err != nil {
 		return nil
 	}
-	return sync(false, "")
+	return sync(false, "", summary)
 }

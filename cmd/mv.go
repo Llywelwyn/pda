@@ -182,12 +182,15 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		}
 	}
 
+	var summary string
 	if keepSource {
 		okf("copied %s to %s", fromSpec.Display(), toSpec.Display())
+		summary = "copied " + fromSpec.Display() + " to " + toSpec.Display()
 	} else {
 		okf("renamed %s to %s", fromSpec.Display(), toSpec.Display())
+		summary = "moved " + fromSpec.Display() + " to " + toSpec.Display()
 	}
-	return autoSync()
+	return autoSync(summary)
 }
 
 func init() {

@@ -4,5 +4,5 @@ $ pda set greeting@vm < tmpval
 $ pda set number@vm 42
 $ pda ls vm --value "**world**" --value "42" --format tsv
 Key	Store	Value	TTL
-greeting	vm	hello world (..1 more chars)	no expiry
-number	vm	42	no expiry
+greeting	vm	hello world (..1 more chars)	none
+number	vm	42	none

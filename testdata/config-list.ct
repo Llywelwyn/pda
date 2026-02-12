@@ -15,4 +15,4 @@ list.default_columns = key,store,value,ttl
 git.auto_fetch = false
 git.auto_commit = false
 git.auto_push = false
-git.default_commit_message = sync: {{.Time}}
+git.default_commit_message = {{ summary }} {{ time }}

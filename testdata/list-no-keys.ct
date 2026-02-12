@@ -2,4 +2,4 @@
 $ pda set a@nk 1
 $ pda ls nk --format tsv --no-keys
 Store	Value	TTL
-nk	1	no expiry
+nk	1	none

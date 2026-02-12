@@ -4,12 +4,12 @@ $ pda set greeting@vt < tmpval
 $ pda set number@vt 42
 $ pda ls vt --value "**world**" --format tsv
 Key	Store	Value	TTL
-greeting	vt	hello world (..1 more chars)	no expiry
+greeting	vt	hello world (..1 more chars)	none
 $ pda ls vt --value "**https**" --format tsv
 Key	Store	Value	TTL
-url	vt	https://example.com	no expiry
+url	vt	https://example.com	none
 $ pda ls vt --value "*" --format tsv
 Key	Store	Value	TTL
-number	vt	42	no expiry
+number	vt	42	none
 $ pda ls vt --value "**nomatch**" --> FAIL
 FAIL cannot ls '@vt': no matches for value pattern '**nomatch**'

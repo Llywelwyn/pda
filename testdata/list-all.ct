@@ -3,8 +3,8 @@ $ pda set lax@laa 1
 $ pda set lax@lab 2
 $ pda ls --key "lax" --format tsv
 Key	Store	Value	TTL
-lax	laa	1	no expiry
-lax	lab	2	no expiry
+lax	laa	1	none
+lax	lab	2	none
 $ pda ls --key "lax" --count
 2
 $ pda ls --key "lax" --format json
@@ -12,15 +12,15 @@ $ pda ls --key "lax" --format json
 # Positional arg narrows to one store
 $ pda ls laa --key "lax" --format tsv
 Key	Store	Value	TTL
-lax	laa	1	no expiry
+lax	laa	1	none
 # --store glob filter
 $ pda ls --store "la?" --key "lax" --format tsv
 Key	Store	Value	TTL
-lax	laa	1	no expiry
-lax	lab	2	no expiry
+lax	laa	1	none
+lax	lab	2	none
 $ pda ls --store "laa" --key "lax" --format tsv
 Key	Store	Value	TTL
-lax	laa	1	no expiry
+lax	laa	1	none
 # --store cannot be combined with positional arg
 $ pda ls --store "laa" laa --> FAIL
 FAIL cannot use --store with a store argument

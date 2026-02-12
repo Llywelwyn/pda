@@ -107,6 +107,7 @@ func del(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	var removedNames []string
 	for _, dbName := range storeOrder {
 		st := byStore[dbName]
 		p, err := store.storePath(dbName)
@@ -123,13 +124,14 @@ func del(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("cannot remove '%s': no such key", t.full)
 			}
 			entries = append(entries[:idx], entries[idx+1:]...)
+			removedNames = append(removedNames, t.display)
 		}
 		if err := writeStoreFile(p, entries, nil); err != nil {
 			return err
 		}
 	}
 
-	return autoSync()
+	return autoSync("removed " + strings.Join(removedNames, ", "))
 }
 
 func init() {

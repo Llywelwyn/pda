@@ -176,7 +176,7 @@ func set(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
-	return autoSync()
+	return autoSync("set " + spec.Display())
 }
 
 func init() {

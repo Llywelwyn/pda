@@ -117,7 +117,7 @@ func defaultConfig() Config {
 			AutoFetch:            false,
 			AutoCommit:           false,
 			AutoPush:             false,
-			DefaultCommitMessage: "sync: {{.Time}}",
+			DefaultCommitMessage: "{{ summary }} {{ time }}",
 		},
 	}
 }

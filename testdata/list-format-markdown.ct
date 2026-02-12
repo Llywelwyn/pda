@@ -4,5 +4,5 @@ $ pda set b@md 2
 $ pda ls md --format markdown
 | Key | Store | Value | TTL |
 | --- | --- | --- | --- |
-| a | md | 1 | no expiry |
-| b | md | 2 | no expiry |
+| a | md | 1 | none |
+| b | md | 2 | none |

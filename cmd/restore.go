@@ -127,6 +127,7 @@ func restore(cmd *cobra.Command, args []string) error {
 
 	// When a specific store is given, all entries go there (original behaviour).
 	// Otherwise, route entries to their original store via the "store" field.
+	var summary string
 	if explicitStore {
 		p, err := store.storePath(targetDB)
 		if err != nil {
@@ -140,6 +141,7 @@ func restore(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		okf("restored %d entries into @%s", restored, targetDB)
+		summary = fmt.Sprintf("imported %d entries into @%s", restored, targetDB)
 	} else {
 		restored, err := restoreEntries(decoder, nil, targetDB, opts)
 		if err != nil {
@@ -149,9 +151,10 @@ func restore(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		okf("restored %d entries", restored)
+		summary = fmt.Sprintf("imported %d entries", restored)
 	}
 
-	return autoSync()
+	return autoSync(summary)
 }
 
 func reportRestoreFilters(displayTarget string, restored int, matchers []glob.Glob, keyPatterns []string, storeMatchers []glob.Glob, storePatterns []string) error {

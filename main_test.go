@@ -36,20 +36,6 @@ import (
 var update = flag.Bool("update", false, "update test files with results")
 
 func TestMain(t *testing.T) {
-	t.Setenv("PDA_DATA", t.TempDir())
-	configDir := t.TempDir()
-	t.Setenv("PDA_CONFIG", configDir)
-
-	// Pre-create an age identity so encryption tests don't print a
-	// creation message with a non-deterministic path.
-	id, err := age.GenerateX25519Identity()
-	if err != nil {
-		t.Fatalf("generate identity: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(configDir, "identity.txt"), []byte(id.String()+"\n"), 0o600); err != nil {
-		t.Fatalf("write identity: %v", err)
-	}
-
 	ts, err := cmdtest.Read("testdata")
 	if err != nil {
 		t.Fatalf("read testdata: %v", err)
@@ -59,5 +45,29 @@ func TestMain(t *testing.T) {
 		t.Fatal(err)
 	}
 	ts.Commands["pda"] = cmdtest.Program(bin)
+
+	// Each .ct file gets its own isolated data and config directories
+	// inside its ROOTDIR, so tests cannot leak state to each other.
+	ts.Setup = func(rootDir string) error {
+		dataDir := filepath.Join(rootDir, "data")
+		configDir := filepath.Join(rootDir, "config")
+		if err := os.MkdirAll(dataDir, 0o755); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
+			return err
+		}
+		os.Setenv("PDA_DATA", dataDir)
+		os.Setenv("PDA_CONFIG", configDir)
+
+		// Pre-create an age identity so encryption tests don't print
+		// a creation message with a non-deterministic path.
+		id, err := age.GenerateX25519Identity()
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(configDir, "identity.txt"), []byte(id.String()+"\n"), 0o600)
+	}
+
 	ts.Run(t, *update)
 }
