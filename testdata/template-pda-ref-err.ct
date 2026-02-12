@@ -1,0 +1,5 @@
+# pda errors on missing key
+$ fecho tpl1 {{ pda "missing" }}
+$ pda set ref@tplre < tpl1
+$ pda get ref@tplre --> FAIL
+FAIL cannot get 'ref@tplre': pda: cannot get 'missing': no such key

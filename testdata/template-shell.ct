@@ -1,0 +1,5 @@
+# Shell function executes a command and returns stdout
+$ fecho tpl1 {{ shell "echo hello" }}
+$ pda set shelltest@tpls < tpl1
+$ pda get shelltest@tpls
+hello

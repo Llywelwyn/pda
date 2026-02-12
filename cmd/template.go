@@ -25,6 +25,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
@@ -81,5 +82,76 @@ func templateFuncMap() template.FuncMap {
 			return parts
 		},
 		"time": func() string { return time.Now().UTC().Format(time.RFC3339) },
+		"shell": func(command string) (string, error) {
+			sh := os.Getenv("SHELL")
+			if sh == "" {
+				sh = "/bin/sh"
+			}
+			out, err := exec.Command(sh, "-c", command).Output()
+			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
+					return "", fmt.Errorf("shell %q: %s", command, strings.TrimSpace(string(exitErr.Stderr)))
+				}
+				return "", fmt.Errorf("shell %q: %w", command, err)
+			}
+			return strings.TrimRight(string(out), "\n"), nil
+		},
+		"pda": func(key string) (string, error) {
+			return pdaGet(key, nil)
+		},
 	}
+}
+
+// cleanTemplateError strips Go template engine internals from function call
+// errors, returning just the inner error message. Template execution errors
+// look like: "template: cmd:1:3: executing "cmd" at <func args>: error calling func: <inner>"
+// We extract just <inner> for cleaner user-facing output.
+func cleanTemplateError(err error) error {
+	msg := err.Error()
+	const marker = "error calling "
+	if i := strings.Index(msg, marker); i >= 0 {
+		rest := msg[i+len(marker):]
+		if j := strings.Index(rest, ": "); j >= 0 {
+			return fmt.Errorf("%s", rest[j+2:])
+		}
+	}
+	return err
+}
+
+const maxTemplateDepth = 16
+
+func templateDepth() int {
+	s := os.Getenv("PDA_TEMPLATE_DEPTH")
+	if s == "" {
+		return 0
+	}
+	n, _ := strconv.Atoi(s)
+	return n
+}
+
+func pdaGet(key string, substitutions []string) (string, error) {
+	depth := templateDepth()
+	if depth >= maxTemplateDepth {
+		return "", fmt.Errorf("pda: max template depth (%d) exceeded", maxTemplateDepth)
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("pda: %w", err)
+	}
+	args := append([]string{"get", key}, substitutions...)
+	cmd := exec.Command(exe, args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PDA_TEMPLATE_DEPTH=%d", depth+1))
+	out, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
+			msg := strings.TrimSpace(string(exitErr.Stderr))
+			msg = strings.TrimPrefix(msg, "FAIL ")
+			if strings.Contains(msg, "max template depth") {
+				return "", fmt.Errorf("pda: max template depth (%d) exceeded (possible circular reference involving %q)", maxTemplateDepth, key)
+			}
+			return "", fmt.Errorf("pda: %s", msg)
+		}
+		return "", fmt.Errorf("pda: %w", err)
+	}
+	return strings.TrimRight(string(out), "\n"), nil
 }

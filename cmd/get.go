@@ -148,18 +148,22 @@ func applyTemplate(tplBytes []byte, substitutions []string) ([]byte, error) {
 		val := parts[1]
 		vars[key] = val
 	}
+	funcMap := templateFuncMap()
+	funcMap["pda"] = func(key string) (string, error) {
+		return pdaGet(key, substitutions)
+	}
 	tpl, err := template.New("cmd").
 		Delims("{{", "}}").
 		// Render missing map keys as zero values so the default helper can decide on fallbacks.
 		Option("missingkey=zero").
-		Funcs(templateFuncMap()).
+		Funcs(funcMap).
 		Parse(string(tplBytes))
 	if err != nil {
 		return nil, err
 	}
 	var buf bytes.Buffer
 	if err := tpl.Execute(&buf, vars); err != nil {
-		return nil, err
+		return nil, cleanTemplateError(err)
 	}
 	return buf.Bytes(), nil
 }

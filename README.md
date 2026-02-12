@@ -19,14 +19,14 @@
 <p align="center"></p><!-- spacer -->
 
 `pda!` is a command-line key-value store tool with:
-- [templates](https://github.com/Llywelwyn/pda#templates),
+- [templates](https://github.com/Llywelwyn/pda#templates) supporting arbitrary shell execution, conditionals, loops, more,
 - [encryption](https://github.com/Llywelwyn/pda#encryption) at rest using [age](https://github.com/FiloSottile/age),
-- Git-backed [version control](https://github.com/Llywelwyn/pda#git),
-- [search and filtering](https://github.com/Llywelwyn/pda#filtering) by key and/or value,
-- plaintext exports in multiple formats,
+- Git-backed [version control](https://github.com/Llywelwyn/pda#git) with automatic syncing,
+- [search and filtering](https://github.com/Llywelwyn/pda#filtering) by key, value, or store,
+- plaintext exports in 7 different formats,
 - support for all [binary data](https://github.com/Llywelwyn/pda#binary),
-- [time-to-live](https://github.com/Llywelwyn/pda#ttl)/expiry support,
-- built-in [diagnostics](https://github.com/Llywelwyn/pda#doctor),
+- expiring keys with a [time-to-live](https://github.com/Llywelwyn/pda#ttl),
+- built-in [diagnostics](https://github.com/Llywelwyn/pda#doctor) and [configuration](https://github.com/Llywelwyn/pda#config),
 
 and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
 
@@ -394,7 +394,7 @@ Values support effectively all of Go's `text/template` syntax. Templates are eva
 
 `text/template` is a Turing-complete templating library that supports most of what you'd expect in a scripting language. Actions are given with ``{{ action }}`` syntax and support pipelines and nested templates, along with a lot more. I recommend reading the documentation if you want to do anything more complicated than described here.
 
-To fit `text/template` nicely into this tool, pda has a sparse set of additional functions built-in. For example, `default` values, `enum`s, `require`d values, `time`, `lists`, among others. These same functions are also available in `git.default_commit_message` templates, along with `{{ summary }}` which returns the action that triggered the commit (e.g. "set foo", "removed bar").
+To fit `text/template` nicely into this tool, pda has a sparse set of additional functions built-in. For example, `default` values, `enum`s, `require`d values, `time`, `lists`, arbitrary `shell` execution, and getting other `pda` keys (recursively!). These same functions are also available in `git.default_commit_message` templates, along with `summary` which returns the action that triggered the commit (e.g. "set foo", "removed bar").
 
 Below is more detail on the extra functions added by this tool.
 
@@ -477,6 +477,35 @@ pda get meows COUNT=4
 pda set names "{{ range list .NAMES }}Hi {{.}}. {{ end }}"
 pda get names NAMES=Bob,Alice
 # Hi Bob. Hi Alice.
+```
+
+<p align="center"></p><!-- spacer -->
+
+`shell` executes a command and returns stdout.
+```bash
+pda set rev '{{ shell "git rev-parse --short HEAD" }}'
+pda get rev
+# a1b2c3d
+
+pda set today '{{ shell "date +%Y-%m-%d" }}'
+pda get today
+# 2025-06-15
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda` gets another key.
+```bash
+pda set base_url "https://api.example.com"
+pda set endpoint '{{ pda "base_url" }}/users/{{ require .ID }}'
+pda get endpoint ID=42
+# https://api.example.com/users/42
+
+# Cross-store references work too.
+pda set host@urls "https://example.com"
+pda set api '{{ pda "host@urls" }}/api'
+pda get api
+# https://example.com/api
 ```
 
 <p align="center"></p><!-- spacer -->

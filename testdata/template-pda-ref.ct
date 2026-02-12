@@ -1,0 +1,13 @@
+# pda function cross-references another key
+$ pda set base https://example.com
+$ fecho tpl1 {{ pda "base" }}/api
+$ pda set endpoint@tplr < tpl1
+$ pda get endpoint@tplr
+https://example.com/api
+# pda with substitution vars passed through
+$ fecho tpl2 Hello, {{ default "World" .NAME }}
+$ pda set greeting@tplr < tpl2
+$ fecho tpl3 {{ pda "greeting@tplr" }}!
+$ pda set shout@tplr < tpl3
+$ pda get shout@tplr NAME=Alice
+Hello, Alice!
