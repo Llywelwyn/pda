@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"filippo.io/age"
+
 	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 )
@@ -97,9 +98,9 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 
 	identity, _ := loadIdentity()
-	var recipient *age.X25519Recipient
-	if identity != nil {
-		recipient = identity.Recipient()
+	recipients, err := allRecipients(identity)
+	if err != nil {
+		return fmt.Errorf("cannot restore '%s': %v", displayTarget, err)
 	}
 
 	var promptReader io.Reader
@@ -121,7 +122,7 @@ func restore(cmd *cobra.Command, args []string) error {
 		promptOverwrite: promptOverwrite,
 		drop:            drop,
 		identity:        identity,
-		recipient:       recipient,
+		recipients:      recipients,
 		promptReader:    promptReader,
 	}
 
@@ -193,7 +194,7 @@ type restoreOpts struct {
 	promptOverwrite bool
 	drop            bool
 	identity        *age.X25519Identity
-	recipient       *age.X25519Recipient
+	recipients      []age.Recipient
 	promptReader    io.Reader
 }
 
@@ -310,7 +311,7 @@ func restoreEntries(decoder *json.Decoder, storePaths map[string]string, default
 
 	for _, acc := range stores {
 		if restored > 0 || opts.drop {
-			if err := writeStoreFile(acc.path, acc.entries, opts.recipient); err != nil {
+			if err := writeStoreFile(acc.path, acc.entries, opts.recipients); err != nil {
 				return 0, err
 			}
 		}

@@ -119,9 +119,9 @@ func set(cmd *cobra.Command, args []string) error {
 	} else {
 		identity, _ = loadIdentity()
 	}
-	var recipient *age.X25519Recipient
-	if identity != nil {
-		recipient = identity.Recipient()
+	recipients, err := allRecipients(identity)
+	if err != nil {
+		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
 	p, err := store.storePath(spec.DB)
@@ -172,7 +172,7 @@ func set(cmd *cobra.Command, args []string) error {
 		entries = append(entries, entry)
 	}
 
-	if err := writeStoreFile(p, entries, recipient); err != nil {
+	if err := writeStoreFile(p, entries, recipients); err != nil {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 

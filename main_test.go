@@ -66,7 +66,7 @@ func TestMain(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(filepath.Join(configDir, "identity.txt"), []byte(id.String()+"\n"), 0o600)
+		return os.WriteFile(filepath.Join(dataDir, "identity.txt"), []byte(id.String()+"\n"), 0o600)
 	}
 
 	ts.Run(t, *update)

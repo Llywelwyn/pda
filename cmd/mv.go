@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"strings"
 
-	"filippo.io/age"
 	"github.com/spf13/cobra"
 )
 
@@ -75,9 +74,9 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	promptOverwrite := !yes && (interactive || config.Key.AlwaysPromptOverwrite)
 
 	identity, _ := loadIdentity()
-	var recipient *age.X25519Recipient
-	if identity != nil {
-		recipient = identity.Recipient()
+	recipients, err := allRecipients(identity)
+	if err != nil {
+		return err
 	}
 
 	fromSpec, err := store.parseKey(args[0], true)
@@ -161,7 +160,7 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 				dstEntries = append(dstEntries[:idx], dstEntries[idx+1:]...)
 			}
 		}
-		if err := writeStoreFile(dstPath, dstEntries, recipient); err != nil {
+		if err := writeStoreFile(dstPath, dstEntries, recipients); err != nil {
 			return err
 		}
 	} else {
@@ -171,12 +170,12 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		} else {
 			dstEntries = append(dstEntries, newEntry)
 		}
-		if err := writeStoreFile(dstPath, dstEntries, recipient); err != nil {
+		if err := writeStoreFile(dstPath, dstEntries, recipients); err != nil {
 			return err
 		}
 		if !keepSource {
 			srcEntries = append(srcEntries[:srcIdx], srcEntries[srcIdx+1:]...)
-			if err := writeStoreFile(srcPath, srcEntries, recipient); err != nil {
+			if err := writeStoreFile(srcPath, srcEntries, recipients); err != nil {
 				return err
 			}
 		}

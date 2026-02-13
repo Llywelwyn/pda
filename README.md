@@ -777,6 +777,26 @@ pda identity --new
 
 <p align="center"></p><!-- spacer -->
 
+By default, secrets are encrypted only for your own identity. To encrypt for additional recipients (e.g. a teammate or another device), use `--add-recipient` with their age public key. All existing secrets are automatically re-encrypted for every recipient.
+```bash
+# Add a recipient. All secrets are re-encrypted for both keys.
+pda identity --add-recipient age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+#   ok re-encrypted api-key
+#   ok added recipient age1ql3z...
+#   ok re-encrypted 1 secret(s)
+
+# Remove a recipient. Secrets are re-encrypted without their key.
+pda identity --remove-recipient age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+
+# Additional recipients are shown in the default identity display.
+pda identity
+#   ok pubkey     age1abc...
+#   ok identity   ~/.local/share/pda/identity.txt
+#   ok recipient  age1ql3z...
+```
+
+<p align="center"></p><!-- spacer -->
+
 ### Doctor
 
 `pda doctor` runs a set of health checks of your environment.

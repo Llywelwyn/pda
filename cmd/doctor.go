@@ -134,8 +134,7 @@ func runDoctor(w io.Writer) bool {
 			issues = append(issues, "Fix with 'pda config edit' or 'pda config init --new'")
 		}
 		if unexpectedFiles(cfgDir, map[string]bool{
-			"config.toml":  true,
-			"identity.txt": true,
+			"config.toml": true,
 		}) {
 			issues = append(issues, "Unexpected file(s) in directory")
 		}
@@ -353,7 +352,7 @@ func unexpectedDataFiles(dir string) bool {
 		if e.IsDir() && name == ".git" {
 			continue
 		}
-		if !e.IsDir() && (name == ".gitignore" || filepath.Ext(name) == ".ndjson") {
+		if !e.IsDir() && (name == ".gitignore" || name == "identity.txt" || name == "recipients.txt" || filepath.Ext(name) == ".ndjson") {
 			continue
 		}
 		return true

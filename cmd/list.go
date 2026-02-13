@@ -33,7 +33,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"filippo.io/age"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
@@ -218,9 +217,9 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	identity, _ := loadIdentity()
-	var recipient *age.X25519Recipient
-	if identity != nil {
-		recipient = identity.Recipient()
+	recipients, err := allRecipients(identity)
+	if err != nil {
+		return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 	}
 
 	var entries []Entry
@@ -297,7 +296,7 @@ func list(cmd *cobra.Command, args []string) error {
 	// NDJSON format: emit JSON lines directly (encrypted form for secrets)
 	if listFormat.String() == "ndjson" {
 		for _, e := range filtered {
-			je, err := encodeJsonEntry(e, recipient)
+			je, err := encodeJsonEntry(e, recipients)
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 			}
@@ -315,7 +314,7 @@ func list(cmd *cobra.Command, args []string) error {
 	if listFormat.String() == "json" {
 		var jsonEntries []jsonEntry
 		for _, e := range filtered {
-			je, err := encodeJsonEntry(e, recipient)
+			je, err := encodeJsonEntry(e, recipients)
 			if err != nil {
 				return fmt.Errorf("cannot ls '%s': %v", targetDB, err)
 			}

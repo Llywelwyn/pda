@@ -71,7 +71,7 @@ func TestDoctorIdentityPermissions(t *testing.T) {
 	t.Setenv("PDA_DATA", dataDir)
 	t.Setenv("PDA_CONFIG", configDir)
 
-	idPath := filepath.Join(configDir, "identity.txt")
+	idPath := filepath.Join(dataDir, "identity.txt")
 	if err := os.WriteFile(idPath, []byte("placeholder\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

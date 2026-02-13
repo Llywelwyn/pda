@@ -98,8 +98,8 @@ func readStoreFile(path string, identity *age.X25519Identity) ([]Entry, error) {
 
 // writeStoreFile atomically writes entries to an NDJSON file, sorted by key.
 // Expired entries are excluded. Empty entry list writes an empty file.
-// If recipient is nil, secret entries are written as-is (locked passthrough).
-func writeStoreFile(path string, entries []Entry, recipient *age.X25519Recipient) error {
+// If recipients is empty, secret entries are written as-is (locked passthrough).
+func writeStoreFile(path string, entries []Entry, recipients []age.Recipient) error {
 	// Sort by key for deterministic output
 	slices.SortFunc(entries, func(a, b Entry) int {
 		return strings.Compare(a.Key, b.Key)
@@ -121,7 +121,7 @@ func writeStoreFile(path string, entries []Entry, recipient *age.X25519Recipient
 		if e.ExpiresAt > 0 && e.ExpiresAt <= now {
 			continue
 		}
-		je, err := encodeJsonEntry(e, recipient)
+		je, err := encodeJsonEntry(e, recipients)
 		if err != nil {
 			return fmt.Errorf("key '%s': %w", e.Key, err)
 		}
@@ -182,7 +182,7 @@ func decodeJsonEntry(je jsonEntry, identity *age.X25519Identity) (Entry, error) 
 	return Entry{Key: je.Key, Value: value, ExpiresAt: expiresAt}, nil
 }
 
-func encodeJsonEntry(e Entry, recipient *age.X25519Recipient) (jsonEntry, error) {
+func encodeJsonEntry(e Entry, recipients []age.Recipient) (jsonEntry, error) {
 	je := jsonEntry{Key: e.Key}
 	if e.ExpiresAt > 0 {
 		ts := int64(e.ExpiresAt)
@@ -196,10 +196,10 @@ func encodeJsonEntry(e Entry, recipient *age.X25519Recipient) (jsonEntry, error)
 		return je, nil
 	}
 	if e.Secret {
-		if recipient == nil {
+		if len(recipients) == 0 {
 			return je, fmt.Errorf("no recipient available to encrypt")
 		}
-		ciphertext, err := encrypt(e.Value, recipient)
+		ciphertext, err := encrypt(e.Value, recipients...)
 		if err != nil {
 			return je, fmt.Errorf("encrypt: %w", err)
 		}
