@@ -1,0 +1,21 @@
+# Error: key doesn't exist
+$ pda meta nonexistent@me --> FAIL
+FAIL cannot meta 'nonexistent@me': no such key
+
+# Error: --encrypt and --decrypt are mutually exclusive
+$ pda set hello@me world
+$ pda meta hello@me --encrypt --decrypt --> FAIL
+FAIL cannot meta 'hello@me': --encrypt and --decrypt are mutually exclusive
+
+# Error: already encrypted
+$ pda set --encrypt secret@me val
+$ pda meta secret@me --encrypt --> FAIL
+FAIL cannot meta 'secret@me': already encrypted
+
+# Error: not encrypted (can't decrypt)
+$ pda meta hello@me --decrypt --> FAIL
+FAIL cannot meta 'hello@me': not encrypted
+
+# Error: invalid TTL
+$ pda meta hello@me --ttl "abc" --> FAIL
+FAIL cannot meta 'hello@me': invalid ttl '"abc"': expected a duration (e.g. 30m, 2h) or 'never'

@@ -1,0 +1,10 @@
+# Encrypt an existing plaintext key
+$ pda set hello@me world
+$ pda meta hello@me --encrypt
+$ pda meta hello@me
+  key: hello@me
+  secret: true
+  expires: never
+# Value should still be retrievable
+$ pda get hello@me
+world

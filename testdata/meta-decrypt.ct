@@ -1,0 +1,9 @@
+# Decrypt an existing encrypted key
+$ pda set --encrypt hello@md world
+$ pda meta hello@md --decrypt
+$ pda meta hello@md
+  key: hello@md
+  secret: false
+  expires: never
+$ pda get hello@md
+world

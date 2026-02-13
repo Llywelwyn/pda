@@ -1,0 +1,13 @@
+# View metadata for a plaintext key
+$ pda set hello@m world
+$ pda meta hello@m
+  key: hello@m
+  secret: false
+  expires: never
+
+# View metadata for an encrypted key
+$ pda set --encrypt secret@m hunter2
+$ pda meta secret@m
+  key: secret@m
+  secret: true
+  expires: never

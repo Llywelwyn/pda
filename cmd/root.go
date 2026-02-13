@@ -70,6 +70,7 @@ func init() {
 	cpCmd.GroupID = "keys"
 	delCmd.GroupID = "keys"
 	listCmd.GroupID = "keys"
+	metaCmd.GroupID = "keys"
 	identityCmd.GroupID = "keys"
 
 	rootCmd.AddGroup(&cobra.Group{ID: "stores", Title: "Store commands:"})
