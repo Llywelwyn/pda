@@ -73,9 +73,11 @@ Usage:
 
 Key commands:
   copy         Make a copy of a key
+  edit         Edit a key's value in $EDITOR
   get          Get the value of a key
   identity     Show or create the age encryption identity
   list         List the contents of all stores
+  meta         View or modify metadata for a key
   move         Move a key
   remove       Delete one or more keys
   run          Get the value of a key and execute it
@@ -165,6 +167,24 @@ pda run name
 
 # Check if a key exists (exit 0 if found, exit 1 if not).
 pda get name --exists
+```
+
+<p align="center"></p><!-- spacer -->
+
+`pda edit` to open a key in your `$EDITOR`.
+```bash
+# Edit an existing key.
+pda edit name
+
+# Edit a key that doesn't exist yet — saving non-empty content creates it.
+pda edit newkey
+
+# Edit and modify metadata in the same operation.
+pda edit name --ttl 1h --encrypt
+
+# Trailing newlines added by the editor are stripped by default.
+# Pass --preserve-newline to keep them.
+pda edit name --preserve-newline
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -671,6 +691,29 @@ pda ls
 
 <p align="center"></p><!-- spacer -->
 
+`pda meta` views or modifies metadata (TTL, encryption) without changing a key's value.
+```bash
+# View metadata for a key.
+pda meta session
+#   key: session@default
+#   secret: false
+#   expires: in 59m30s
+
+# Set or change TTL.
+pda meta session --ttl 2h
+
+# Clear TTL.
+pda meta session --ttl never
+
+# Encrypt an existing plaintext key.
+pda meta api-key --encrypt
+
+# Decrypt an encrypted key.
+pda meta api-key --decrypt
+```
+
+<p align="center"></p><!-- spacer -->
+
 ### Binary
 
 Save binary data.
@@ -937,6 +980,13 @@ Default locations:
 
 ```bash
 PDA_DATA=/tmp/stores pda set key value
+```
+
+<p align="center"></p><!-- spacer -->
+
+`EDITOR` is used by `pda edit` and `pda config edit` to open values in a text editor. Must be set for these commands to work.
+```bash
+EDITOR=nvim pda edit mykey
 ```
 
 <p align="center"></p><!-- spacer -->
