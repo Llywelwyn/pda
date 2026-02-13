@@ -26,7 +26,7 @@
 - plaintext exports in 7 different formats,
 - support for all [binary data](https://github.com/Llywelwyn/pda#binary),
 - expiring keys with a [time-to-live](https://github.com/Llywelwyn/pda#ttl),
-- [read-only](https://github.com/Llywelwyn/pda#read-only--pinned) keys and [pinned](https://github.com/Llywelwyn/pda#read-only--pinned) entries,
+- [read-only](https://github.com/Llywelwyn/pda#read-only) keys and [pinned](https://github.com/Llywelwyn/pda#pinned) entries,
 - built-in [diagnostics](https://github.com/Llywelwyn/pda#doctor) and [configuration](https://github.com/Llywelwyn/pda#config),
 
 and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
@@ -56,7 +56,8 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [Templates](https://github.com/Llywelwyn/pda#templates)
 - [Filtering](https://github.com/Llywelwyn/pda#filtering)
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
-- [Read-only & Pinned](https://github.com/Llywelwyn/pda#read-only--pinned)
+- [Read-only](https://github.com/Llywelwyn/pda#read-only)
+- [Pinned](https://github.com/Llywelwyn/pda#pinned)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
 - [Encryption](https://github.com/Llywelwyn/pda#encryption)
 - [Doctor](https://github.com/Llywelwyn/pda#doctor)
@@ -191,6 +192,19 @@ pda edit name --ttl 1h --encrypt
 # Pass --preserve-newline to keep them.
 pda edit name --preserve-newline
 ```
+
+<p align="center"></p><!-- spacer -->
+
+`pda meta` to view or modify metadata for a key.
+```bash
+pda meta session
+#   key: session@store
+#   secret: false
+#   writable: true
+#   pinned: false
+#   expires: 59m30s
+```
+Metadata flags like `--ttl`, `--encrypt`, `--readonly`, and `--pin` are covered in their dedicated sections below.
 
 <p align="center"></p><!-- spacer -->
 
@@ -715,80 +729,33 @@ pda ls
 
 <p align="center"></p><!-- spacer -->
 
-`pda meta` views or modifies metadata (TTL, encryption, read-only, pinned) without changing a key's value. Changes print an ok message describing what was done.
+`meta --ttl` to change or clear the TTL on an existing key.
 ```bash
-# View metadata for a key.
-pda meta session
-#   key: session@store
-#   secret: false
-#   writable: true
-#   pinned: false
-#   expires: 59m30s
-
-# Set or change TTL.
 pda meta session --ttl 2h
 #   ok set ttl to 2h session
 
-# Clear TTL.
 pda meta session --ttl never
 #   ok cleared ttl session
-
-# Encrypt a key.
-pda meta api-key --encrypt
-#   ok encrypted api-key
-
-# Decrypt an encrypted key.
-pda meta api-key --decrypt
-#   ok decrypted api-key
-
-# Mark a key as read-only.
-pda meta api-url --readonly
-#   ok made readonly api-url
-
-# Make it writable.
-pda meta api-url --writable
-#   ok made writable api-url
-
-# Pin a key to the top of the list.
-pda meta todo --pin
-#   ok pinned todo
-
-# Unpin.
-pda meta todo --unpin
-#   ok unpinned todo
-
-# Or combine multiple changes.
-pda meta session --readonly --pin
-#   ok made readonly, pinned session
-
-# Modifying a read-only key requires making it writable, or just forcing it.
-pda meta api-url --ttl 1h
-# FAIL cannot meta 'api-url': key is read-only
-pda meta api-url --ttl 1h --force
-#   ok set ttl to 1h api-url
 ```
 
 <p align="center"></p><!-- spacer -->
 
-### Read-only & Pinned
+### Read-only
 
-Keys can be marked **read-only** to prevent accidental modification, and **pinned** to sort to the top of list output. Both flags are shown in the `Meta` column as part of the 4-char flag string: `ewtp` (encrypted, writable, ttl, pinned).
+Keys marked read-only are protected from accidental modification. You can modify a read-only key again by making it `--writable` or by explicitly forcing it with the `--force` flag when trying to make an edit.
 
 ```bash
-# Set flags at creation time.
+# Set a key as read-only at creation time.
 pda set api-url "https://prod.example.com" --readonly
-pda set important "remember this" --pin
 
-# Or toggle them with meta.
+# Or toggle with meta.
 pda meta api-url --readonly
 #   ok made readonly api-url
 pda meta api-url --writable
 #   ok made writable api-url
-pda meta important --pin
-#   ok pinned important
 
 # Or alongside an edit.
-pda edit notes --readonly --pin
+pda edit notes --readonly
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -803,6 +770,12 @@ pda set api-url "new value" --force
 
 pda rm api-url --force
 pda mv api-url new-name --force
+
+# Modifying a read-only key's metadata also requires --force.
+pda meta api-url --ttl 1h
+# FAIL cannot meta 'api-url': key is read-only
+pda meta api-url --ttl 1h --force
+#   ok set ttl to 1h api-url
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -811,7 +784,23 @@ pda mv api-url new-name --force
 
 <p align="center"></p><!-- spacer -->
 
-Pinned entries sort to the top of `list` output, preserving alphabetical order within the pinned and unpinned groups.
+### Pinned
+
+Pinned keys sort to the top of `list` output, preserving alphabetical order within the pinned and unpinned groups.
+
+```bash
+# Pin a key at creation time.
+pda set important "remember this" --pin
+
+# Or toggle with meta.
+pda meta todo --pin
+#   ok pinned todo
+pda meta todo --unpin
+#   ok unpinned todo
+```
+
+<p align="center"></p><!-- spacer -->
+
 ```bash
 pda ls
 # Meta Key       Value
@@ -868,6 +857,17 @@ pda set --encrypt api-key "sk-live-abc123"
 #   ok created identity at ~/.config/pda/identity.txt
 
 pda set --encrypt token "ghp_xxxx"
+```
+
+<p align="center"></p><!-- spacer -->
+
+`meta --encrypt` and `meta --decrypt` to toggle encryption on an existing key.
+```bash
+pda meta api-key --encrypt
+#   ok encrypted api-key
+
+pda meta api-key --decrypt
+#   ok decrypted api-key
 ```
 
 <p align="center"></p><!-- spacer -->
