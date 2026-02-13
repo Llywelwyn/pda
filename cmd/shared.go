@@ -272,6 +272,23 @@ func formatExpiry(expiresAt uint64) string {
 	return fmt.Sprintf("in %s", remaining.Round(time.Second))
 }
 
+// parseTTLString parses a TTL string that is either a duration (e.g. "30m", "2h")
+// or the special value "never" to clear expiry. Returns the new ExpiresAt value
+// (0 means no expiry).
+func parseTTLString(s string) (uint64, error) {
+	if strings.ToLower(s) == "never" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, fmt.Errorf("invalid ttl '%s': expected a duration (e.g. 30m, 2h) or 'never'", s)
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("invalid ttl '%s': duration must be positive", s)
+	}
+	return uint64(time.Now().Add(d).Unix()), nil
+}
+
 // Keys returns all keys for the provided store name (or default if empty).
 // Keys are returned in lowercase to mirror stored key format.
 func (s *Store) Keys(dbName string) ([]string, error) {
