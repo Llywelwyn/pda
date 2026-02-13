@@ -59,6 +59,7 @@ func TestMain(t *testing.T) {
 		}
 		os.Setenv("PDA_DATA", dataDir)
 		os.Setenv("PDA_CONFIG", configDir)
+		os.Unsetenv("EDITOR")
 
 		// Pre-create an age identity so encryption tests don't print
 		// a creation message with a non-deterministic path.

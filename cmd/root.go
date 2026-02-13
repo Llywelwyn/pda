@@ -70,6 +70,7 @@ func init() {
 	cpCmd.GroupID = "keys"
 	delCmd.GroupID = "keys"
 	listCmd.GroupID = "keys"
+	editCmd.GroupID = "keys"
 	metaCmd.GroupID = "keys"
 	identityCmd.GroupID = "keys"
 

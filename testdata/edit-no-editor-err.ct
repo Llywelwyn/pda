@@ -1,0 +1,5 @@
+# Error when EDITOR is not set
+$ pda set hello@e world
+$ pda edit hello@e --> FAIL
+FAIL EDITOR not set
+hint set $EDITOR to your preferred text editor
