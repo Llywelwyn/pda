@@ -107,6 +107,8 @@ func del(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	force, _ := cmd.Flags().GetBool("force")
+
 	var removedNames []string
 	for _, dbName := range storeOrder {
 		st := byStore[dbName]
@@ -123,6 +125,9 @@ func del(cmd *cobra.Command, args []string) error {
 			if idx < 0 {
 				return fmt.Errorf("cannot remove '%s': no such key", t.full)
 			}
+			if entries[idx].ReadOnly && !force {
+				return fmt.Errorf("cannot remove '%s': key is read-only", t.full)
+			}
 			entries = append(entries[:idx], entries[idx+1:]...)
 			removedNames = append(removedNames, t.display)
 		}
@@ -137,6 +142,7 @@ func del(cmd *cobra.Command, args []string) error {
 func init() {
 	delCmd.Flags().BoolP("interactive", "i", false, "prompt yes/no for each deletion")
 	delCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
+	delCmd.Flags().Bool("force", false, "bypass read-only protection")
 	delCmd.Flags().StringSliceP("key", "k", nil, "delete keys matching glob pattern (repeatable)")
 	delCmd.Flags().StringSliceP("store", "s", nil, "target stores matching glob pattern (repeatable)")
 	delCmd.Flags().StringSliceP("value", "v", nil, "delete entries matching value glob pattern (repeatable)")

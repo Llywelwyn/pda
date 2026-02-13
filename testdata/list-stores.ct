@@ -2,8 +2,8 @@
 $ pda set a@lsalpha 1
 $ pda set b@lsbeta 2
 $ pda ls lsalpha --format tsv
-Key	Store	Value	TTL
-a	lsalpha	1	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	lsalpha	a	1
 $ pda ls lsbeta --format tsv
-Key	Store	Value	TTL
-b	lsbeta	2	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	lsbeta	b	2

@@ -1,0 +1,17 @@
+# --readonly marks a key as read-only
+$ pda set a@sro hello --readonly
+$ pda meta a@sro
+  key: a@sro
+  secret: false
+  writable: false
+  pinned: false
+  expires: never
+
+# Cannot overwrite a read-only key without --force
+$ pda set a@sro world --> FAIL
+FAIL cannot set 'a@sro': key is read-only
+
+# --force bypasses read-only protection
+$ pda set a@sro world --force
+$ pda get a@sro
+world

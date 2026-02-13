@@ -43,6 +43,8 @@ type Entry struct {
 	ExpiresAt uint64 // Unix timestamp; 0 = never expires
 	Secret    bool   // encrypted on disk
 	Locked    bool   // secret but no identity available to decrypt
+	ReadOnly  bool   // cannot be modified without --force
+	Pinned    bool   // sorts to top in list output
 	StoreName string // populated by list --all
 }
 
@@ -52,6 +54,8 @@ type jsonEntry struct {
 	Value     string `json:"value"`
 	Encoding  string `json:"encoding,omitempty"`
 	ExpiresAt *int64 `json:"expires_at,omitempty"`
+	ReadOnly  *bool  `json:"readonly,omitempty"`
+	Pinned    *bool  `json:"pinned,omitempty"`
 	Store     string `json:"store,omitempty"`
 }
 
@@ -149,6 +153,8 @@ func decodeJsonEntry(je jsonEntry, identity *age.X25519Identity) (Entry, error) 
 	if je.ExpiresAt != nil {
 		expiresAt = uint64(*je.ExpiresAt)
 	}
+	readOnly := je.ReadOnly != nil && *je.ReadOnly
+	pinned := je.Pinned != nil && *je.Pinned
 
 	if je.Encoding == "secret" {
 		ciphertext, err := base64.StdEncoding.DecodeString(je.Value)
@@ -156,14 +162,14 @@ func decodeJsonEntry(je jsonEntry, identity *age.X25519Identity) (Entry, error) 
 			return Entry{}, fmt.Errorf("decode secret for '%s': %w", je.Key, err)
 		}
 		if identity == nil {
-			return Entry{Key: je.Key, Value: ciphertext, ExpiresAt: expiresAt, Secret: true, Locked: true}, nil
+			return Entry{Key: je.Key, Value: ciphertext, ExpiresAt: expiresAt, Secret: true, Locked: true, ReadOnly: readOnly, Pinned: pinned}, nil
 		}
 		plaintext, err := decrypt(ciphertext, identity)
 		if err != nil {
 			warnf("cannot decrypt '%s': %v", je.Key, err)
-			return Entry{Key: je.Key, Value: ciphertext, ExpiresAt: expiresAt, Secret: true, Locked: true}, nil
+			return Entry{Key: je.Key, Value: ciphertext, ExpiresAt: expiresAt, Secret: true, Locked: true, ReadOnly: readOnly, Pinned: pinned}, nil
 		}
-		return Entry{Key: je.Key, Value: plaintext, ExpiresAt: expiresAt, Secret: true}, nil
+		return Entry{Key: je.Key, Value: plaintext, ExpiresAt: expiresAt, Secret: true, ReadOnly: readOnly, Pinned: pinned}, nil
 	}
 
 	var value []byte
@@ -179,7 +185,7 @@ func decodeJsonEntry(je jsonEntry, identity *age.X25519Identity) (Entry, error) 
 	default:
 		return Entry{}, fmt.Errorf("unsupported encoding '%s' for '%s'", je.Encoding, je.Key)
 	}
-	return Entry{Key: je.Key, Value: value, ExpiresAt: expiresAt}, nil
+	return Entry{Key: je.Key, Value: value, ExpiresAt: expiresAt, ReadOnly: readOnly, Pinned: pinned}, nil
 }
 
 func encodeJsonEntry(e Entry, recipients []age.Recipient) (jsonEntry, error) {
@@ -187,6 +193,14 @@ func encodeJsonEntry(e Entry, recipients []age.Recipient) (jsonEntry, error) {
 	if e.ExpiresAt > 0 {
 		ts := int64(e.ExpiresAt)
 		je.ExpiresAt = &ts
+	}
+	if e.ReadOnly {
+		t := true
+		je.ReadOnly = &t
+	}
+	if e.Pinned {
+		t := true
+		je.Pinned = &t
 	}
 
 	if e.Secret && e.Locked {

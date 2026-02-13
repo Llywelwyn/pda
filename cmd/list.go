@@ -67,6 +67,8 @@ var columnNames = map[string]columnKind{
 	"key":   columnKey,
 	"store": columnStore,
 	"value": columnValue,
+	"meta":  columnMeta,
+	"size":  columnSize,
 	"ttl":   columnTTL,
 }
 
@@ -75,7 +77,7 @@ func validListColumns(v string) error {
 	for _, raw := range strings.Split(v, ",") {
 		tok := strings.TrimSpace(raw)
 		if _, ok := columnNames[tok]; !ok {
-			return fmt.Errorf("must be a comma-separated list of 'key', 'store', 'value', 'ttl' (got '%s')", tok)
+			return fmt.Errorf("must be a comma-separated list of 'key', 'store', 'value', 'meta', 'size', 'ttl' (got '%s')", tok)
 		}
 		if seen[tok] {
 			return fmt.Errorf("duplicate column '%s'", tok)
@@ -103,7 +105,10 @@ var (
 	listBase64   bool
 	listCount    bool
 	listNoKeys   bool
+	listNoStore  bool
 	listNoValues bool
+	listNoMeta   bool
+	listNoSize   bool
 	listNoTTL    bool
 	listFull     bool
 	listAll      bool
@@ -120,6 +125,8 @@ const (
 	columnValue
 	columnTTL
 	columnStore
+	columnMeta
+	columnSize
 )
 
 var listCmd = &cobra.Command{
@@ -131,10 +138,9 @@ By default, list shows entries from every store. Pass a store name as a
 positional argument to narrow to a single store, or use --store/-s with a
 glob pattern to filter by store name.
 
-The Store column is always shown so entries can be distinguished across
-stores. Use --key/-k and --value/-v to filter by key or value glob, and
---store/-s to filter by store name. All filters are repeatable and OR'd
-within the same flag.`,
+Use --key/-k and --value/-v to filter by key or value glob, and --store/-s
+to filter by store name. All filters are repeatable and OR'd within the
+same flag.`,
 	Aliases:      []string{"ls"},
 	Args:         cobra.MaximumNArgs(1),
 	RunE:         list,
@@ -178,19 +184,35 @@ func list(cmd *cobra.Command, args []string) error {
 		targetDB = "@" + dbName
 	}
 
-	if listNoKeys && listNoValues && listNoTTL {
-		return withHint(fmt.Errorf("cannot ls '%s': no columns selected", targetDB), "disable --no-keys, --no-values, or --no-ttl")
+	columns := parseColumns(config.List.DefaultColumns)
+
+	// Each --no-X flag: if explicitly true, remove the column;
+	// if explicitly false (--no-X=false), add the column if missing.
+	type colToggle struct {
+		flag string
+		kind columnKind
+	}
+	for _, ct := range []colToggle{
+		{"no-keys", columnKey},
+		{"no-store", columnStore},
+		{"no-values", columnValue},
+		{"no-meta", columnMeta},
+		{"no-size", columnSize},
+		{"no-ttl", columnTTL},
+	} {
+		if !cmd.Flags().Changed(ct.flag) {
+			continue
+		}
+		val, _ := cmd.Flags().GetBool(ct.flag)
+		if val {
+			columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == ct.kind })
+		} else if !slices.Contains(columns, ct.kind) {
+			columns = append(columns, ct.kind)
+		}
 	}
 
-	columns := parseColumns(config.List.DefaultColumns)
-	if listNoKeys {
-		columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == columnKey })
-	}
-	if listNoValues {
-		columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == columnValue })
-	}
-	if listNoTTL {
-		columns = slices.DeleteFunc(columns, func(c columnKind) bool { return c == columnTTL })
+	if len(columns) == 0 {
+		return withHint(fmt.Errorf("cannot ls '%s': no columns selected", targetDB), "disable some --no-* flags")
 	}
 
 	keyPatterns, err := cmd.Flags().GetStringSlice("key")
@@ -271,6 +293,17 @@ func list(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Stable sort: pinned entries first, preserving alphabetical order within each group
+	slices.SortStableFunc(filtered, func(a, b Entry) int {
+		if a.Pinned && !b.Pinned {
+			return -1
+		}
+		if !a.Pinned && b.Pinned {
+			return 1
+		}
+		return 0
+	})
+
 	if listCount {
 		fmt.Fprintln(cmd.OutOrStdout(), len(filtered))
 		return nil
@@ -330,7 +363,7 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	// Table-based formats
-	showValues := !listNoValues
+	showValues := slices.Contains(columns, columnValue)
 	tw := table.NewWriter()
 	tw.SetOutputMirror(output)
 	tw.SetStyle(table.StyleDefault)
@@ -384,16 +417,32 @@ func list(cmd *cobra.Command, args []string) error {
 				}
 			case columnStore:
 				if tty {
-					row = append(row, dimStyle.Sprint(e.StoreName))
+					row = append(row, text.Colors{text.Bold, text.FgYellow}.Sprint(e.StoreName))
 				} else {
 					row = append(row, e.StoreName)
 				}
+			case columnMeta:
+				if tty {
+					row = append(row, colorizeMeta(e))
+				} else {
+					row = append(row, entryMetaString(e))
+				}
+			case columnSize:
+				sizeStr := formatSize(len(e.Value))
+				if tty {
+					if len(e.Value) >= 1000 {
+						sizeStr = text.Colors{text.Bold, text.FgGreen}.Sprint(sizeStr)
+					} else {
+						sizeStr = text.FgGreen.Sprint(sizeStr)
+					}
+				}
+				row = append(row, sizeStr)
 			case columnTTL:
 				ttlStr := formatExpiry(e.ExpiresAt)
-			if tty && e.ExpiresAt == 0 {
-				ttlStr = dimStyle.Sprint(ttlStr)
-			}
-			row = append(row, ttlStr)
+				if tty && e.ExpiresAt == 0 {
+					ttlStr = dimStyle.Sprint(ttlStr)
+				}
+				row = append(row, ttlStr)
 			}
 		}
 		tw.AppendRow(row)
@@ -484,6 +533,10 @@ func headerRow(columns []columnKind, tty bool) table.Row {
 			row = append(row, h("Store"))
 		case columnValue:
 			row = append(row, h("Value"))
+		case columnMeta:
+			row = append(row, h("Meta"))
+		case columnSize:
+			row = append(row, h("Size"))
 		case columnTTL:
 			row = append(row, h("TTL"))
 		}
@@ -494,12 +547,13 @@ func headerRow(columns []columnKind, tty bool) table.Row {
 const (
 	keyColumnWidthCap   = 30
 	storeColumnWidthCap = 20
+	sizeColumnWidthCap  = 10
 	ttlColumnWidthCap   = 20
 )
 
 // columnLayout holds the resolved max widths for each column kind.
 type columnLayout struct {
-	key, store, value, ttl int
+	key, store, value, meta, size, ttl int
 }
 
 // computeLayout derives column widths from the terminal size and actual
@@ -509,13 +563,25 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 	var lay columnLayout
 	termWidth := detectTerminalWidth(out)
 
-	// Scan entries for actual max key/store/TTL content widths.
+	// Meta column is always exactly 4 chars wide (ewtp).
+	lay.meta = 4
+
+	// Ensure columns are at least as wide as their headers.
+	lay.key = len("Key")
+	lay.store = len("Store")
+	lay.size = len("Size")
+	lay.ttl = len("TTL")
+
+	// Scan entries for actual max key/store/size/TTL content widths.
 	for _, e := range entries {
 		if w := utf8.RuneCountInString(e.Key); w > lay.key {
 			lay.key = w
 		}
 		if w := utf8.RuneCountInString(e.StoreName); w > lay.store {
 			lay.store = w
+		}
+		if w := utf8.RuneCountInString(formatSize(len(e.Value))); w > lay.size {
+			lay.size = w
 		}
 		if w := utf8.RuneCountInString(formatExpiry(e.ExpiresAt)); w > lay.ttl {
 			lay.ttl = w
@@ -526,6 +592,9 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 	}
 	if lay.store > storeColumnWidthCap {
 		lay.store = storeColumnWidthCap
+	}
+	if lay.size > sizeColumnWidthCap {
+		lay.size = sizeColumnWidthCap
 	}
 	if lay.ttl > ttlColumnWidthCap {
 		lay.ttl = ttlColumnWidthCap
@@ -541,7 +610,7 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 		return lay
 	}
 
-	// Give the value column whatever is left after key and TTL.
+	// Give the value column whatever is left after fixed-width columns.
 	lay.value = available
 	for _, col := range columns {
 		switch col {
@@ -549,6 +618,10 @@ func computeLayout(columns []columnKind, out io.Writer, entries []Entry) columnL
 			lay.value -= lay.key
 		case columnStore:
 			lay.value -= lay.store
+		case columnMeta:
+			lay.value -= lay.meta
+		case columnSize:
+			lay.value -= lay.size
 		case columnTTL:
 			lay.value -= lay.ttl
 		}
@@ -568,31 +641,40 @@ func applyColumnWidths(tw table.Writer, columns []columnKind, out io.Writer, lay
 
 	var configs []table.ColumnConfig
 	for i, col := range columns {
-		var maxW int
-		var enforcer func(string, int) string
+		cc := table.ColumnConfig{Number: i + 1}
 		switch col {
 		case columnKey:
-			maxW = lay.key
-			enforcer = text.Trim
+			cc.WidthMax = lay.key
+			cc.WidthMaxEnforcer = text.Trim
 		case columnStore:
-			maxW = lay.store
-			enforcer = text.Trim
+			cc.WidthMax = lay.store
+			cc.WidthMaxEnforcer = text.Trim
+			cc.Align = text.AlignRight
+			cc.AlignHeader = text.AlignRight
 		case columnValue:
-			maxW = lay.value
+			cc.WidthMax = lay.value
 			if full {
-				enforcer = text.WrapText
+				cc.WidthMaxEnforcer = text.WrapText
 			}
 			// When !full, values are already pre-truncated by
 			// summariseValue — no enforcer needed.
+		case columnMeta:
+			cc.WidthMax = lay.meta
+			cc.WidthMaxEnforcer = text.Trim
+			cc.Align = text.AlignRight
+			cc.AlignHeader = text.AlignRight
+		case columnSize:
+			cc.WidthMax = lay.size
+			cc.WidthMaxEnforcer = text.Trim
+			cc.Align = text.AlignRight
+			cc.AlignHeader = text.AlignRight
 		case columnTTL:
-			maxW = lay.ttl
-			enforcer = text.Trim
+			cc.WidthMax = lay.ttl
+			cc.WidthMaxEnforcer = text.Trim
+			cc.Align = text.AlignRight
+			cc.AlignHeader = text.AlignRight
 		}
-		configs = append(configs, table.ColumnConfig{
-			Number:           i + 1,
-			WidthMax:         maxW,
-			WidthMaxEnforcer: enforcer,
-		})
+		configs = append(configs, cc)
 	}
 	tw.SetColumnConfigs(configs)
 }
@@ -615,6 +697,64 @@ func detectTerminalWidth(out io.Writer) int {
 	return 0
 }
 
+// entryMetaString returns a 4-char flag string: (e)ncrypted (w)ritable (t)tl (p)inned.
+func entryMetaString(e Entry) string {
+	var b [4]byte
+	if e.Secret {
+		b[0] = 'e'
+	} else {
+		b[0] = '-'
+	}
+	if !e.ReadOnly {
+		b[1] = 'w'
+	} else {
+		b[1] = '-'
+	}
+	if e.ExpiresAt > 0 {
+		b[2] = 't'
+	} else {
+		b[2] = '-'
+	}
+	if e.Pinned {
+		b[3] = 'p'
+	} else {
+		b[3] = '-'
+	}
+	return string(b[:])
+}
+
+// colorizeMeta returns a colorized meta string for TTY display.
+// e=bold+yellow, w=bold+red, t=bold+green, p=bold+yellow, unset=dim.
+func colorizeMeta(e Entry) string {
+	dim := text.Colors{text.Faint}
+	yellow := text.Colors{text.Bold, text.FgYellow}
+	red := text.Colors{text.Bold, text.FgRed}
+	green := text.Colors{text.Bold, text.FgGreen}
+
+	var b strings.Builder
+	if e.Secret {
+		b.WriteString(yellow.Sprint("e"))
+	} else {
+		b.WriteString(dim.Sprint("-"))
+	}
+	if !e.ReadOnly {
+		b.WriteString(red.Sprint("w"))
+	} else {
+		b.WriteString(dim.Sprint("-"))
+	}
+	if e.ExpiresAt > 0 {
+		b.WriteString(green.Sprint("t"))
+	} else {
+		b.WriteString(dim.Sprint("-"))
+	}
+	if e.Pinned {
+		b.WriteString(yellow.Sprint("p"))
+	} else {
+		b.WriteString(dim.Sprint("-"))
+	}
+	return b.String()
+}
+
 func renderTable(tw table.Writer) {
 	switch listFormat.String() {
 	case "tsv":
@@ -635,7 +775,10 @@ func init() {
 	listCmd.Flags().BoolVarP(&listBase64, "base64", "b", false, "view binary data as base64")
 	listCmd.Flags().BoolVarP(&listCount, "count", "c", false, "print only the count of matching entries")
 	listCmd.Flags().BoolVar(&listNoKeys, "no-keys", false, "suppress the key column")
+	listCmd.Flags().BoolVar(&listNoStore, "no-store", false, "suppress the store column")
 	listCmd.Flags().BoolVar(&listNoValues, "no-values", false, "suppress the value column")
+	listCmd.Flags().BoolVar(&listNoMeta, "no-meta", false, "suppress the meta column")
+	listCmd.Flags().BoolVar(&listNoSize, "no-size", false, "suppress the size column")
 	listCmd.Flags().BoolVar(&listNoTTL, "no-ttl", false, "suppress the TTL column")
 	listCmd.Flags().BoolVarP(&listFull, "full", "f", false, "show full values without truncation")
 	listCmd.Flags().BoolVar(&listNoHeader, "no-header", false, "suppress the header row")

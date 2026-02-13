@@ -26,6 +26,7 @@
 - plaintext exports in 7 different formats,
 - support for all [binary data](https://github.com/Llywelwyn/pda#binary),
 - expiring keys with a [time-to-live](https://github.com/Llywelwyn/pda#ttl),
+- [read-only](https://github.com/Llywelwyn/pda#read-only--pinned) keys and [pinned](https://github.com/Llywelwyn/pda#read-only--pinned) entries,
 - built-in [diagnostics](https://github.com/Llywelwyn/pda#doctor) and [configuration](https://github.com/Llywelwyn/pda#config),
 
 and more, written in pure Go, and inspired by [skate](https://github.com/charmbracelet/skate) and [nb](https://github.com/xwmx/nb).
@@ -55,6 +56,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 - [Templates](https://github.com/Llywelwyn/pda#templates)
 - [Filtering](https://github.com/Llywelwyn/pda#filtering)
 - [TTL](https://github.com/Llywelwyn/pda#ttl)
+- [Read-only & Pinned](https://github.com/Llywelwyn/pda#read-only--pinned)
 - [Binary](https://github.com/Llywelwyn/pda#binary)
 - [Encryption](https://github.com/Llywelwyn/pda#encryption)
 - [Doctor](https://github.com/Llywelwyn/pda#doctor)
@@ -152,6 +154,9 @@ pda set name "Alice" --safe
 pda set name "Bob" --safe
 pda get name
 # Alice
+
+# --readonly to protect a key from modification.
+pda set api-url "https://prod.example.com" --readonly
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -202,12 +207,17 @@ pda mv name name2 --safe
 pda mv name name2 -y
 ```
 
-`pda cp` to make a copy.
+`pda cp` to make a copy. All metadata is preserved.
 ```bash
 pda cp name name2
 
 # 'mv --copy' and 'cp' are aliases. Either one works.
 pda mv name name2 --copy
+
+# Read-only keys can't be moved or overwritten without --force.
+pda mv readonly-key newname
+# FAIL cannot move 'readonly-key': key is read-only
+pda mv readonly-key newname --force
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -216,7 +226,7 @@ pda mv name name2 --copy
 ```bash
 pda rm kitty
 
-# Remove multiple keys, within the same or different stores.
+# Remove multiple keys.
 pda rm kitty dog@animals
 
 # Mix exact keys with glob patterns.
@@ -232,32 +242,42 @@ pda rm kitty -i
 
 # --yes/-y to auto-accept all confirmation prompts.
 pda rm kitty -y
+
+# Read-only keys can't be deleted without --force.
+pda rm protected-key
+# FAIL cannot remove 'protected-key': key is read-only
+pda rm protected-key --force
 ```
 
 <p align="center"></p><!-- spacer -->
 
-`pda ls` to see what you've got stored. By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `list.always_show_all_stores` can be set to false to list `store.default_store_name` by default.
+`pda ls` to see what you've got stored. The default columns are `meta,size,ttl,store,key,value`. Meta is a 4-char flag string showing `(e)ncrypted (w)ritable (t)tl (p)inned`, or a dash for an unset flag. Pinned entries sort to the top.
+
+By default it lists the contents of all stores. Pass a store name to check only the given store. Checking a specific store is faster than checking everything, but the slowdown should be insignificant unless you have masses of different stores. `list.always_show_all_stores` can be set to false to list only the default store when none is specified.
 ```bash
 pda ls
-# Key  Store    Value                TTL
-# dogs default  four legged mammals  no expiry
-# name default  Alice                no expiry
+# Meta Size TTL Store Key  Value
+# -w-p    5   - store todo don't forget this
+# ----   23   - store url  https://prod.example.com
+# -w--    5   - store name Alice
 
 # Narrow to a single store.
-pda ls @default
+pda ls @store
 
 # Or filter stores by glob pattern.
 pda ls --store "prod*"
 
+# Suppress or add columns with --no-X flags.
+# --no-X suppresses. --no-X=false adds even if not in default config.
+
 # Or as CSV.
 pda ls --format csv
-# Key,Store,Value,TTL
-# dogs,default,four legged mammals,no expiry
-# name,default,Alice,no expiry
+# Meta,Size,TTL,Store,Key,Value
+# -w--,5,-,store,name,Alice
 
 # Or as a JSON array.
 pda ls --format json
-# [{"key":"dogs","value":"four legged mammals","encoding":"text","store":"default"},{"key":"name","value":"Alice","encoding":"text","store":"default"}]
+# [{"key":"name","value":"Alice","encoding":"text","store":"store"}]
 
 # Or TSV, Markdown, HTML, NDJSON.
 
@@ -273,12 +293,12 @@ pda ls --count --key "d*"
 Long values are truncated to fit the terminal. Use `--full`/`-f` to show the complete value.
 ```bash
 pda ls
-# Key  Value                                 TTL
-# note this is a very long (..30 more chars) no expiry
+# Key  Value
+# note this is a very long (..30 more chars)
 
 pda ls --full
-# Key  Value                                                   TTL
-# note this is a very long value that keeps on going and going no expiry
+# Key  Value
+# note this is a very long value that keeps on going and going
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -296,7 +316,7 @@ pda export --value "**https**"
 
 <p align="center"></p><!-- spacer -->
 
-`pda import` to import it all back. By default, each entry is routed to the store it came from (via the `"store"` field in the NDJSON). If no `"store"` field is present, entries go to the default store. Pass a store name as a positional argument to force all entries into one store. Existing keys are updated and new keys are added.
+`pda import` to import it all back. By default, each entry is routed to the store it came from (via the `"store"` field in the NDJSON). If no `"store"` field is present, entries go to `store.default_store_name`. Pass a store name as a positional argument to force all entries into one store. Existing keys are updated and new keys are added.
 ```bash
 # Entries are routed to their original stores.
 pda import -f my_backup
@@ -330,17 +350,18 @@ pda set alice@birthdays 11/11/1998
 pda list-stores
 # Keys  Size Store
 #    2 1.8k @birthdays
-#   12 4.2k @default
+#   12 4.2k @store
 
 # Just the names.
 pda list-stores --short
 # @birthdays
-# @default
+# @store
 
 # Check out a specific store.
-pda ls @birthdays --no-header --no-ttl
-# alice 11/11/1998
-# bob   05/12/1980
+pda ls @birthdays
+#    Store Key   Value
+# birthdays alice 11/11/1998
+# birthdays bob   05/12/1980
 
 # Export it.
 pda export birthdays > friends_birthdays
@@ -551,7 +572,7 @@ pda get hello --no-template
 
 `*` wildcards a word or series of characters, stopping at separator boundaries (the default separators are `/-_.@:` and space).
 ```bash
-pda ls --no-values --no-header
+pda ls
 # cat
 # dog
 # cog
@@ -639,16 +660,19 @@ pda ls --key "19[90-99]"
 `--value` filters by value content using the same glob syntax.
 ```bash
 pda ls --value "**localhost**"
-# db-url  postgres://localhost:5432  no expiry
+# Key    Value
+# db-url postgres://localhost:5432
 
 # Combine key and value filters.
 pda ls --key "db*" --value "**localhost**"
-# db-url  postgres://localhost:5432  no expiry
+# Key    Value
+# db-url postgres://localhost:5432
 
 # Multiple --value patterns are OR'd.
 pda ls --value "**world**" --value "42"
-# greeting  hello world  no expiry
-# number    42           no expiry
+# Key      Value
+# greeting hello world
+# number   42
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -682,34 +706,118 @@ pda set session2 "xyz" --ttl 54m10s
 `list` shows expiration in the TTL column by default.
 ```bash
 pda ls
-# Key       Value TTL
-# session   123   in 59m30s
-# session2  xyz   in 51m40s
+#    TTL Key      Value
+# 59m30s session  123
+# 51m40s session2 xyz
 ```
 
 `export` and `import` persist the expiry date. Expirations will continue ticking down regardless of if they're actively in a store or not - the expiry is just a timestamp, not a timer.
 
 <p align="center"></p><!-- spacer -->
 
-`pda meta` views or modifies metadata (TTL, encryption) without changing a key's value.
+`pda meta` views or modifies metadata (TTL, encryption, read-only, pinned) without changing a key's value. Changes print an ok message describing what was done.
 ```bash
 # View metadata for a key.
 pda meta session
-#   key: session@default
+#   key: session@store
 #   secret: false
-#   expires: in 59m30s
+#   writable: true
+#   pinned: false
+#   expires: 59m30s
 
 # Set or change TTL.
 pda meta session --ttl 2h
+#   ok set ttl to 2h session
 
 # Clear TTL.
 pda meta session --ttl never
+#   ok cleared ttl session
 
-# Encrypt an existing plaintext key.
+# Encrypt a key.
 pda meta api-key --encrypt
+#   ok encrypted api-key
 
 # Decrypt an encrypted key.
 pda meta api-key --decrypt
+#   ok decrypted api-key
+
+# Mark a key as read-only.
+pda meta api-url --readonly
+#   ok made readonly api-url
+
+# Make it writable.
+pda meta api-url --writable
+#   ok made writable api-url
+
+# Pin a key to the top of the list.
+pda meta todo --pin
+#   ok pinned todo
+
+# Unpin.
+pda meta todo --unpin
+#   ok unpinned todo
+
+# Or combine multiple changes.
+pda meta session --readonly --pin
+#   ok made readonly, pinned session
+
+# Modifying a read-only key requires making it writable, or just forcing it.
+pda meta api-url --ttl 1h
+# FAIL cannot meta 'api-url': key is read-only
+pda meta api-url --ttl 1h --force
+#   ok set ttl to 1h api-url
+```
+
+<p align="center"></p><!-- spacer -->
+
+### Read-only & Pinned
+
+Keys can be marked **read-only** to prevent accidental modification, and **pinned** to sort to the top of list output. Both flags are shown in the `Meta` column as part of the 4-char flag string: `ewtp` (encrypted, writable, ttl, pinned).
+
+```bash
+# Set flags at creation time.
+pda set api-url "https://prod.example.com" --readonly
+pda set important "remember this" --pin
+
+# Or toggle them with meta.
+pda meta api-url --readonly
+#   ok made readonly api-url
+pda meta api-url --writable
+#   ok made writable api-url
+pda meta important --pin
+#   ok pinned important
+
+# Or alongside an edit.
+pda edit notes --readonly --pin
+```
+
+<p align="center"></p><!-- spacer -->
+
+Read-only keys are protected from `set`, `rm`, `mv`, and `edit`. Use `--force` to bypass.
+```bash
+pda set api-url "new value"
+# FAIL cannot set 'api-url': key is read-only
+
+pda set api-url "new value" --force
+# overwrites despite read-only
+
+pda rm api-url --force
+pda mv api-url new-name --force
+```
+
+<p align="center"></p><!-- spacer -->
+
+`cp` can copy a read-only key freely (since the source isn't modified), and the copy preserves the read-only flag. Overwriting a read-only destination is blocked without `--force`.
+
+<p align="center"></p><!-- spacer -->
+
+Pinned entries sort to the top of `list` output, preserving alphabetical order within the pinned and unpinned groups.
+```bash
+pda ls
+# Meta Key       Value
+# -w-p important remember this
+# -w-- name      Alice
+# -w-- other     foo
 ```
 
 <p align="center"></p><!-- spacer -->
@@ -780,7 +888,7 @@ pda export
 
 <p align="center"></p><!-- spacer -->
 
-`mv`, `cp`, and `import` all preserve encryption. Overwriting an encrypted key without `--encrypt` will warn you.
+`mv`, `cp`, and `import` all preserve encryption, read-only, and pinned flags. Overwriting an encrypted key without `--encrypt` will warn you.
 ```bash
 pda cp api-key api-key-backup
 # still encrypted
@@ -795,8 +903,8 @@ pda set api-key "oops"
 If the identity file is missing, encrypted values are inaccessible but not lost. Keys are still visible, and the ciphertext is preserved through reads and writes.
 ```bash
 pda ls
-# Key     Value                          TTL
-# api-key locked (identity file missing) no expiry
+# Meta Key     Value
+# ew-- api-key locked (identity file missing)
 
 pda get api-key
 # FAIL cannot get 'api-key': secret is locked (identity file missing)
@@ -930,7 +1038,7 @@ always_encrypt = false
 
 [store]
 # store name used when none is specified
-default_store_name = "default"
+default_store_name = "store"
 # prompt y/n before deleting whole store
 always_prompt_delete = true
 # prompt y/n before store overwrites
@@ -945,8 +1053,8 @@ default_list_format = "table"
 always_show_full_values = false
 # suppress the header row
 always_hide_header = false
-# columns and order, accepts: key,store,value,ttl
-default_columns = "key,store,value,ttl"
+# columns and order, accepts: meta,size,ttl,store,key,value
+default_columns = "meta,size,ttl,store,key,value"
 
 [git]
 # auto fetch whenever a change happens

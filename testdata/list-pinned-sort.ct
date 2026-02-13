@@ -1,0 +1,9 @@
+# Pinned entries sort to the top
+$ pda set alpha@lps one
+$ pda set beta@lps two
+$ pda set gamma@lps three --pin
+$ pda ls lps --format tsv --no-meta --no-size
+TTL	Store	Key	Value
+-	lps	gamma	three
+-	lps	alpha	one
+-	lps	beta	two

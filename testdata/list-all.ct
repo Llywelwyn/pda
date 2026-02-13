@@ -2,25 +2,25 @@
 $ pda set lax@laa 1
 $ pda set lax@lab 2
 $ pda ls --key "lax" --format tsv
-Key	Store	Value	TTL
-lax	laa	1	none
-lax	lab	2	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	laa	lax	1
+-w--	1	-	lab	lax	2
 $ pda ls --key "lax" --count
 2
 $ pda ls --key "lax" --format json
 [{"key":"lax","value":"1","encoding":"text","store":"laa"},{"key":"lax","value":"2","encoding":"text","store":"lab"}]
 # Positional arg narrows to one store
 $ pda ls laa --key "lax" --format tsv
-Key	Store	Value	TTL
-lax	laa	1	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	laa	lax	1
 # --store glob filter
 $ pda ls --store "la?" --key "lax" --format tsv
-Key	Store	Value	TTL
-lax	laa	1	none
-lax	lab	2	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	laa	lax	1
+-w--	1	-	lab	lax	2
 $ pda ls --store "laa" --key "lax" --format tsv
-Key	Store	Value	TTL
-lax	laa	1	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	laa	lax	1
 # --store cannot be combined with positional arg
 $ pda ls --store "laa" laa --> FAIL
 FAIL cannot use --store with a store argument

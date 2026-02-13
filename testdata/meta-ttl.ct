@@ -1,11 +1,15 @@
 # Set TTL on a key, then view it (just verify no error, can't match dynamic time)
 $ pda set hello@mt world
 $ pda meta hello@mt --ttl 1h
+  ok set ttl to 1h hello@mt
 
 # Clear TTL with --ttl never
 $ pda set --ttl 1h expiring@mt val
 $ pda meta expiring@mt --ttl never
+  ok cleared ttl expiring@mt
 $ pda meta expiring@mt
   key: expiring@mt
   secret: false
+  writable: true
+  pinned: false
   expires: never

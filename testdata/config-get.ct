@@ -2,7 +2,7 @@ $ pda config get display_ascii_art
 true
 
 $ pda config get store.default_store_name
-default
+store
 
 $ pda config get git.auto_commit
 false

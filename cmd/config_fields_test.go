@@ -134,8 +134,8 @@ func TestConfigFieldsStringField(t *testing.T) {
 			if f.Kind != reflect.String {
 				t.Errorf("store.default_store_name Kind = %v, want String", f.Kind)
 			}
-			if f.Value != "default" {
-				t.Errorf("store.default_store_name Value = %v, want 'default'", f.Value)
+			if f.Value != "store" {
+				t.Errorf("store.default_store_name Value = %v, want 'store'", f.Value)
 			}
 			return
 		}

@@ -1,0 +1,8 @@
+# --pin marks a key as pinned
+$ pda set b@sp beta --pin
+$ pda meta b@sp
+  key: b@sp
+  secret: false
+  writable: true
+  pinned: true
+  expires: never

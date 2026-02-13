@@ -71,6 +71,7 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	if err != nil {
 		return err
 	}
+	force, _ := cmd.Flags().GetBool("force")
 	promptOverwrite := !yes && (interactive || config.Key.AlwaysPromptOverwrite)
 
 	identity, _ := loadIdentity()
@@ -103,6 +104,11 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 	}
 	srcEntry := srcEntries[srcIdx]
 
+	// Block moving a read-only source (move removes the source)
+	if !keepSource && srcEntry.ReadOnly && !force {
+		return fmt.Errorf("cannot move '%s': key is read-only", fromSpec.Key)
+	}
+
 	sameStore := fromSpec.DB == toSpec.DB
 
 	// Check destination for overwrite prompt
@@ -121,6 +127,10 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 
 	dstIdx := findEntry(dstEntries, toSpec.Key)
 
+	if dstIdx >= 0 && dstEntries[dstIdx].ReadOnly && !force {
+		return fmt.Errorf("cannot overwrite '%s': key is read-only", toSpec.Key)
+	}
+
 	if safe && dstIdx >= 0 {
 		infof("skipped '%s': already exists", toSpec.Display())
 		return nil
@@ -137,13 +147,15 @@ func mvImpl(cmd *cobra.Command, args []string, keepSource bool) error {
 		}
 	}
 
-	// Write destination entry — preserve secret status
+	// Write destination entry — preserve metadata
 	newEntry := Entry{
 		Key:       toSpec.Key,
 		Value:     srcEntry.Value,
 		ExpiresAt: srcEntry.ExpiresAt,
 		Secret:    srcEntry.Secret,
 		Locked:    srcEntry.Locked,
+		ReadOnly:  srcEntry.ReadOnly,
+		Pinned:    srcEntry.Pinned,
 	}
 
 	if sameStore {
@@ -197,9 +209,11 @@ func init() {
 	mvCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting destination")
 	mvCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
 	mvCmd.Flags().Bool("safe", false, "do not overwrite if the destination already exists")
+	mvCmd.Flags().Bool("force", false, "bypass read-only protection")
 	rootCmd.AddCommand(mvCmd)
 	cpCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting destination")
 	cpCmd.Flags().BoolP("yes", "y", false, "skip all confirmation prompts")
 	cpCmd.Flags().Bool("safe", false, "do not overwrite if the destination already exists")
+	cpCmd.Flags().Bool("force", false, "bypass read-only protection")
 	rootCmd.AddCommand(cpCmd)
 }

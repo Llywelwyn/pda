@@ -6,10 +6,9 @@ By default, list shows entries from every store. Pass a store name as a
 positional argument to narrow to a single store, or use --store/-s with a
 glob pattern to filter by store name.
 
-The Store column is always shown so entries can be distinguished across
-stores. Use --key/-k and --value/-v to filter by key or value glob, and
---store/-s to filter by store name. All filters are repeatable and OR'd
-within the same flag.
+Use --key/-k and --value/-v to filter by key or value glob, and --store/-s
+to filter by store name. All filters are repeatable and OR'd within the
+same flag.
 
 Usage:
   pda list [STORE] [flags]
@@ -27,6 +26,9 @@ Flags:
   -k, --key strings     filter keys with glob pattern (repeatable)
       --no-header       suppress the header row
       --no-keys         suppress the key column
+      --no-meta         suppress the meta column
+      --no-size         suppress the size column
+      --no-store        suppress the store column
       --no-ttl          suppress the TTL column
       --no-values       suppress the value column
   -s, --store strings   filter stores with glob pattern (repeatable)
@@ -37,10 +39,9 @@ By default, list shows entries from every store. Pass a store name as a
 positional argument to narrow to a single store, or use --store/-s with a
 glob pattern to filter by store name.
 
-The Store column is always shown so entries can be distinguished across
-stores. Use --key/-k and --value/-v to filter by key or value glob, and
---store/-s to filter by store name. All filters are repeatable and OR'd
-within the same flag.
+Use --key/-k and --value/-v to filter by key or value glob, and --store/-s
+to filter by store name. All filters are repeatable and OR'd within the
+same flag.
 
 Usage:
   pda list [STORE] [flags]
@@ -58,6 +59,9 @@ Flags:
   -k, --key strings     filter keys with glob pattern (repeatable)
       --no-header       suppress the header row
       --no-keys         suppress the key column
+      --no-meta         suppress the meta column
+      --no-size         suppress the size column
+      --no-store        suppress the store column
       --no-ttl          suppress the TTL column
       --no-values       suppress the value column
   -s, --store strings   filter stores with glob pattern (repeatable)

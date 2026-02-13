@@ -1,4 +1,4 @@
 # --no-header suppresses the header row
 $ pda set a@nh 1
 $ pda ls nh --format tsv --no-header
-a	nh	1	none
+-w--	1	-	nh	a	1

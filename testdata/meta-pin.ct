@@ -1,0 +1,24 @@
+# --pin marks a key as pinned
+$ pda set a@mp hello
+$ pda meta a@mp --pin
+  ok pinned a@mp
+$ pda meta a@mp
+  key: a@mp
+  secret: false
+  writable: true
+  pinned: true
+  expires: never
+
+# --unpin clears the pinned flag
+$ pda meta a@mp --unpin
+  ok unpinned a@mp
+$ pda meta a@mp
+  key: a@mp
+  secret: false
+  writable: true
+  pinned: false
+  expires: never
+
+# --pin and --unpin are mutually exclusive
+$ pda meta a@mp --pin --unpin --> FAIL
+FAIL cannot meta 'a@mp': --pin and --unpin are mutually exclusive

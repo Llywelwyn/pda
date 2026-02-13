@@ -2,6 +2,6 @@
 $ pda set a@csv 1
 $ pda set b@csv 2
 $ pda ls csv --format csv
-Key,Store,Value,TTL
-a,csv,1,none
-b,csv,2,none
+Meta,Size,TTL,Store,Key,Value
+-w--,1,-,csv,a,1
+-w--,1,-,csv,b,2

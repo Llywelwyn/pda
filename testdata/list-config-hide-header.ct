@@ -3,7 +3,7 @@ $ pda config set list.always_hide_header true
 $ pda set a@lchh 1
 $ pda ls lchh --format tsv
   ok list.always_hide_header set to 'true'
-a	lchh	1	none
+-w--	1	-	lchh	a	1
 
 # Reset
 $ pda config set list.always_hide_header false

@@ -23,8 +23,11 @@ Aliases:
 Flags:
   -e, --encrypt        encrypt the value at rest using age
   -f, --file string    read value from a file
+      --force          bypass read-only protection
   -h, --help           help for set
   -i, --interactive    prompt before overwriting an existing key
+      --pin            pin the key (sorts to top in list)
+      --readonly       mark the key as read-only
       --safe           do not overwrite if the key already exists
   -t, --ttl duration   expire the key after the provided duration (e.g. 24h, 30m)
 Set a key to a given value or stdin. Optionally specify a store.
@@ -50,7 +53,10 @@ Aliases:
 Flags:
   -e, --encrypt        encrypt the value at rest using age
   -f, --file string    read value from a file
+      --force          bypass read-only protection
   -h, --help           help for set
   -i, --interactive    prompt before overwriting an existing key
+      --pin            pin the key (sorts to top in list)
+      --readonly       mark the key as read-only
       --safe           do not overwrite if the key already exists
   -t, --ttl duration   expire the key after the provided duration (e.g. 24h, 30m)

@@ -104,14 +104,14 @@ func defaultConfig() Config {
 			AlwaysPromptOverwrite:  false,
 		},
 		Store: StoreConfig{
-			DefaultStoreName:      "default",
+			DefaultStoreName:      "store",
 			AlwaysPromptDelete:    true,
 			AlwaysPromptOverwrite: true,
 		},
 		List: ListConfig{
 			AlwaysShowAllStores: true,
 			DefaultListFormat:   "table",
-			DefaultColumns:      "key,store,value,ttl",
+			DefaultColumns:      "meta,size,ttl,store,key,value",
 		},
 		Git: GitConfig{
 			AutoFetch:            false,

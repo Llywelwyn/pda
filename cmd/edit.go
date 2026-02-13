@@ -48,9 +48,20 @@ func edit(cmd *cobra.Command, args []string) error {
 	encryptFlag, _ := cmd.Flags().GetBool("encrypt")
 	decryptFlag, _ := cmd.Flags().GetBool("decrypt")
 	preserveNewline, _ := cmd.Flags().GetBool("preserve-newline")
+	force, _ := cmd.Flags().GetBool("force")
+	readonlyFlag, _ := cmd.Flags().GetBool("readonly")
+	writableFlag, _ := cmd.Flags().GetBool("writable")
+	pinFlag, _ := cmd.Flags().GetBool("pin")
+	unpinFlag, _ := cmd.Flags().GetBool("unpin")
 
 	if encryptFlag && decryptFlag {
 		return fmt.Errorf("cannot edit '%s': --encrypt and --decrypt are mutually exclusive", args[0])
+	}
+	if readonlyFlag && writableFlag {
+		return fmt.Errorf("cannot edit '%s': --readonly and --writable are mutually exclusive", args[0])
+	}
+	if pinFlag && unpinFlag {
+		return fmt.Errorf("cannot edit '%s': --pin and --unpin are mutually exclusive", args[0])
 	}
 
 	// Load identity
@@ -87,6 +98,9 @@ func edit(cmd *cobra.Command, args []string) error {
 		original = nil
 	} else {
 		entry = &entries[idx]
+		if entry.ReadOnly && !force {
+			return fmt.Errorf("cannot edit '%s': key is read-only", args[0])
+		}
 		if entry.Locked {
 			return fmt.Errorf("cannot edit '%s': secret is locked (identity file missing)", args[0])
 		}
@@ -149,7 +163,7 @@ func edit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check for no-op
-	noMetaFlags := ttlStr == "" && !encryptFlag && !decryptFlag
+	noMetaFlags := ttlStr == "" && !encryptFlag && !decryptFlag && !readonlyFlag && !writableFlag && !pinFlag && !unpinFlag
 	if bytes.Equal(original, newValue) && noMetaFlags {
 		infof("no changes to '%s'", spec.Display())
 		return nil
@@ -164,9 +178,11 @@ func edit(cmd *cobra.Command, args []string) error {
 	// Build or update entry
 	if creating {
 		newEntry := Entry{
-			Key:    spec.Key,
-			Value:  newValue,
-			Secret: encryptFlag,
+			Key:      spec.Key,
+			Value:    newValue,
+			Secret:   encryptFlag,
+			ReadOnly: readonlyFlag,
+			Pinned:   pinFlag,
 		}
 		if ttlStr != "" {
 			expiresAt, err := parseTTLString(ttlStr)
@@ -199,6 +215,19 @@ func edit(cmd *cobra.Command, args []string) error {
 			}
 			entry.Secret = false
 		}
+
+		if readonlyFlag {
+			entry.ReadOnly = true
+		}
+		if writableFlag {
+			entry.ReadOnly = false
+		}
+		if pinFlag {
+			entry.Pinned = true
+		}
+		if unpinFlag {
+			entry.Pinned = false
+		}
 	}
 
 	if err := writeStoreFile(p, entries, recipients); err != nil {
@@ -219,5 +248,10 @@ func init() {
 	editCmd.Flags().BoolP("encrypt", "e", false, "encrypt the value at rest")
 	editCmd.Flags().BoolP("decrypt", "d", false, "decrypt the value (store as plaintext)")
 	editCmd.Flags().Bool("preserve-newline", false, "keep trailing newlines added by the editor")
+	editCmd.Flags().Bool("force", false, "bypass read-only protection")
+	editCmd.Flags().Bool("readonly", false, "mark the key as read-only")
+	editCmd.Flags().Bool("writable", false, "clear the read-only flag")
+	editCmd.Flags().Bool("pin", false, "pin the key (sorts to top in list)")
+	editCmd.Flags().Bool("unpin", false, "unpin the key")
 	rootCmd.AddCommand(editCmd)
 }

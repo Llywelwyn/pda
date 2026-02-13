@@ -3,6 +3,6 @@ $ fecho tmpval hello world
 $ pda set greeting@vm < tmpval
 $ pda set number@vm 42
 $ pda ls vm --value "**world**" --value "42" --format tsv
-Key	Store	Value	TTL
-greeting	vm	hello world (..1 more chars)	none
-number	vm	42	none
+Meta	Size	TTL	Store	Key	Value
+-w--	12	-	vm	greeting	hello world (..1 more chars)
+-w--	2	-	vm	number	42

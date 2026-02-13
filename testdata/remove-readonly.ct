@@ -1,0 +1,7 @@
+# Cannot remove a read-only key without --force
+$ pda set a@rmro hello --readonly
+$ pda rm a@rmro --> FAIL
+FAIL cannot remove 'a@rmro': key is read-only
+
+# --force bypasses read-only protection
+$ pda rm a@rmro --force

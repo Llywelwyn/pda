@@ -32,7 +32,7 @@ json
 
 # Invalid list columns
 $ pda config set list.default_columns foo --> FAIL
-FAIL cannot set 'list.default_columns': must be a comma-separated list of 'key', 'store', 'value', 'ttl' (got 'foo')
+FAIL cannot set 'list.default_columns': must be a comma-separated list of 'key', 'store', 'value', 'meta', 'size', 'ttl' (got 'foo')
 
 # Duplicate columns
 $ pda config set list.default_columns key,key --> FAIL
@@ -50,9 +50,9 @@ FAIL unknown config key 'git.auto_comit'
 hint did you mean 'git.auto_commit'?
 
 # Reset changed values so subsequent tests see defaults
-$ pda config set store.default_store_name default
+$ pda config set store.default_store_name store
 $ pda config set list.default_list_format table
-$ pda config set list.default_columns key,store,value,ttl
-  ok store.default_store_name set to 'default'
+$ pda config set list.default_columns meta,size,ttl,store,key,value
+  ok store.default_store_name set to 'store'
   ok list.default_list_format set to 'table'
-  ok list.default_columns set to 'key,store,value,ttl'
+  ok list.default_columns set to 'meta,size,ttl,store,key,value'

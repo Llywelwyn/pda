@@ -1,5 +1,5 @@
 # --no-keys suppresses the key column
 $ pda set a@nk 1
 $ pda ls nk --format tsv --no-keys
-Store	Value	TTL
-nk	1	none
+Meta	Size	TTL	Store	Value
+-w--	1	-	nk	1

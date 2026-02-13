@@ -7,5 +7,5 @@ Key	Value
 a	1
 
 # Reset
-$ pda config set list.default_columns key,store,value,ttl
-  ok list.default_columns set to 'key,store,value,ttl'
+$ pda config set list.default_columns meta,size,ttl,store,key,value
+  ok list.default_columns set to 'meta,size,ttl,store,key,value'

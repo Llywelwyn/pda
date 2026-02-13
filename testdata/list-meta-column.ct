@@ -1,0 +1,9 @@
+# Meta column shows ewtp flags
+$ pda set plain@lmc hello
+$ pda set readonly@lmc world --readonly
+$ pda set pinned@lmc foo --pin
+$ pda ls lmc --format tsv --no-ttl --no-size
+Meta	Store	Key	Value
+-w-p	lmc	pinned	foo
+-w--	lmc	plain	hello
+----	lmc	readonly	world

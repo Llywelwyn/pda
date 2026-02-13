@@ -2,9 +2,9 @@
 $ pda set foo@rdd 1
 $ pda set bar@rdd 2
 $ pda ls rdd --format tsv
-Key	Store	Value	TTL
-bar	rdd	2	none
-foo	rdd	1	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	rdd	bar	2
+-w--	1	-	rdd	foo	1
 $ pda rm foo@rdd --key "*@rdd" -y
 $ pda get bar@rdd --> FAIL
 FAIL cannot get 'bar@rdd': no such key

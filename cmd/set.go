@@ -133,7 +133,13 @@ func set(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot set '%s': %v", args[0], err)
 	}
 
+	force, _ := cmd.Flags().GetBool("force")
+
 	idx := findEntry(entries, spec.Key)
+
+	if idx >= 0 && entries[idx].ReadOnly && !force {
+		return fmt.Errorf("cannot set '%s': key is read-only", args[0])
+	}
 
 	if safe && idx >= 0 {
 		infof("skipped '%s': already exists", spec.Display())
@@ -157,10 +163,15 @@ func set(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	pinFlag, _ := cmd.Flags().GetBool("pin")
+	readonlyFlag, _ := cmd.Flags().GetBool("readonly")
+
 	entry := Entry{
-		Key:    spec.Key,
-		Value:  value,
-		Secret: secret,
+		Key:      spec.Key,
+		Value:    value,
+		Secret:   secret,
+		ReadOnly: readonlyFlag,
+		Pinned:   pinFlag,
 	}
 	if ttl != 0 {
 		entry.ExpiresAt = uint64(time.Now().Add(ttl).Unix())
@@ -185,5 +196,8 @@ func init() {
 	setCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting an existing key")
 	setCmd.Flags().BoolP("encrypt", "e", false, "encrypt the value at rest using age")
 	setCmd.Flags().Bool("safe", false, "do not overwrite if the key already exists")
+	setCmd.Flags().Bool("force", false, "bypass read-only protection")
+	setCmd.Flags().Bool("pin", false, "pin the key (sorts to top in list)")
+	setCmd.Flags().Bool("readonly", false, "mark the key as read-only")
 	setCmd.Flags().StringP("file", "f", "", "read value from a file")
 }

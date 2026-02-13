@@ -262,14 +262,14 @@ func validateDBName(name string) error {
 
 func formatExpiry(expiresAt uint64) string {
 	if expiresAt == 0 {
-		return "none"
+		return "-"
 	}
 	expiry := time.Unix(int64(expiresAt), 0).UTC()
 	remaining := time.Until(expiry)
 	if remaining <= 0 {
 		return "expired"
 	}
-	return fmt.Sprintf("in %s", remaining.Round(time.Second))
+	return remaining.Round(time.Second).String()
 }
 
 // parseTTLString parses a TTL string that is either a duration (e.g. "30m", "2h")

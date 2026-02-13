@@ -1,0 +1,24 @@
+# --readonly marks a key as read-only
+$ pda set a@mro hello
+$ pda meta a@mro --readonly
+  ok made readonly a@mro
+$ pda meta a@mro
+  key: a@mro
+  secret: false
+  writable: false
+  pinned: false
+  expires: never
+
+# --writable clears the read-only flag
+$ pda meta a@mro --writable
+  ok made writable a@mro
+$ pda meta a@mro
+  key: a@mro
+  secret: false
+  writable: true
+  pinned: false
+  expires: never
+
+# --readonly and --writable are mutually exclusive
+$ pda meta a@mro --readonly --writable --> FAIL
+FAIL cannot meta 'a@mro': --readonly and --writable are mutually exclusive

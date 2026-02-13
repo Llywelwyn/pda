@@ -3,13 +3,13 @@ $ fecho tmpval hello world
 $ pda set greeting@vt < tmpval
 $ pda set number@vt 42
 $ pda ls vt --value "**world**" --format tsv
-Key	Store	Value	TTL
-greeting	vt	hello world (..1 more chars)	none
+Meta	Size	TTL	Store	Key	Value
+-w--	12	-	vt	greeting	hello world (..1 more chars)
 $ pda ls vt --value "**https**" --format tsv
-Key	Store	Value	TTL
-url	vt	https://example.com	none
+Meta	Size	TTL	Store	Key	Value
+-w--	19	-	vt	url	https://example.com
 $ pda ls vt --value "*" --format tsv
-Key	Store	Value	TTL
-number	vt	42	none
+Meta	Size	TTL	Store	Key	Value
+-w--	2	-	vt	number	42
 $ pda ls vt --value "**nomatch**" --> FAIL
 FAIL cannot ls '@vt': no matches for value pattern '**nomatch**'

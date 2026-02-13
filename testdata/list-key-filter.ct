@@ -2,11 +2,11 @@ $ pda set a1@lg 1
 $ pda set a2@lg 2
 $ pda set b1@lg 3
 $ pda ls lg --key "a*" --format tsv
-Key	Store	Value	TTL
-a1	lg	1	none
-a2	lg	2	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	lg	a1	1
+-w--	1	-	lg	a2	2
 $ pda ls lg --key "b*" --format tsv
-Key	Store	Value	TTL
-b1	lg	3	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	lg	b1	3
 $ pda ls lg --key "c*" --> FAIL
 FAIL cannot ls '@lg': no matches for key pattern 'c*'

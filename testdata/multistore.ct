@@ -6,5 +6,5 @@ bar
 $ pda get x@ms2
 y
 $ pda ls ms2 --format tsv
-Key	Store	Value	TTL
-x	ms2	y	none
+Meta	Size	TTL	Store	Key	Value
+-w--	1	-	ms2	x	y

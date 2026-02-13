@@ -1,0 +1,23 @@
+# Cannot move a read-only key without --force
+$ pda set a@mvro hello --readonly
+$ pda mv a@mvro b@mvro --> FAIL
+FAIL cannot move 'a': key is read-only
+
+# --force bypasses read-only protection
+$ pda mv a@mvro b@mvro --force
+  ok renamed a@mvro to b@mvro
+
+# Copy preserves readonly metadata
+$ pda cp b@mvro c@mvro
+  ok copied b@mvro to c@mvro
+$ pda meta c@mvro
+  key: c@mvro
+  secret: false
+  writable: false
+  pinned: false
+  expires: never
+
+# Cannot overwrite a read-only destination
+$ pda set d@mvro new
+$ pda mv d@mvro c@mvro --> FAIL
+FAIL cannot overwrite 'c': key is read-only

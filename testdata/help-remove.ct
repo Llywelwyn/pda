@@ -9,6 +9,7 @@ Aliases:
   remove, rm
 
 Flags:
+      --force           bypass read-only protection
   -h, --help            help for remove
   -i, --interactive     prompt yes/no for each deletion
   -k, --key strings     delete keys matching glob pattern (repeatable)
@@ -24,6 +25,7 @@ Aliases:
   remove, rm
 
 Flags:
+      --force           bypass read-only protection
   -h, --help            help for remove
   -i, --interactive     prompt yes/no for each deletion
   -k, --key strings     delete keys matching glob pattern (repeatable)
