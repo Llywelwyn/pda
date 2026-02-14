@@ -1081,11 +1081,11 @@ https://example.com/api
   </sup>
 </p>
 
-[`--key`](#filtering) / `-k`, [`--value`](#filtering) / `-v`, and [`--store`](#filtering) / `-s` filter entries with glob support. All three flags are repeatable, with results matching one-or-more of the patterns per flag. When multiple flags are combined, results must satisfy all of them (AND across flags, OR within the same flag).
+[`key`](#filtering), [`value`](#filtering), and [`store`](#filtering) flags can be used to filter entries via globs. All three flags are repeatable, with results matching one-or-more of the patterns per flag. When multiple flags are combined, results must satisfy all of them (AND across flags, OR within the same flag).
 
-These filters work with [`list`](#listing), [`export`](#import--export), [`import`](#import--export), and [`remove`](#removing). [`--value`](#filtering) is not available on [`import`](#import--export) or [`remove`](#removing).
+These filters work with [`pda list`](#listing), [`pda export`](#import--export), [`pda import`](#import--export), and [`pda remove`](#removing).
 
-[`gobwas/glob`](https://github.com/gobwas/glob) is used for matching. The default separators are `/-_.@:` and space.
+[`gobwas/glob`](https://github.com/gobwas/glob) is used for matching. The default separators are `/-_.@:` and space. For a detailed guide to globbing, I highly recommend taking a look at the documentation there directly.
 
 #### Glob Patterns
 
@@ -1096,63 +1096,69 @@ These filters work with [`list`](#listing), [`export`](#import--export), [`impor
   </sup>
 </p>
 
-`*` wildcards a word or series of characters, stopping at separator boundaries:
+`*` wildcards a word or series of characters, stopping at separator boundaries.
 
 ```bash
+# list all store contents
 ❯ pda ls
 cat
-dog
-cog
-mouse hotdog
 mouse house
 foo.bar.baz
 
-pda ls --key "*"
-# cat, dog, cog (single-segment keys only)
+# match any single-word key
+❯ pda ls --key "*"
+cat
 
-pda ls --key "* *"
-# mouse hotdog, mouse house
+# match any two-word key
+❯ pda ls --key "* *"
+mouse house
 
-pda ls --key "foo.*.baz"
-# foo.bar.baz
+# match any key starting with "foo." and ending with ".baz", with one word between
+❯ pda ls --key "foo.*.baz"
+foo.bar.baz
 ```
 
-`**` super-wildcards ignore word boundaries:
+`**` super-wildcards ignore word boundaries.
 
 ```bash
-pda ls --key "foo**"
-# foo.bar.baz
-
-pda ls --key "**g"
-# dog, cog, mouse hotdog
+# match anything beginning with "foo"
+❯ pda ls --key "foo**"
+foo.bar.baz
 ```
 
 `?` matches a single character:
 
 ```bash
-pda ls --key "?og"
-# dog, cog
+# match anything beginning with any letter, and ending with "og"
+❯ pda ls --key "?og"
+dog
+cog
 ```
 
-`[abc]` matches one of the characters in the brackets:
+`[abc]` matches one of the characters in the brackets.
 
 ```bash
-pda ls --key "[dc]og"
-# dog, cog
+# match anything beginning with "d" or "c", and ending with "og"
+❯ pda ls --key "[dc]og"
+dog
+cog
 
 # negate with '!'
-pda ls --key "[!dc]og"
-# bog (if it exists)
+❯ pda ls --key "[!dc]og"
+bog
 ```
 
 `[a-c]` matches a range:
 
 ```bash
-pda ls --key "[a-g]ag"
-# bag, gag
+# match anything beginning with "a" to "g", and ending with "ag"
+❯ pda ls --key "[a-g]ag"
+bag
+gag
 
-pda ls --key "[!a-g]ag"
-# wag
+# negate with '!'
+❯ pda ls --key "[!a-g]ag"
+wag
 ```
 
 #### Filtering by Key
@@ -1165,14 +1171,13 @@ pda ls --key "[!a-g]ag"
   </sup>
 </p>
 
-[`--key`](#filtering) / `-k` filters entries by key name:
+[`key`](#filtering) filters entries by key name. Multiple `key` patterns are OR'd. An entry matches if it matches any of them.
 
 ```bash
 pda ls --key "db*"
 pda ls --key "session*" --key "token*"
 ```
 
-Multiple `--key` patterns are OR'd — an entry matches if it matches any of them.
 
 #### Filtering by Value
 
@@ -1184,24 +1189,14 @@ Multiple `--key` patterns are OR'd — an entry matches if it matches any of the
   </sup>
 </p>
 
-[`--value`](#filtering) / `-v` filters by value content using the same glob syntax:
+[`value`](#filtering) filters by value. Multiple `value` patterns are OR'd.
 
 ```bash
 ❯ pda ls --value "**localhost**"
-Key    Value
-db-url postgres://localhost:5432
-```
-
-Multiple `--value` patterns are OR'd:
-
-```bash
 ❯ pda ls --value "**world**" --value "42"
-Key      Value
-greeting hello world
-number   42
 ```
 
-Locked (encrypted without an available identity) and non-UTF-8 (binary) entries are silently excluded from `--value` matching.
+Locked (encrypted without an available identity) and non-UTF-8 (binary) entries are silently excluded from `value` matching.
 
 #### Filtering by Store
 
@@ -1213,7 +1208,7 @@ Locked (encrypted without an available identity) and non-UTF-8 (binary) entries 
   </sup>
 </p>
 
-[`--store`](#filtering) / `-s` filters by store name:
+[`store`](#filtering) filters by store name. Multiple `store` patterns are OR'd.
 
 ```bash
 pda ls --store "prod*"
@@ -1229,13 +1224,13 @@ pda export --store "dev*"
   </sup>
 </p>
 
-Combine key, value, and store filters. Results must match all flags (AND), with OR within each flag:
+`key`, `value`, and `store` filters can be combined. Results must match at least one of each category of filter used. For example, checking for `key` and two different `value` globs on the same filter: the results must match `key` and at least one of the two `value` globs; the results do not need to match both values.
 
 ```bash
 pda ls --key "db*" --value "**localhost**"
 ```
 
-Globs can be arbitrarily complex, and [`--key`](#filtering) can be combined with exact positional args on [`rm`](#removing):
+Globs can be combined to create some deeply complex queries. For example, [`key`](#filtering) can be combined with exact positional args on [`rm`](#removing) to remove exactly the "cat" key, and any keys beginning with "cat", "dog", or "mouse" followed by zero-or-more additional words.
 
 ```bash
 pda rm cat --key "{mouse,[cd]og}**"
