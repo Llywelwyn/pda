@@ -497,60 +497,57 @@ Additionally, `interactive` being passed or `key.always_prompt_overwrite` being 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-remove"><code>pda help remove</code></a>
+    <a href="#pda-remove"><code>pda remove</code></a>
   </sup>
 </p>
 
-[`pda remove`](#removing) (alias: [`rm`](#removing)) deletes one or more keys.
+[`pda remove`](#removing) (alias: [`rm`](#removing)) deletes one or more keys. Any number of keys can be deleted in a single call, with keys from differing stores able to be mixed freely.
 
 ```bash
-pda rm kitty
+# delete a single key
+pda remove kitty
+
+# delete multiple keys at once
+pda remove kitty doggy
+
+# delete across stores
+pda remove kitty secret@private
 ```
 
-Remove multiple keys at once:
+Exact positional keys can be combined with [glob patterns](#filtering) via `key`, `store`, and `value` to widen the scope of a deletion. Glob-matched deletions prompt for confirmation by default due to their more error-prone nature. This is configurable with `key.always_prompt_glob_delete` in the [config](#config).
 
 ```bash
-pda rm kitty dog@animals
+# delete "kitty" and everything matching the key "?og"
+❯ pda rm kitty --key "?og"
+ ??? remove 'cog'? (y/n)
+ ==> y
+ ??? remove 'dog'? (y/n)
+
+# delete keys matching a store and key pattern
+❯ pda rm --store "temp*" --key "session*"
 ```
 
-Mix exact keys with [glob patterns](#filtering) using [`--key`](#removing):
+Passing `interactive` prompts before each deletion, including exact keys. This behaviour can be made permanent with `key.always_prompt_delete` in the [config](#config). Inversely, `yes` auto-accepts all confirmation prompts.
 
 ```bash
-pda set cog "cogs"
-pda set dog "doggy"
-pda set kitty "cat"
-pda rm kitty --key "?og"
+# prompt before each deletion
+❯ pda rm kitty -i
+ ??? remove 'kitty'? (y/n)
+ ==> y
+
+# auto-accept all prompts
+❯ pda rm kitty -y
 ```
 
-Filter by store with [`--store`](#removing) / `-s` and by value with [`--value`](#removing) / `-v`:
+[Read-only](#read-only) keys cannot be deleted without explicitly passing `force`.
 
 ```bash
-pda rm --store "temp*" --key "session*"
-```
-
-[`--interactive`](#removing) / `-i` prompts before each deletion (or set `key.always_prompt_delete` in [config](#config)):
-
-```bash
-pda rm kitty -i
-#  ??? remove 'kitty'? (y/n)
-#  ==> y
-```
-
-Glob-matched deletions prompt by default (configurable with `key.always_prompt_glob_delete`).
-
-[`--yes`](#removing) / `-y` auto-accepts all confirmation prompts:
-
-```bash
-pda rm kitty -y
-```
-
-[Read-only](#read-only) keys can't be deleted without [`--force`](#removing):
-
-```bash
+# remove a read-only key
 ❯ pda rm protected-key
 FAIL cannot remove 'protected-key': key is read-only
 
-pda rm protected-key --force
+# force-remove a read-only key
+❯ pda rm protected-key --force
 ```
 
 ### Metadata
@@ -558,7 +555,7 @@ pda rm protected-key --force
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#metadata"><code>pda meta</code></a>,
+    <a href="#pda-meta"><code>pda meta</code></a>,
     <a href="#ttl">TTL</a>,
     <a href="#encryption">Encryption</a>,
     <a href="#read-only">Read-Only</a>,
@@ -566,47 +563,41 @@ pda rm protected-key --force
   </sup>
 </p>
 
-[`pda meta`](#metadata) views or modifies metadata for a key without changing its value. With no flags, it displays the key's current metadata:
+[`pda meta`](#metadata) can be used to view or modify metadata for a given key without touching its value. It always takes one argument: the desired key.
+
+If no flags are passed, [`pda meta`](#metadata) will display the key's current metadata. Any flags passed can be used to modify metadata in-place: [`ttl`](#ttl), [`encrypt`](#encryption) or [`decrypt`](#encryption), [`readonly`](#read-only) or [`writable`](#read-only), and [`pin`](#pinned) or [`unpin`](#pinned). Multiple changes can be combined in a single command.
+
+In [`pda list`](#listing) output, metadata is demonstrated via a `Meta` column. The presence of each type of metadata is marked by a character, or a dash if unset: [(e)ncrypted](#encryption), [(w)ritable](#read-only), [(t)ime-to-live](#ttl), and [(p)inned](#pinned).
 
 ```bash
+# view a key's underlying metadata
 ❯ pda meta session
   key: session@store
   secret: false
   writable: true
   pinned: false
   expires: 59m30s
+
+# make a key read-only
+❯ pda meta session --readonly
+
+# remove a key's expiration time
+❯ pda meta session --ttl never
 ```
 
-Pass flags to modify: [`--ttl`](#ttl), [`--encrypt`](#encryption) / [`--decrypt`](#encryption), [`--readonly`](#read-only) / [`--writable`](#read-only), [`--pin`](#pinned) / [`--unpin`](#pinned).
-
-Multiple metadata changes can be combined in one call:
-
-```bash
-pda meta session --ttl 2h --encrypt --pin
-```
-
-Modifying a [read-only](#read-only) key's metadata requires [`--force`](#metadata) (except for toggling the read-only flag itself, and pin/unpin):
-
-```bash
-❯ pda meta api-url --ttl 1h
-FAIL cannot meta 'api-url': key is read-only
-
-pda meta api-url --ttl 1h --force
-```
+Modifying a [read-only](#read-only) key's metadata requires `force` or by first making it `writable`. A [read-only](#read-only) key can still be [pinned or unpinned](#pinned) as pin state only determines where a key is on `list output`[#listing], and does not change the actual key state.
 
 #### TTL
 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-set"><code>pda help set</code></a>,
-    <a href="#pda-meta"><code>pda help meta</code></a>
+    <a href="#pda-set"><code>pda set</code></a>,
+    <a href="#pda-meta"><code>pda meta</code></a>
   </sup>
 </p>
 
-Keys can be given an expiration time. Expired keys are marked for garbage collection and deleted on the next access to the store.
-
-Set a TTL at creation time with [`pda set --ttl`](#setting):
+Keys can be given an expiration time. Expired keys are marked for garbage collection and deleted on the next access to the [store](#stores). [TTL](#ttl) can be set at creation time via [`pda set --ttl`](#setting), or toggled later with [`pda meta --ttl`](#metadata) and [`pda edit --ttl`](#editing).
 
 ```bash
 # expire after 1 hour
@@ -614,91 +605,70 @@ pda set session "123" --ttl 1h
 
 # expire after 54 minutes and 10 seconds
 pda set session2 "xyz" --ttl 54m10s
+
+# remove an expiration time
+pda meta session --ttl never
 ```
 
-[`pda list`](#listing) shows expiration in the TTL column:
+TTL can be displayed with [`pda list`](#listing) in the [TTL](#ttl) column, or with [`pda meta`](#metadata).
 
 ```bash
+# view ttl in a store's list output
 ❯ pda ls
    TTL Key      Value
 59m30s session  123
 51m40s session2 xyz
+
+# view the metadata of a specific key
+❯ pda meta session
 ```
 
-Change or clear the TTL on an existing key with [`pda meta --ttl`](#metadata):
-
-```bash
-❯ pda meta session --ttl 2h
-  ok set ttl to 2h session
-
-❯ pda meta session --ttl never
-  ok cleared ttl session
-```
-
-The [`edit`](#editing) command also accepts `--ttl`:
-
-```bash
-pda edit session --ttl 30m
-```
-
-[`export`](#import--export) and [`import`](#import--export) preserve the expiry date. Expirations are stored as a timestamp, not a timer — they continue ticking down regardless of whether the key is in an active store or sitting in a backup file.
+Expiration time is preserved on [`import`](#import--export) and [`export`](#import--export) and [moving or copying](#moving--copying). TTL is stored as a timestamp rather than a timer; keys with a TTL are checked on access to the store they reside in, and any with an expiry that has already passed are deleted. If a key expires while having been exported, it will be deleted on import the next time `pda` touches the file.
 
 #### Encryption
 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-set"><code>pda help set</code></a>,
-    <a href="#pda-meta"><code>pda help meta</code></a>,
-    <a href="#pda-identity"><code>pda help identity</code></a>
+    <a href="#pda-set"><code>pda set</code></a>,
+    <a href="#pda-meta"><code>pda meta</code></a>,
+    <a href="#pda-identity"><code>pda identity</code></a>
   </sup>
 </p>
 
-[`pda set --encrypt`](#setting) encrypts values at rest using [age](https://github.com/FiloSottile/age). Values are stored on disk as age ciphertext and decrypted automatically by commands like [`get`](#getting) and [`list`](#listing) when the correct identity file is present. An X25519 identity is generated on first use.
+[`pda set --encrypt`](#setting) encrypts values at rest using [age](https://github.com/FiloSottile/age). Values are stored on disk as age ciphertext and decrypted automatically at run-time by commands like [`pda get`](#getting) and [`pda list`](#listing) when the correct identity file is present. An X25519 [identity](#identity) is generated on first use.
+
+By default, the only recipient for encrypted keys is your own [identity](#identity) file. Additional recipients can be added or removed via [`pda identity`](#identity).
 
 ```bash
-pda set --encrypt api-key "sk-live-abc123"
-#   ok created identity at ~/.config/pda/identity.txt
+# create a key called "api-key" and encrypt it
+❯ pda set --encrypt api-key "sk-live-abc123"
+ ok created identity at ~/.local/share/pda/identity.txt
 
-pda set --encrypt token "ghp_xxxx"
+# encrypt a key after editing in $EDITOR
+❯ pda edit --encrypt api-key
+
+# decrypt a key via meta
+❯ pda meta --decrypt api-key
 ```
 
-[`pda get`](#getting) decrypts automatically:
-
-```bash
-❯ pda get api-key
-sk-live-abc123
-```
-
-Toggle encryption on an existing key with [`pda meta`](#metadata):
-
-```bash
-❯ pda meta api-key --encrypt
-  ok encrypted api-key
-
-❯ pda meta api-key --decrypt
-  ok decrypted api-key
-```
-
-The on-disk value is ciphertext, so encrypted entries are safe to commit and push with [Git](#git):
+Because the on-disk value of an encrypted key is ciphertext, encrypted entries are safe to commit and push with [Git](#git). 
 
 ```bash
 ❯ pda export
 {"key":"api-key","value":"YWdlLWVuY3J5cHRpb24u...","encoding":"secret"}
 ```
 
-[`mv`](#moving--copying), [`cp`](#moving--copying), and [`import`](#import--export) all preserve encryption, read-only, and pinned flags. Overwriting an encrypted key without `--encrypt` will warn you:
+[`mv`](#moving--copying), [`cp`](#moving--copying), and [`import`](#import--export) all preserve encryption, read-only, and pinned flags. Overwriting an encrypted key by setting a new value without `--encrypt` will warn you.
 
 ```bash
-pda cp api-key api-key-backup
-# still encrypted
-
+# setting a new key and forgetting the "--encrypt" flag
 ❯ pda set api-key "oops"
 WARN overwriting encrypted key 'api-key' as plaintext
 hint pass --encrypt to keep it encrypted
 ```
 
-If the identity file is missing, encrypted values are inaccessible but not lost. Keys remain visible, and the ciphertext is preserved through reads and writes:
+If your [identity](#identity) file does not match an intended recipient of an encrypted key, the value will be inaccessible. It will display `locked` on fetch until a matching [identity](#identity) is found.
 
 ```bash
 ❯ pda ls
@@ -709,93 +679,76 @@ ew-- api-key locked (identity file missing)
 FAIL cannot get 'api-key': secret is locked (identity file missing)
 ```
 
-All encryption operations can be set as default with `key.always_encrypt` in [config](#config), so every [`pda set`](#setting) automatically encrypts.
+Encrypted keys can be made the default by enabling `key.always_encrypt` in the [config](#config).
 
 #### Read-Only
 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-set"><code>pda help set</code></a>,
-    <a href="#pda-meta"><code>pda help meta</code></a>
+    <a href="#pda-set"><code>pda set</code></a>,
+    <a href="#pda-meta"><code>pda meta</code></a>
   </sup>
 </p>
 
-Keys marked read-only are protected from accidental modification. You can modify a read-only key again by making it [`--writable`](#metadata) or by explicitly bypassing with [`--force`](#metadata).
-
-Set a key as read-only at creation time:
+Keys marked [read-only](#read-only) are protected from accidental modification. A [read-only](#read-only) flag can be set at creation time, toggled later with [`pda meta`](#metadata), or applied alongside an [`edit`](#editing). Making a key [`writable`](#metadata) again or explicitly passing [`force`](#metadata) allows changes through. A key being made writable is a permanent change, whereas the `force` flag is a one-off.
 
 ```bash
+# create a read-only key
 pda set api-url "https://prod.example.com" --readonly
-```
 
-Toggle with [`pda meta`](#metadata):
-
-```bash
+# set a key to read-only with meta
 ❯ pda meta api-url --readonly
   ok made readonly api-url
 
+# set a key as writable with meta
 ❯ pda meta api-url --writable
   ok made writable api-url
+
+# edit a key, and set as readonly on save
+❯ pda edit notes --readonly
 ```
 
-Or alongside an edit:
+Read-only keys are protected from [`setting`](#setting), [`removing`](#removing), [`moving`](#moving--copying), and [`editing`](#editing). They are *not protected* from the deletion of an entire [store](#stores).
 
 ```bash
-pda edit notes --readonly
-```
-
-Read-only keys are protected from [`set`](#setting), [`rm`](#removing), [`mv`](#moving--copying), and [`edit`](#editing). Use `--force` to bypass:
-
-```bash
+# set a new value to a read-only key
 ❯ pda set api-url "new value"
 FAIL cannot set 'api-url': key is read-only
 
-pda set api-url "new value" --force
-pda rm api-url --force
-pda mv api-url new-name --force
+# force changes to a read-only key with the force flag
+❯ pda set api-url "new value" --force
+❯ pda remove api-url --force
+❯ pda move api-url new-name --force
 ```
 
-Modifying a read-only key's metadata also requires `--force` (except for toggling the read-only flag itself, and pin/unpin):
-
-```bash
-❯ pda meta api-url --ttl 1h
-FAIL cannot meta 'api-url': key is read-only
-
-pda meta api-url --ttl 1h --force
-```
-
-[`cp`](#moving--copying) can copy a read-only key freely (since the source isn't modified), and the copy preserves the read-only flag. Overwriting a read-only destination is blocked without `--force`.
+[`pda copy`](#moving--copying) can copy a read-only key freely (since the source isn't modified), and the copy preserves the read-only flag. Overwriting a read-only destination is blocked without `force`.
 
 #### Pinned
 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-set"><code>pda help set</code></a>,
-    <a href="#pda-meta"><code>pda help meta</code></a>
+    <a href="#pda-set"><code>pda set</code></a>,
+    <a href="#pda-meta"><code>pda meta</code></a>
   </sup>
 </p>
 
-Pinned keys sort to the top of [`pda list`](#listing) output, preserving alphabetical order within the pinned and unpinned groups.
-
-Pin a key at creation time:
+Pinned keys sort to the top of [`pda list`](#listing) output, preserving alphabetical order within the pinned and unpinned groups. A pin can be set at creation time, toggled with [`pda meta`](#metadata), or applied alongside an [`edit`](#editing).
 
 ```bash
+# pin a key at creation time
 pda set important "remember this" --pin
-```
 
-Toggle with [`pda meta`](#metadata):
-
-```bash
+# pin a key with meta
 ❯ pda meta todo --pin
   ok pinned todo
 
+# unpin a key with meta
 ❯ pda meta todo --unpin
   ok unpinned todo
-```
 
-```bash
+# view pinned keys in list output, at the top
 ❯ pda ls
 Meta Key       Value
 -w-p important remember this
@@ -808,95 +761,66 @@ Meta Key       Value
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#stores"><code>pda list-stores</code></a>,
-    <a href="#stores"><code>pda move-store</code></a>,
-    <a href="#stores"><code>pda remove-store</code></a>
+    <a href="#pda-list-stores"><code>pda list-stores</code></a>,
+    <a href="#pda-move-store"><code>pda move-store</code></a>,
+    <a href="#pda-remove-store"><code>pda remove-store</code></a>
   </sup>
 </p>
 
-You can have as many stores as you want. Stores are created implicitly when you set a key with a `@STORE` suffix. Each store is a separate NDJSON file on disk.
+Stores are saved on disk as NDJSON files. `pda` supports any number of stores, and creating them is automatic. If a key is created with a `@STORE` suffix, and the named store does not already exist, it will be created automatically to support the new key.
 
-[`pda list-stores`](#stores) (alias: [`lss`](#stores)) shows all stores with key counts and file sizes:
+[`pda list-stores`](#stores) (alias: [`lss`](#stores)) shows all stores with their respective key counts and file sizes. Passing `short` prints only the store names.
 
 ```bash
+# list all stores
 ❯ pda list-stores
 Keys  Size Store
    2 1.8k @birthdays
   12 4.2k @store
-```
 
-[`--short`](#stores) prints only the names:
-
-```bash
+# list all store names
 ❯ pda list-stores --short
 @birthdays
 @store
 ```
 
-Save to a specific store with the `@STORE` syntax:
+[`pda move-store`](#stores) (alias: [`mvs`](#stores)) renames a store. Passing `copy` keeps the source intact.
 
 ```bash
-pda set alice@birthdays "11/11/1998"
-```
-
-List a specific store:
-
-```bash
-❯ pda ls @birthdays
-   Store Key   Value
-birthdays alice 11/11/1998
-birthdays bob   05/12/1980
-```
-
-[`pda move-store`](#stores) (alias: [`mvs`](#stores)) renames a store:
-
-```bash
+# rename a store
 pda move-store birthdays bdays
-```
 
-Copy a store with `--copy`:
-
-```bash
+# copy a store
 pda move-store birthdays bdays --copy
 ```
 
-[`--safe`](#stores) skips if the destination already exists:
+[`pda remove-store`](#stores) (alias: [`rms`](#stores)) deletes a store. A confirmation prompt is shown by default (configurable with `store.always_prompt_delete` in the [config](#config)). Deleting an entire store does not require unsetting [read-only](#read-only) on contained keys: if a [read-only](#read-only) key is within a store, it **will be deleted** if the store is removed.
 
 ```bash
-pda move-store birthdays bdays --safe
-```
-
-[`pda remove-store`](#stores) (alias: [`rms`](#stores)) deletes a store:
-
-```bash
+# delete a store
 pda remove-store birthdays
 ```
 
-[`--yes`](#stores) / `-y` skips confirmation prompts:
+As with changeful key operations, store commands support `interactive` and `safe` flags where they make sense. Moving or removing a store interactively will generate a confirmation prompt if anything would be lost by the action being taken. The `safe` flag will prevent moving a store from ever overwriting another store.
 
-```bash
-pda remove-store birthdays -y
-```
+Inversely, `yes` can be passed to bypass any confirmation prompts.
 
 #### Import & Export
 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-export"><code>pda help export</code></a>,
-    <a href="#pda-import"><code>pda help import</code></a>
+    <a href="#pda-export"><code>pda export</code></a>,
+    <a href="#pda-import"><code>pda import</code></a>
   </sup>
 </p>
 
-[`pda export`](#import--export) exports everything as NDJSON (it's an alias for `list --format ndjson`):
+[`pda export`](#import--export) dumps entries as NDJSON (it is functionally an alias for `list --format ndjson`). The [filtering](#filtering) flags `key`, `value`, and `store` all work with exports. It shares functionality with [`pda list`](#listing) in regard to which stores get exported: if `list.always_show_all_stores` is set and no store name is specified as an argument, all stores will be exported.
 
 ```bash
+# export everything
 pda export > my_backup
-```
 
-Filter exports with [`--key`](#filtering), [`--value`](#filtering), and [`--store`](#filtering):
-
-```bash
 # export only matching keys
 pda export --key "a*"
 
@@ -904,46 +828,28 @@ pda export --key "a*"
 pda export --value "**https**"
 ```
 
-[`pda import`](#import--export) restores entries from an NDJSON dump. By default, each entry is routed to the store it came from (via the `"store"` field in the NDJSON). If no `"store"` field is present, entries go to `store.default_store_name`.
+[`pda import`](#import--export) restores entries from an NDJSON dump. The default behaviour for an import is to merge with any existing stores of the same name. To completely replace existing stores instead of merging, `drop` can be passed.
+
+[Importing](#import--export) takes one or zero arguments. On export each key saves the name of the store it came from in its metadata; on import, by default, each key will be returned to that same store. If a store name is passed as an argument to [`pda import`](#import--export), this behaviour will be overriden and all keys will be imported into the specified store.
+
+As with [exporting](#import--export), `key`, `value`, and `store` flags can be passed to filter which keys will be imported from the input file.
 
 ```bash
 # entries are routed to their original stores
 pda import -f my_backup
 #   ok restored 5 entries
-```
 
-Pass a store name as a positional argument to force all entries into one store:
-
-```bash
+# force all entries into a single store
 pda import mystore -f my_backup
 #   ok restored 5 entries into @mystore
-```
 
-Read from stdin:
-
-```bash
+# read from stdin
 pda import < my_backup
 ```
 
-Filter imports with [`--key`](#filtering) and [`--store`](#filtering):
+`interactive` can be passed to [`pda import`](#import--export) to prompt on potential overwrite, and is generally recommended if an import is ever being routed to a specific store, as it is likely to cause collisions.
 
-```bash
-# import only matching keys
-pda import --key "a*" -f my_backup
-
-# import only entries from matching stores
-pda import --store "prod*" -f my_backup
-```
-
-[`--drop`](#import--export) does a full replace — drops all existing entries before importing:
-
-```bash
-pda import --drop -f my_backup
-```
-
-[`--interactive`](#import--export) / `-i` prompts before overwriting existing keys.
-
-[`export`](#import--export) encodes [binary data](#binary-data) as base64. [Encryption](#encryption), [read-only](#read-only), [pinned](#pinned) flags, and [TTL](#ttl) are all preserved through export and import.
+[`pda export`](#import--export) encodes [binary data](#binary-data) as base64. All [metadata](#metadata) is preserved through export and import.
 
 ### Templates
 
@@ -957,9 +863,11 @@ pda import --drop -f my_backup
 
 Values support Go's [`text/template`](https://pkg.go.dev/text/template) syntax. Templates are evaluated on [`pda get`](#getting) and [`pda run`](#running).
 
-`text/template` is a Turing-complete templating library that supports pipelines, nested templates, conditionals, loops, and more. Actions are given with `{{ action }}` syntax. To fit `text/template` into a CLI key-value tool, `pda!` adds a small set of built-in functions on top of the standard library.
+`text/template` is a Turing-complete templating library that supports pipelines, nested templates, conditionals, loops, and more. Actions are given with `{{ action }}` syntax. To better accomodate `text/template`, `pda` adds a small set of built-in functions on top of the standard library.
 
-These same functions are also available in `git.default_commit_message` templates, along with `summary` which returns the action that triggered the commit (e.g. "set foo", "removed bar").
+These same functions are also available in `git.default_commit_message` templates, in addition to `summary`, which returns the action that triggered the commit (e.g. "set foo", "removed bar").
+
+`no-template` can be passed to output a raw value without resolving the template.
 
 #### Basic Substitution
 
@@ -1084,20 +992,15 @@ FAIL cannot get 'level': ...invalid value 'debug', allowed: [info warn error]
   </sup>
 </p>
 
-`int` parses a variable as an integer, useful for loops and arithmetic:
+`int` parses a variable as an integer. Useful mostly for loops or arithmetic.
 
 ```bash
-pda set number "{{ int .N }}"
-
+❯ pda set number "{{ int .N }}"
 ❯ pda get number N=3
 3
-```
 
-Use it in a range loop:
-
-```bash
-pda set meows "{{ range int .COUNT }}meow! {{ end }}"
-
+# using "int" in a loop
+❯ pda set meows "{{ range int .COUNT }}meow! {{ end }}"
 ❯ pda get meows COUNT=4
 meow! meow! meow! meow!
 ```
@@ -1129,23 +1032,19 @@ Hi Bob. Hi Alice.
   </sup>
 </p>
 
-`shell` executes a command and returns its stdout:
+`shell` executes a command and returns its stdout. Commands executed by the `shell` function are executed by `$SHELL`. If it is somehow unset, it defaults to using `/usr/sh`.
 
 ```bash
-pda set rev '{{ shell "git rev-parse --short HEAD" }}'
-
+❯ pda set rev '{{ shell "git rev-parse --short HEAD" }}'
 ❯ pda get rev
 a1b2c3d
-```
 
-```bash
-pda set today '{{ shell "date +%Y-%m-%d" }}'
-
+❯ pda set today '{{ shell "date +%Y-%m-%d" }}'
 ❯ pda get today
 2025-06-15
 ```
 
-#### `pda` (Recursive)
+#### `pda`
 
 <p>
   <sup>
@@ -1154,45 +1053,20 @@ pda set today '{{ shell "date +%Y-%m-%d" }}'
   </sup>
 </p>
 
-`pda` gets another key's value, enabling recursive composition:
+`pda` returns the output of [`pda get`](#getting) on a key.
 
 ```bash
-pda set base_url "https://api.example.com"
-pda set endpoint '{{ pda "base_url" }}/users/{{ require .ID }}'
-
+# use the value of "base_url" in another key
+❯ pda set base_url "https://api.example.com"
+❯ pda set endpoint '{{ pda "base_url" }}/users/{{ require .ID }}'
 ❯ pda get endpoint ID=42
 https://api.example.com/users/42
-```
 
-Cross-store references work too:
-
-```bash
-pda set host@urls "https://example.com"
-pda set api '{{ pda "host@urls" }}/api'
-
+# use the value of a key from another store
+❯ pda set host@urls "https://example.com"
+❯ pda set api '{{ pda "host@urls" }}/api'
 ❯ pda get api
 https://example.com/api
-```
-
-#### `no-template`
-
-<p>
-  <sup>
-    <a href="#overview">↑</a> ·
-    <a href="#pda-get"><code>pda help get</code></a>
-  </sup>
-</p>
-
-Pass [`--no-template`](#getting) to [`pda get`](#getting) to output the raw value without evaluating templates:
-
-```bash
-pda set hello "{{ if .MORNING }}Good morning.{{ end }}"
-
-❯ pda get hello MORNING=1
-Good morning.
-
-❯ pda get hello --no-template
-{{ if .MORNING }}Good morning.{{ end }}
 ```
 
 ### Filtering
@@ -1382,49 +1256,43 @@ pda rm cat --key "{mouse,[cd]og}**"
   </sup>
 </p>
 
-`pda!` supports all binary data. Save it with [`pda set`](#setting):
+`pda!` supports all binary data. Values can be read from a file with `--file` or piped in via stdin. Retrieval works the same way — pipe or redirect the output to get the raw bytes.
 
 ```bash
+# store binary data from a file
 pda set logo < logo.png
 pda set logo -f logo.png
-```
 
-And retrieve it with [`pda get`](#getting):
-
-```bash
+# retrieve binary data
 pda get logo > output.png
 ```
 
-On a TTY, [`get`](#getting) and [`list`](#listing) show a summary for binary data. If piped or run outside of a TTY, raw bytes are output:
+On a TTY, [`get`](#getting) and [`list`](#listing) show a summary instead of printing raw bytes (which can cause undefined terminal behaviour). In a non-TTY setting (piped or redirected), the raw bytes are returned as expected. Passing `base64` provides a safe way to view binary data in a terminal.
 
 ```bash
+# TTY shows a summary
 ❯ pda get logo
 (binary: 4.2 KB, image/png)
-```
 
-[`--base64`](#getting) / `-b` views binary data as base64:
-
-```bash
+# base64 view
 ❯ pda get logo --base64
 iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADklEQVQI12...
 ```
 
-[`pda export`](#import--export) encodes binary data as base64 in the NDJSON:
+[`pda export`](#import--export) encodes binary data as base64 in the NDJSON, and [`pda edit`](#editing) presents binary values as base64 for editing and decodes them back on save.
 
 ```bash
 ❯ pda export
 {"key":"logo","value":"89504E470D0A1A0A0000000D4948445200000001000000010802000000","encoding":"base64"}
 ```
 
-[`pda edit`](#editing) presents binary values as base64 for editing and decodes them back on save.
-
 ### Git
 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#git"><code>pda init</code></a>,
-    <a href="#sync"><code>pda sync</code></a>,
+    <a href="#pda-init"><code>pda init</code></a>,
+    <a href="#pda-sync"><code>pda sync</code></a>,
     <a href="#config">Config</a>
   </sup>
 </p>
@@ -1436,21 +1304,21 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADklEQVQI12...
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-init"><code>pda help init</code></a>
+    <a href="#pda-init"><code>pda init</code></a>
   </sup>
 </p>
 
-[`pda init`](#git) initialises version control:
+[`pda init`](#git) initialises version control. With no arguments it creates a local-only repository in the data directory. Pass a remote URL to clone from an existing repository instead.
 
 ```bash
-# initialise an empty repository
+# initialise an empty local repository
 pda init
 
-# or clone an existing one
+# or clone from an existing remote
 pda init https://github.com/llywelwyn/my-repository
 ```
 
-[`--clean`](#git) removes the existing `.git` directory first, useful for reinitialising or switching remotes:
+Passing `clean` removes any existing `.git` directory first, useful for reinitialising or switching remotes.
 
 ```bash
 pda init --clean
@@ -1462,7 +1330,7 @@ pda init https://github.com/llywelwyn/my-repository --clean
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-sync"><code>pda help sync</code></a>
+    <a href="#pda-sync"><code>pda sync</code></a>
   </sup>
 </p>
 
@@ -1485,7 +1353,7 @@ Running [`pda sync`](#sync) manually will always fetch, commit, and push — or 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-config"><code>pda help config</code></a>
+    <a href="#pda-config"><code>pda config</code></a>
   </sup>
 </p>
 
@@ -1506,7 +1374,7 @@ A recommended setup is to enable `git.auto_commit` and run [`pda sync`](#sync) m
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#identity"><code>pda identity</code></a>,
+    <a href="#pda-identity"><code>pda identity</code></a>,
     <a href="#encryption">Encryption</a>
   </sup>
 </p>
@@ -1518,21 +1386,17 @@ A recommended setup is to enable `git.auto_commit` and run [`pda sync`](#sync) m
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-identity"><code>pda help identity</code></a>
+    <a href="#pda-identity"><code>pda identity</code></a>
   </sup>
 </p>
 
-With no flags, [`pda identity`](#identity) shows your public key, identity file path, and any additional recipients:
+With no flags, [`pda identity`](#identity) shows your public key, identity file path, and any additional recipients. Passing `path` prints only the identity file path, useful for scripting.
 
 ```bash
 ❯ pda identity
   ok pubkey  age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
   ok identity  ~/.config/pda/identity.txt
-```
 
-[`--path`](#identity) prints only the identity file path:
-
-```bash
 ❯ pda identity --path
 ~/.config/pda/identity.txt
 ```
@@ -1542,7 +1406,7 @@ With no flags, [`pda identity`](#identity) shows your public key, identity file 
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-identity"><code>pda help identity</code></a>
+    <a href="#pda-identity"><code>pda identity</code></a>
   </sup>
 </p>
 
@@ -1559,7 +1423,7 @@ pda identity --new
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-identity"><code>pda help identity</code></a>
+    <a href="#pda-identity"><code>pda identity</code></a>
   </sup>
 </p>
 
@@ -1572,15 +1436,11 @@ By default, secrets are encrypted only for your own identity. To encrypt for add
   ok re-encrypted 1 secret(s)
 ```
 
-Remove a recipient with [`--remove-recipient`](#identity). Secrets are re-encrypted without their key:
+Removing a recipient with `--remove-recipient` re-encrypts all secrets without their key. Additional recipients are shown in the default identity display.
 
 ```bash
 pda identity --remove-recipient age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
-```
 
-Additional recipients are shown in the default identity display:
-
-```bash
 ❯ pda identity
   ok pubkey     age1abc...
   ok identity   ~/.local/share/pda/identity.txt
@@ -1592,8 +1452,8 @@ Additional recipients are shown in the default identity display:
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#config"><code>pda config</code></a>,
-    <a href="#doctor"><code>pda doctor</code></a>
+    <a href="#pda-config"><code>pda config</code></a>,
+    <a href="#pda-doctor"><code>pda doctor</code></a>
   </sup>
 </p>
 
@@ -1604,7 +1464,7 @@ Config is stored at `~/.config/pda/config.toml` (Linux/macOS) or `%LOCALAPPDATA%
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-config"><code>pda help config</code></a>
+    <a href="#pda-config"><code>pda config</code></a>
   </sup>
 </p>
 
@@ -1645,7 +1505,7 @@ pda config init --update
   <sup>
     <a href="#overview">↑</a> ·
     <a href="#config">Config</a>,
-    <a href="#pda-config"><code>pda help config</code></a>
+    <a href="#pda-config"><code>pda config</code></a>
   </sup>
 </p>
 
@@ -1703,37 +1563,26 @@ default_commit_message = "{{ summary }} {{ time }}"
   <sup>
     <a href="#overview">↑</a> ·
     <a href="#config">Config</a>,
-    <a href="#doctor"><code>pda doctor</code></a>
+    <a href="#pda-doctor"><code>pda doctor</code></a>
   </sup>
 </p>
 
-`PDA_CONFIG` overrides the config directory. `pda!` will look for `config.toml` in this directory:
+`pda!` respects a small set of environment variables for overriding paths and tools. These are primarily useful for isolating stores across environments or for scripting.
+
+`PDA_CONFIG` overrides the config directory — `pda!` will look for `config.toml` here instead of the default XDG location. `PDA_DATA` overrides the data storage directory where stores and the Git repository live. Default data locations follow XDG conventions: `~/.local/share/pda/` on Linux, `~/Library/Application Support/pda/` on macOS, and `%LOCALAPPDATA%/pda/` on Windows.
 
 ```bash
+# use an alternative config directory
 PDA_CONFIG=/tmp/config/ pda set key value
-```
 
-`PDA_DATA` overrides the data storage directory:
-
-```bash
+# use an alternative data directory
 PDA_DATA=/tmp/stores pda set key value
 ```
 
-Default data locations:
-- Linux: `~/.local/share/pda/`
-- macOS: `~/Library/Application Support/pda/`
-- Windows: `%LOCALAPPDATA%/pda/`
-
-`EDITOR` is used by [`pda edit`](#editing) and [`pda config edit`](#config) to open values in a text editor. Must be set for these commands to work:
+`EDITOR` is used by [`pda edit`](#editing) and [`pda config edit`](#config) to open values in a text editor. Must be set for these commands to work. `SHELL` is used by [`pda run`](#running) (or [`pda get --run`](#getting)) for command execution, falling back to `/bin/sh` if unset.
 
 ```bash
 EDITOR=nvim pda edit mykey
-```
-
-`SHELL` is used by [`pda run`](#running) (or [`pda get --run`](#getting)) for command execution. Falls back to `/bin/sh` if unset:
-
-```bash
-pda run script
 ```
 
 ### Doctor
@@ -1746,7 +1595,7 @@ pda run script
   </sup>
 </p>
 
-[`pda doctor`](#doctor) runs a set of health checks of your environment:
+[`pda doctor`](#doctor) runs a set of health checks against your environment, covering installed tools, config validity, store integrity, and Git status.
 
 ```bash
 ❯ pda doctor
@@ -1775,9 +1624,11 @@ Severity levels are colour-coded: `ok` (green), `WARN` (yellow), and `FAIL` (red
 <p>
   <sup>
     <a href="#overview">↑</a> ·
-    <a href="#pda-version"><code>pda help version</code></a>
+    <a href="#pda-version"><code>pda version</code></a>
   </sup>
 </p>
+
+[`pda version`](#version) displays the current version. Passing `short` prints just the release string without ASCII art, useful for scripting. `pda!` uses calendar versioning: `YYYY.WW`. ASCII art can be permanently disabled with `display_ascii_art = false` in [config](#config).
 
 ```bash
 # display the full version output
@@ -1787,8 +1638,6 @@ pda version
 ❯ pda version --short
 pda! 2025.52 Christmas release
 ```
-
-`pda!` uses calendar versioning: `YYYY.WW`. ASCII art can be permanently disabled with `display_ascii_art = false` in [config](#config).
 
 ### Help
 
