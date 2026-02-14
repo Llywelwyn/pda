@@ -29,6 +29,7 @@ import (
 	"os/exec"
 	"strings"
 	"text/template"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 )
@@ -117,7 +118,7 @@ func get(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot get '%s': %v", args[0], err)
 	}
 
-	if !noTemplate {
+	if !noTemplate && utf8.Valid(v) {
 		var substitutions []string
 		if len(args) > 1 {
 			substitutions = args[1:]
