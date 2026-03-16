@@ -33,12 +33,13 @@ import (
 
 // mvStoreCmd represents the move-store command
 var mvStoreCmd = &cobra.Command{
-	Use:          "move-store FROM TO",
-	Short:        "Rename a store",
-	Aliases:      []string{"mvs"},
-	Args:         cobra.ExactArgs(2),
-	RunE:         mvStore,
-	SilenceUsage: true,
+	Use:               "move-store FROM TO",
+	Short:             "Rename a store",
+	Aliases:           []string{"mvs"},
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: completeStores,
+	RunE:              mvStore,
+	SilenceUsage:      true,
 }
 
 func mvStore(cmd *cobra.Command, args []string) error {

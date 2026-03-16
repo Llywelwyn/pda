@@ -37,12 +37,13 @@ import (
 )
 
 var restoreCmd = &cobra.Command{
-	Use:          "import [STORE]",
-	Short:        "Restore key/value pairs from an NDJSON dump",
-	Aliases:      []string{},
-	Args:         cobra.MaximumNArgs(1),
-	RunE:         restore,
-	SilenceUsage: true,
+	Use:               "import [STORE]",
+	Short:             "Restore key/value pairs from an NDJSON dump",
+	Aliases:           []string{},
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: completeStores,
+	RunE:              restore,
+	SilenceUsage:      true,
 }
 
 func restore(cmd *cobra.Command, args []string) error {
@@ -323,6 +324,7 @@ func init() {
 	restoreCmd.Flags().StringP("file", "f", "", "path to an NDJSON dump (defaults to stdin)")
 	restoreCmd.Flags().StringSliceP("key", "k", nil, "restore keys matching glob pattern (repeatable)")
 	restoreCmd.Flags().StringSliceP("store", "s", nil, "restore entries from stores matching glob pattern (repeatable)")
+	restoreCmd.RegisterFlagCompletionFunc("store", completeStoreFlag)
 	restoreCmd.Flags().BoolP("interactive", "i", false, "prompt before overwriting existing keys")
 	restoreCmd.Flags().Bool("drop", false, "drop existing entries before restoring (full replace)")
 	rootCmd.AddCommand(restoreCmd)

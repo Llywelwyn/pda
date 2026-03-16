@@ -34,9 +34,10 @@ import (
 var delCmd = &cobra.Command{
 	Use:          "remove KEY[@STORE] [KEY[@STORE] ...]",
 	Short:        "Delete one or more keys",
-	Aliases:      []string{"rm"},
-	Args:         cobra.ArbitraryArgs,
-	RunE:         del,
+	Aliases:            []string{"rm"},
+	Args:               cobra.ArbitraryArgs,
+	ValidArgsFunction:  completeKeys,
+	RunE:               del,
 	SilenceUsage: true,
 }
 
@@ -145,6 +146,7 @@ func init() {
 	delCmd.Flags().Bool("force", false, "bypass read-only protection")
 	delCmd.Flags().StringSliceP("key", "k", nil, "delete keys matching glob pattern (repeatable)")
 	delCmd.Flags().StringSliceP("store", "s", nil, "target stores matching glob pattern (repeatable)")
+	delCmd.RegisterFlagCompletionFunc("store", completeStoreFlag)
 	delCmd.Flags().StringSliceP("value", "v", nil, "delete entries matching value glob pattern (repeatable)")
 	rootCmd.AddCommand(delCmd)
 }

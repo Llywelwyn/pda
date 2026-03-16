@@ -33,12 +33,13 @@ import (
 
 // delStoreCmd represents the set command
 var delStoreCmd = &cobra.Command{
-	Use:          "remove-store STORE",
-	Short:        "Delete a store",
-	Aliases:      []string{"rms"},
-	Args:         cobra.ExactArgs(1),
-	RunE:         delStore,
-	SilenceUsage: true,
+	Use:               "remove-store STORE",
+	Short:             "Delete a store",
+	Aliases:           []string{"rms"},
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeStores,
+	RunE:              delStore,
+	SilenceUsage:      true,
 }
 
 func delStore(cmd *cobra.Command, args []string) error {

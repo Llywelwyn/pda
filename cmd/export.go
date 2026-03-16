@@ -31,6 +31,7 @@ var exportCmd = &cobra.Command{
 	Short:   "Export store as NDJSON (alias for list --format ndjson)",
 	Aliases: []string{},
 	Args:    cobra.MaximumNArgs(1),
+	ValidArgsFunction: completeStores,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		listFormat = "ndjson"
 		return list(cmd, args)
@@ -41,6 +42,7 @@ var exportCmd = &cobra.Command{
 func init() {
 	exportCmd.Flags().StringSliceP("key", "k", nil, "filter keys with glob pattern (repeatable)")
 	exportCmd.Flags().StringSliceP("store", "s", nil, "filter stores with glob pattern (repeatable)")
+	exportCmd.RegisterFlagCompletionFunc("store", completeStoreFlag)
 	exportCmd.Flags().StringSliceP("value", "v", nil, "filter values with glob pattern (repeatable)")
 	rootCmd.AddCommand(exportCmd)
 }

@@ -141,10 +141,11 @@ glob pattern to filter by store name.
 Use --key/-k and --value/-v to filter by key or value glob, and --store/-s
 to filter by store name. All filters are repeatable and OR'd within the
 same flag.`,
-	Aliases:      []string{"ls"},
-	Args:         cobra.MaximumNArgs(1),
-	RunE:         list,
-	SilenceUsage: true,
+	Aliases:            []string{"ls"},
+	Args:               cobra.MaximumNArgs(1),
+	ValidArgsFunction:  completeStores,
+	RunE:               list,
+	SilenceUsage:       true,
 }
 
 func list(cmd *cobra.Command, args []string) error {
@@ -785,6 +786,7 @@ func init() {
 	listCmd.Flags().VarP(&listFormat, "format", "o", "output format (table|tsv|csv|markdown|html|ndjson|json)")
 	listCmd.Flags().StringSliceP("key", "k", nil, "filter keys with glob pattern (repeatable)")
 	listCmd.Flags().StringSliceP("store", "s", nil, "filter stores with glob pattern (repeatable)")
+	listCmd.RegisterFlagCompletionFunc("store", completeStoreFlag)
 	listCmd.Flags().StringSliceP("value", "v", nil, "filter values with glob pattern (repeatable)")
 	rootCmd.AddCommand(listCmd)
 }
