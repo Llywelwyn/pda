@@ -33,7 +33,7 @@ and more, written in pure Go, and inspired by [skate](https://github.com/charmbr
 
 <p align="center"></p><!-- spacer -->
 
-`pda` stores key-value pairs natively as [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) files. [`pda list`](#listing) outputs tabular data by default, but also supports [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](), [Markdown]() and [HTML]() tables, [JSON](), and raw NDJSON. Everything is in plaintext to make version control easy, and to avoid tying anybody to using this tool forever.
+`pda` stores key-value pairs natively as [newline-delimited JSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) files. [`pda list`](#listing) outputs tabular data by default, but also supports [CSV](https://en.wikipedia.org/wiki/Comma-separated_values), [TSV](https://en.wikipedia.org/wiki/Tab-separated_values), [Markdown](https://en.wikipedia.org/wiki/Markdown) and [HTML](https://en.wikipedia.org/wiki/HTML) tables, [JSON](https://en.wikipedia.org/wiki/JSON), and raw NDJSON. Everything is in plaintext to make version control easy, and to avoid tying anybody to using this tool forever.
 
 Git versioning can be initiated with [`pda init`](#git), and varying levels of automation can be toggled via the [config](#config): `git.autocommit`, `git.autofetch`, and `git.autopush`. Running Git operations on every change can be slow, but a commit is fast. A happy middle-ground is enabling `git.autocommit` and doing the rest manually via [`pda sync`](#git) when changing devices.
 
