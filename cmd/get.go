@@ -46,9 +46,10 @@ additional argument after the initial KEY being fetched.
 For example:
 	pda set greeting 'Hello, {{ .NAME }}!'
 	pda get greeting NAME=World`,
-	Aliases:      []string{"g"},
-	Args:         cobra.MinimumNArgs(1),
-	RunE:         get,
+	Aliases:            []string{"g"},
+	Args:               cobra.MinimumNArgs(1),
+	ValidArgsFunction:  completeKeys,
+	RunE:               get,
 	SilenceUsage: true,
 }
 
@@ -63,8 +64,9 @@ additional argument after the initial KEY being fetched.
 For example:
 	pda set greeting 'Hello, {{ .NAME }}!'
 	pda run greeting NAME=World`,
-	Args:         cobra.MinimumNArgs(1),
-	RunE:         run,
+	Args:               cobra.MinimumNArgs(1),
+	ValidArgsFunction:  completeKeys,
+	RunE:               run,
 	SilenceUsage: true,
 }
 

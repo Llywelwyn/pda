@@ -14,8 +14,9 @@ var metaCmd = &cobra.Command{
 without changing its value.
 
 With no flags, displays the key's current metadata. Pass flags to modify.`,
-	Args:         cobra.ExactArgs(1),
-	RunE:         meta,
+	Args:               cobra.ExactArgs(1),
+	ValidArgsFunction:  completeKeys,
+	RunE:               meta,
 	SilenceUsage: true,
 }
 

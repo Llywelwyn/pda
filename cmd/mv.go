@@ -30,21 +30,23 @@ import (
 )
 
 var cpCmd = &cobra.Command{
-	Use:          "copy FROM[@STORE] TO[@STORE]",
-	Aliases:      []string{"cp"},
-	Short:        "Make a copy of a key",
-	Args:         cobra.ExactArgs(2),
-	RunE:         cp,
-	SilenceUsage: true,
+	Use:               "copy FROM[@STORE] TO[@STORE]",
+	Aliases:           []string{"cp"},
+	Short:             "Make a copy of a key",
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: completeKeys,
+	RunE:              cp,
+	SilenceUsage:      true,
 }
 
 var mvCmd = &cobra.Command{
-	Use:          "move FROM[@STORE] TO[@STORE]",
-	Aliases:      []string{"mv"},
-	Short:        "Move a key",
-	Args:         cobra.ExactArgs(2),
-	RunE:         mv,
-	SilenceUsage: true,
+	Use:               "move FROM[@STORE] TO[@STORE]",
+	Aliases:           []string{"mv"},
+	Short:             "Move a key",
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: completeKeys,
+	RunE:              mv,
+	SilenceUsage:      true,
 }
 
 func cp(cmd *cobra.Command, args []string) error {

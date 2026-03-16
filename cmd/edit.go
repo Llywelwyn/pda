@@ -22,9 +22,10 @@ Binary values are presented as base64 for editing and decoded back on save.
 
 Metadata flags (--ttl, --encrypt, --decrypt) can be passed alongside the edit
 to modify metadata in the same operation.`,
-	Aliases:      []string{"e"},
-	Args:         cobra.ExactArgs(1),
-	RunE:         edit,
+	Aliases:            []string{"e"},
+	Args:               cobra.ExactArgs(1),
+	ValidArgsFunction:  completeKeys,
+	RunE:               edit,
 	SilenceUsage: true,
 }
 

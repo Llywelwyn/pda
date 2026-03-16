@@ -50,9 +50,10 @@ For example:
   'Hello, {{ default "World" .NAME }}' will default to World if NAME is blank.
   'Hello, {{ require .NAME }}'         will error if NAME is blank.
   '{{ enum .NAME "Alice" "Bob" }}'     allows only NAME=Alice or NAME=Bob.`,
-	Aliases:      []string{"s"},
-	Args:         cobra.RangeArgs(1, 2),
-	RunE:         set,
+	Aliases:            []string{"s"},
+	Args:               cobra.RangeArgs(1, 2),
+	ValidArgsFunction:  completeKeys,
+	RunE:               set,
 	SilenceUsage: true,
 }
 
