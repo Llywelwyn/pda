@@ -1543,7 +1543,7 @@ EDITOR=nvim pda edit mykey
 
 ```bash
 ❯ pda doctor
-  ok pda! 2025.52 Christmas release (linux/amd64)
+  ok pda! 2026.14 (linux/amd64)
   ok OS: Linux 6.18.7-arch1-1
   ok Go: go1.23.0
   ok Git: 2.45.0
@@ -1580,7 +1580,7 @@ pda version
 
 # or just the release
 ❯ pda version --short
-pda! 2025.52 Christmas release
+pda! 2026.14
 ```
 
 ### Help
