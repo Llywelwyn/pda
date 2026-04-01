@@ -1251,7 +1251,7 @@ pda rm cat --key "{mouse,[cd]og}**"
   </sup>
 </p>
 
-`pda!` supports all binary data. Values can be read from a file with `--file` or piped in via stdin. Retrieval works the same way — pipe or redirect the output to get the raw bytes.
+`pda!` supports all binary data. Values can be read from a file with `--file` or piped in via stdin. Retrieval works the same way: pipe or redirect the output to get the raw bytes.
 
 ```bash
 # store binary data from a file
@@ -1357,18 +1357,14 @@ The amount of Git automation can be configured via `git.auto_commit`, `git.auto_
   </sup>
 </p>
 
-[`pda identity`](#identity) (alias: [`id`](#identity)) manages the age encryption identity used for [encryption](#encryption).
+[`pda identity`](#identity) (alias: [`id`](#identity)) manages the [age](https://github.com/FiloSottile/age) identity used for [encryption](#encryption). An identity is generated automatically the first time [`--encrypt`](#encryption) is used, but one can also be created manually with `--new`. [`--new`](#identity) will error if an identity already exists; delete the file manually to replace it.
 
-#### Viewing Identity
+```bash
+# create a new identity manually
+pda identity --new
+```
 
-<p>
-  <sup>
-    <a href="#overview">↑</a> ·
-    <a href="#pda-identity"><code>pda identity</code></a>
-  </sup>
-</p>
-
-With no flags, [`pda identity`](#identity) shows your public key, identity file path, and any additional recipients. Passing `path` prints only the identity file path, useful for scripting.
+With no flags, [`pda identity`](#identity) displays your public key, identity file path, and any additional recipients. Passing `path` prints only the identity file path, useful for scripting.
 
 ```bash
 ❯ pda identity
@@ -1379,23 +1375,6 @@ With no flags, [`pda identity`](#identity) shows your public key, identity file 
 ~/.config/pda/identity.txt
 ```
 
-#### Creating an Identity
-
-<p>
-  <sup>
-    <a href="#overview">↑</a> ·
-    <a href="#pda-identity"><code>pda identity</code></a>
-  </sup>
-</p>
-
-An identity is generated automatically the first time you use [`--encrypt`](#encryption). To create one manually:
-
-```bash
-pda identity --new
-```
-
-[`--new`](#identity) errors if an identity already exists. Delete the file manually to replace it.
-
 #### Recipients
 
 <p>
@@ -1405,7 +1384,7 @@ pda identity --new
   </sup>
 </p>
 
-By default, secrets are encrypted only for your own identity. To encrypt for additional recipients (e.g. a teammate or another device), use [`--add-recipient`](#identity) with their age public key. All existing secrets are automatically re-encrypted for every recipient:
+By default, secrets are encrypted only for your own identity. To encrypt for additional recipients (e.g. another device or a friend), use [`--add-recipient`](#identity) with their age public key. All existing secrets are automatically re-encrypted for every recipient.
 
 ```bash
 ❯ pda identity --add-recipient age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
@@ -1414,7 +1393,7 @@ By default, secrets are encrypted only for your own identity. To encrypt for add
   ok re-encrypted 1 secret(s)
 ```
 
-Removing a recipient with `--remove-recipient` re-encrypts all secrets without their key. Additional recipients are shown in the default identity display.
+Removing a recipient with `--remove-recipient` re-encrypts all secrets without their key. Additional recipients are shown in the default [`pda identity`](#identity) output.
 
 ```bash
 pda identity --remove-recipient age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
@@ -1435,18 +1414,7 @@ pda identity --remove-recipient age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2k
   </sup>
 </p>
 
-Config is stored at `~/.config/pda/config.toml` (Linux/macOS) or `%LOCALAPPDATA%/pda/config.toml` (Windows). All values have sensible defaults, so a config file is entirely optional.
-
-#### Config Commands
-
-<p>
-  <sup>
-    <a href="#overview">↑</a> ·
-    <a href="#pda-config"><code>pda config</code></a>
-  </sup>
-</p>
-
-[`pda config`](#config) manages configuration without editing files by hand:
+Config is stored at `~/.config/pda/config.toml` (Linux/macOS) or `%LOCALAPPDATA%/pda/config.toml` (Windows). All values have sensible defaults, so a config file is entirely optional. [`pda config`](#config) manages configuration without needing to edit files by hand, and [`pda doctor`](#doctor) will warn about unrecognised keys (typos, removed options) and show any non-default values, so it doubles as a config audit.
 
 ```bash
 # list all config values and their current settings
@@ -1475,9 +1443,7 @@ pda config init --new
 pda config init --update
 ```
 
-[`pda doctor`](#doctor) will warn about unrecognised keys (typos, removed options) and show any non-default values, so it doubles as a config audit.
-
-#### Example config.toml
+#### Default Config
 
 <p>
   <sup>
@@ -1547,7 +1513,7 @@ default_commit_message = "{{ summary }} {{ time }}"
 
 `pda!` respects a small set of environment variables for overriding paths and tools. These are primarily useful for isolating stores across environments or for scripting.
 
-`PDA_CONFIG` overrides the config directory — `pda!` will look for `config.toml` here instead of the default XDG location. `PDA_DATA` overrides the data storage directory where stores and the Git repository live. Default data locations follow XDG conventions: `~/.local/share/pda/` on Linux, `~/Library/Application Support/pda/` on macOS, and `%LOCALAPPDATA%/pda/` on Windows.
+`PDA_CONFIG` overrides the config directory, causing `pda!` to look for `config.toml` here instead of the default XDG location. `PDA_DATA` overrides the data storage directory where stores and the Git repository live. Default data locations follow XDG conventions: `~/.local/share/pda/` on Linux, `~/Library/Application Support/pda/` on macOS, and `%LOCALAPPDATA%/pda/` on Windows.
 
 ```bash
 # use an alternative config directory
@@ -1557,7 +1523,7 @@ PDA_CONFIG=/tmp/config/ pda set key value
 PDA_DATA=/tmp/stores pda set key value
 ```
 
-`EDITOR` is used by [`pda edit`](#editing) and [`pda config edit`](#config) to open values in a text editor. Must be set for these commands to work. `SHELL` is used by [`pda run`](#running) (or [`pda get --run`](#getting)) for command execution, falling back to `/bin/sh` if unset.
+`EDITOR` is used by [`pda edit`](#editing) and [`pda config edit`](#config) to open values in a text editor, and must be set for these commands to work. `SHELL` is used by [`pda run`](#running) (or [`pda get --run`](#getting)) for command execution, falling back to `/bin/sh` if unset.
 
 ```bash
 EDITOR=nvim pda edit mykey
@@ -1573,7 +1539,7 @@ EDITOR=nvim pda edit mykey
   </sup>
 </p>
 
-[`pda doctor`](#doctor) runs a set of health checks against your environment, covering installed tools, config validity, store integrity, and Git status.
+[`pda doctor`](#doctor) runs a set of health checks against your [environment](#environment), covering installed tools, [config](#config) validity, [store](#stores) integrity, and [Git](#git) status. As mentioned in [config](#config), it also doubles as a config audit by warning about unrecognised keys and surfacing any non-default values.
 
 ```bash
 ❯ pda doctor
@@ -1595,7 +1561,7 @@ EDITOR=nvim pda edit mykey
   ok No issues found
 ```
 
-Severity levels are colour-coded: `ok` (green), `WARN` (yellow), and `FAIL` (red). Only `FAIL` produces a non-zero exit code. `WARN` is generally not a problem, but may mean some functionality isn't being made use of, like version control not having been initialised yet.
+Severity levels are colour-coded: `ok` (green), `WARN` (yellow), and `FAIL` (red). Only `FAIL` produces a non-zero exit code. `WARN` is generally not a problem, but may indicate that some functionality isn't being made use of (like [version control](#git) not having been initialised yet).
 
 ### Version
 
@@ -1606,7 +1572,7 @@ Severity levels are colour-coded: `ok` (green), `WARN` (yellow), and `FAIL` (red
   </sup>
 </p>
 
-[`pda version`](#version) displays the current version. Passing `short` prints just the release string without ASCII art, useful for scripting. `pda!` uses calendar versioning: `YYYY.WW`. ASCII art can be permanently disabled with `display_ascii_art = false` in [config](#config).
+[`pda version`](#version) displays the current version. `pda!` uses calendar versioning in the format `YYYY.WW`. Passing `short` prints just the release string without ASCII art, useful for scripting. The ASCII art can also be permanently disabled with `display_ascii_art = false` in the [config](#config).
 
 ```bash
 # display the full version output
