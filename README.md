@@ -1288,22 +1288,12 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADklEQVQI12...
     <a href="#overview">↑</a> ·
     <a href="#pda-init"><code>pda init</code></a>,
     <a href="#pda-sync"><code>pda sync</code></a>,
+    <a href="#pda-git"><code>pda git</code></a>,
     <a href="#config">Config</a>
   </sup>
 </p>
 
-`pda!` supports automatic version control backed by Git, either in a local-only repository or by initialising from a remote.
-
-#### Init
-
-<p>
-  <sup>
-    <a href="#overview">↑</a> ·
-    <a href="#pda-init"><code>pda init</code></a>
-  </sup>
-</p>
-
-[`pda init`](#git) initialises version control. With no arguments it creates a local-only repository in the data directory. Pass a remote URL to clone from an existing repository instead.
+[`pda init`](#git) initialises version control in the data directory. Without arguments, this creates a local-only repository. Passing a remote URL clones from an existing repository instead, useful for syncing `pda` across machines. For anything that [`pda sync`](#sync) doesn't cover, [`pda git`](#pda-git) passes arguments directly to `git` from within the data directory (this generally should be avoided unless things are very broken somehow).
 
 ```bash
 # initialise an empty local repository
@@ -1313,7 +1303,7 @@ pda init
 pda init https://github.com/llywelwyn/my-repository
 ```
 
-Passing `clean` removes any existing `.git` directory first, useful for reinitialising or switching remotes.
+Passing `clean` removes any existing `.git` directory first. This is primarily useful for reinitialising a broken repository or switching to a different remote.
 
 ```bash
 pda init --clean
@@ -1329,21 +1319,19 @@ pda init https://github.com/llywelwyn/my-repository --clean
   </sup>
 </p>
 
-[`pda sync`](#sync) conducts a best-effort sync of your local data with your Git repository. Any time you swap machine or know you've made changes outside of `pda!`, syncing is recommended.
+[`pda sync`](#sync) conducts a best-effort sync of local data with the Git repository. Any time you swap machine or know you've made changes outside of `pda!`, syncing is recommended.
 
-If you're ahead, syncing will commit and push. If you're behind, syncing will detect this and prompt you: either stash local changes and pull, or abort and fix manually.
+If the local repository is ahead, syncing will commit and push. If it is behind, syncing will detect this and prompt: either stash local changes and pull, or abort and resolve manually. Running [`pda sync`](#sync) will always fetch, commit, and push regardless of the automation settings in [config](#config).
 
 ```bash
 # sync with Git
 pda sync
 
 # with a custom commit message
-pda sync -m "added production credentials"
+pda sync -m "new bookmarks"
 ```
 
-Running [`pda sync`](#sync) manually will always fetch, commit, and push — or stash and pull if behind — regardless of config.
-
-#### Auto-Commit & Auto-Push
+#### Auto-Commit, Push, and Fetch
 
 <p>
   <sup>
@@ -1352,17 +1340,30 @@ Running [`pda sync`](#sync) manually will always fetch, commit, and push — or 
   </sup>
 </p>
 
-`pda!` supports automation via its [config](#config). There are options for `git.auto_commit`, `git.auto_fetch`, and `git.auto_push`.
+The amount of Git automation can be configured via `git.auto_commit`, `git.auto_fetch`, and `git.auto_push` in the [config](#config). All three are disabled by default.
 
-**`git.auto_commit`** commits changes immediately to the local Git repository any time data is changed.
+`git.auto_commit` commits changes to the local repository any time data is changed. `git.auto_fetch` fetches from the remote before committing, though this incurs a noticeable slowdown due to network round-trips. `git.auto_push` pushes committed changes to the remote after each commit.
 
-**`git.auto_fetch`** fetches before committing any changes. This incurs a noticeable slowdown due to network round-trips.
+`auto_fetch` and `auto_push` are additional steps that happen during the commit process, so they have no effect if `auto_commit` is disabled. Running all Git operations on every change can be slow, but a commit is fast. A happy middle-ground is enabling `git.auto_commit` and doing the rest manually via [`pda sync`](#sync) when changing devices.
 
-**`git.auto_push`** automatically pushes committed changes to the remote repository, if one is configured.
+#### Passthrough
 
-If `auto_commit` is false, `auto_fetch` and `auto_push` have no effect. They are additional steps in the commit process.
+<p>
+  <sup>
+    <a href="#overview">↑</a> ·
+    <a href="#pda-git"><code>pda git</code></a>
+  </sup>
+</p>
 
-A recommended setup is to enable `git.auto_commit` and run [`pda sync`](#sync) manually when switching machines.
+[`pda git`](#git) passes any arguments directly to `git`, run from within the data directory. This is an escape hatch for anything that [`pda sync`](#sync) doesn't cover, like checking the log or resetting a bad commit. Manually modifying tracked files without using the built-in commands can desync your repository, so [`pda sync`](#sync) is generally preferred.
+
+```bash
+# check the git log
+pda git log --oneline
+
+# run any arbitrary git command in the data directory
+pda git status
+```
 
 ### Identity
 
