@@ -1346,24 +1346,6 @@ The amount of Git automation can be configured via `git.auto_commit`, `git.auto_
 
 `auto_fetch` and `auto_push` are additional steps that happen during the commit process, so they have no effect if `auto_commit` is disabled. Running all Git operations on every change can be slow, but a commit is fast. A happy middle-ground is enabling `git.auto_commit` and doing the rest manually via [`pda sync`](#sync) when changing devices.
 
-#### Passthrough
-
-<p>
-  <sup>
-    <a href="#overview">↑</a> ·
-    <a href="#pda-git"><code>pda git</code></a>
-  </sup>
-</p>
-
-[`pda git`](#git) passes any arguments directly to `git`, run from within the data directory. This is an escape hatch for anything that [`pda sync`](#sync) doesn't cover, like checking the log or resetting a bad commit. Manually modifying tracked files without using the built-in commands can desync your repository, so [`pda sync`](#sync) is generally preferred.
-
-```bash
-# check the git log
-pda git log --oneline
-
-# run any arbitrary git command in the data directory
-pda git status
-```
 
 ### Identity
 
